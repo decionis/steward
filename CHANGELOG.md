@@ -22,6 +22,13 @@ you integrate against these types.
   says where it came from. The account evidence panel shows the class when the platform supplies it
   and nothing when it does not; Steward never infers it. Every demo signal is classified. Workstream
   W1 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
+- Inaction is a first-class decision in the interface. The demo carries a `NO_ACTION` decision for
+  Victor Remit with its evidence, dossier, and a `DECISION` timeline event. The dashboard groups
+  `NO_ACTION` and held items under their own heading beneath the queue rather than mixing them into
+  "what needs a decision now". The account page now distinguishes "the platform decided no action"
+  from "no recommendation was returned", which it previously conflated under a "No action" badge.
+  Workstream W3 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
+  request).
 
 ### Changed
 

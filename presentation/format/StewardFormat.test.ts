@@ -101,3 +101,18 @@ describe("StewardFormat — relativeTime", () => {
     );
   });
 });
+
+describe("StewardFormat.count", () => {
+  it("uses the singular for exactly one", () => {
+    expect(StewardFormat.count(1, "decision")).toBe("1 decision");
+  });
+
+  it("uses the plural otherwise, including zero", () => {
+    expect(StewardFormat.count(0, "decision")).toBe("0 decisions");
+    expect(StewardFormat.count(3, "decision")).toBe("3 decisions");
+  });
+
+  it("accepts an irregular plural", () => {
+    expect(StewardFormat.count(2, "entry", "entries")).toBe("2 entries");
+  });
+});

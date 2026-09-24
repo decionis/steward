@@ -99,6 +99,11 @@
   font-size: 10px;
 }
 
+.decisionBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .decisionPanel h2 {
   margin: 16px 0 8px;
   font-size: 23px;

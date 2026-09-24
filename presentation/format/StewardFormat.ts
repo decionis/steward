@@ -13,6 +13,19 @@ export class StewardFormat {
     }).format(value);
   }
 
+  /**
+   * "1 decision", "3 decisions". Headings that carry a count read wrong the
+   * moment the count is one, and the queue now has a group that is often
+   * exactly one item long.
+   */
+  static count(
+    value: number,
+    singular: string,
+    plural = `${singular}s`,
+  ): string {
+    return `${value} ${value === 1 ? singular : plural}`;
+  }
+
   static money(amount: number, currency: string): string {
     return new Intl.NumberFormat("en", {
       style: "currency",

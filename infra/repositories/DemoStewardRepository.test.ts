@@ -8,7 +8,7 @@ describe("DemoStewardRepository", () => {
 
     expect(portfolio.dataStatus).toBe("DEMO");
     expect(portfolio.accounts).toHaveLength(4);
-    expect(portfolio.opportunities).toHaveLength(3);
+    expect(portfolio.opportunities).toHaveLength(4);
     expect(portfolio.opportunities.every((item) => item.dossierId)).toBe(true);
   });
 
