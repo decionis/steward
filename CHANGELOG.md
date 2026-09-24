@@ -17,8 +17,8 @@ you integrate against these types.
   CRM, MCP servers, uploaded documents, file servers. A trust-boundary change, recorded as one:
   connectors and their run-time credentials move into this tier; identity resolution, weighting,
   policy, execution and the record stay upstream; nothing is persisted and there is no telemetry.
-  The payload, the security model, the catalogue, the ingestion endpoint the platform must add,
-  and six workstreams.
+  The payload, the security model, the catalogue, the ingestion operation requested of the
+  Decionis Protocol, and six workstreams.
 - [docs/ProactiveSupport.md](./docs/ProactiveSupport.md): the plan that turns the customer-support
   decisioning statement into features: planning by region, segment, value and cluster; events around
   the customer; proactive support plays; the minimum viable payload; the loop measured. Each is

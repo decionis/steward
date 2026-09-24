@@ -1,8 +1,7 @@
 # Signal connectors: Steward collects the context
 
 **Status: decided 24 September 2026, implementation begun.** This is a trust-boundary change and
-is recorded as one. Steward collects signals from the operator's own systems and forwards them to
-the Decionis decisioning engine as context. What it does with them stops there: no weighting, no
+is recorded as one. Steward collects signals from the operator's own systems and forwards them upstream, over the Decionis Protocol, as context for the decisioning engine. What it does with them stops there: no weighting, no
 policy, no decision, no execution, no record of authority. Those stay upstream.
 
 ## The decision
@@ -44,11 +43,11 @@ flowchart LR
   end
   subgraph Steward["Steward (this repository)"]
     C[SignalConnector per source] --> P[CapturedSignal: the minimum viable payload]
-    P --> F[Forward batch to the platform]
+    P --> F[Forward the batch over the Decionis Protocol]
     H[Sources page: health, last collection, counts, collect now]
   end
-  subgraph Platform["Decionis platform (authoritative)"]
-    I[POST /v1/cdi/signals] --> SF[SignalFed: identity resolution, weighting]
+  subgraph Platform["Decionis Protocol, the platform behind it (authoritative)"]
+    I[Signal ingestion operation] --> SF[SignalFed: identity resolution, weighting]
     SF --> R[Recommendations, dispositions, arbitration]
   end
   Sources --> C
@@ -115,8 +114,8 @@ evidence panel shows it like any other.
   configuration, `DemoSignalConnector` for demo mode.
 - `application/signals/SignalService`: list sources, collect from one, forward a batch; collection
   and forwarding gated to `OPERATOR`, `APPROVER`, `ADMIN`.
-- `infra/repositories`: `SignalRepository` with demo and live implementations; live posts to the
-  ingestion endpoint below.
+- `infra/repositories`: `SignalRepository` with demo and live implementations; live is a Decionis
+  Protocol client for the ingestion operation below.
 - BFF: `GET /api/steward/signals/sources`, `POST /api/steward/signals/sources/:id/collect`.
 - `/signals`: the Sources page, with health, last collection, counts, categories, and "Collect
   now"; the sidebar links it.
@@ -147,30 +146,34 @@ S3-compatible buckets first: list, fetch, parse with S2's extractor, forward. SF
 
 A schedule per source, a cap per batch, and the forwarding result visible per run.
 
-## Upstream request
+## Protocol request
 
-One endpoint on the platform: `POST /v1/cdi/signals`, accepting a `SignalBatch` with an
-idempotency key, resolving `accountReference` to an account, and returning per-signal accepted or
-rejected with a reason. Until it exists, S1 forwards in demo mode only and live mode reports the
-endpoint as unavailable rather than pretending. The `DOCUMENT` category and the connector kinds
-above are part of the same request.
+Upstream means the Decionis Protocol: the published wire contract Steward already speaks for the
+four `/v1/cdi` operations. Signal ingestion is one more operation in it. Proposed in the same
+family as `POST /v1/cdi/signals`, accepting a `SignalBatch` with an idempotency key, resolving
+`accountReference` to an account, and returning per-signal accepted or rejected with a reason; the
+Protocol's authors decide the final path, shape and version, and Steward's client follows the
+published contract, parsed through a Zod schema in `domain/` like every other operation. Until the
+operation exists, S1 forwards in demo mode only, and live mode reports the operation as unavailable
+rather than pretending. The `DOCUMENT` category and the connector kinds above are part of the same
+request.
 
 ## Sequencing
 
-| Stage          | Work   | Gate                                                                   |
-| -------------- | ------ | ---------------------------------------------------------------------- |
-| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR           |
-| **2. Ask**     |        | The ingestion endpoint requested; its version and shape answered       |
-| **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green |
-| **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch    |
-| **5. Cadence** | S6     | After at least one live source has run by hand                         |
+| Stage          | Work   | Gate                                                                              |
+| -------------- | ------ | --------------------------------------------------------------------------------- |
+| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR                      |
+| **2. Ask**     |        | The ingestion operation requested of the Protocol; its version and shape answered |
+| **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green            |
+| **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch               |
+| **5. Cadence** | S6     | After at least one live source has run by hand                                    |
 
 ## Decisions recorded
 
 | Question                                               | Decision                                                                                 |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | Who observes and collects signals?                     | Steward, through connectors in the operator's trust domain                               |
-| Who resolves identity, weighs, decides, executes?      | The platform, unchanged                                                                  |
+| Who resolves identity, weighs, decides, executes?      | The platform, reached over the Decionis Protocol, unchanged                              |
 | Does Steward persist anything?                         | No. Collected signals are in memory until forwarded; documents are discarded             |
 | Where do connector credentials live?                   | Mounted secrets or environment on the Steward server; never in the repository or browser |
 | Does the value-tier vocabulary belong to the platform? | Yes                                                                                      |
