@@ -35,12 +35,30 @@ updates:
       # `pnpm outdated` when there is appetite for one, and bump it in a
       # pull request whose only job is that upgrade.
       #
+      # Named, because `ignore` has no dependency-type filter; the earlier
+      # form with one was invalid and stopped Dependabot parsing this file at
+      # all. Packages that must track another package's major, such as
+      # eslint-config-next tracking next and @types/react tracking react,
+      # are deliberately not listed.
+      #
       # Scoped to `version-update:` — a major that fixes a security advisory
       # still arrives immediately.
-      - dependency-name: "*"
-        dependency-type: development
-        update-types:
-          - "version-update:semver-major"
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/eslintrc"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jsdom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "playwright"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prettier"
+        update-types: ["version-update:semver-major"]
 
     groups:
       # Grouped by dependency type and update size rather than by package name.
