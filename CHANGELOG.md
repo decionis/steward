@@ -10,7 +10,13 @@ you integrate against these types.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- A contract pin for the platform's context fields: `infra/api/samples/` holds response bodies in
+  the agreed shape, and `infra/api/DecionisContract.test.ts` drives each through the real HTTP
+  client, gateway, and `domain/` schemas. The samples are constructed from the agreed contract, not
+  captured; replacing them with staging captures once the platform ships is what pins the contract
+  to reality. The test also records what a rollout mistake looks like at the boundary.
 
 ## [0.2.0] — 2026-09-24
 
