@@ -10,6 +10,13 @@ you integrate against these types.
 
 ## [Unreleased]
 
+### Added
+
+- [docs/ProactiveSupport.md](./docs/ProactiveSupport.md): the plan that turns the customer-support
+  decisioning statement into features: planning by region, segment, value and cluster; events around
+  the customer; proactive support plays; the minimum viable payload; the loop measured. Each is
+  shipped, presentation-only, a contract addition or platform work, with the boundary held.
+
 ### Changed
 
 - Steward is described as the open-source customer support decisioning platform, on every surface:
