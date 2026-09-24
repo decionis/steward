@@ -1,9 +1,14 @@
 name: Discovery
 
 # Validates the machine-discovery files (llms.txt, llms-full.txt, and the copies
-# the application serves from public/) and the links inside them. The weekly
-# run matters as much as the push run: discovery links rot without anyone
-# touching the repository.
+# the application serves from public/) and the links inside them.
+#
+# Two questions, kept apart. A pull request or a push checks the tree: the
+# pairs are identical, the shape is valid, every repository link names a file
+# that exists. The weekly run and a manual dispatch also check the world: every
+# public link answers. Links rot without anyone touching the repository, which
+# is why the weekly run exists; and a public host being down is not a reason a
+# change to this tree cannot merge, which is why a pull request does not probe.
 
 on:
   push:
@@ -40,5 +45,8 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - name: Validate discovery files and links
+      - name: Validate the discovery files against the tree
+        run: node scripts/CheckDiscovery.mjs
+      - name: Probe every public link
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: node scripts/CheckDiscovery.mjs --check-links

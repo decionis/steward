@@ -41,10 +41,11 @@ search engines; the description of it does not.
 
 `pnpm discovery` runs `scripts/CheckDiscovery.mjs`: the pairs are identical, `llms-full.txt`
 embeds `llms.txt`, the shape follows the specification, every repository link resolves in the
-tree, every other host is on the allowlist. It is part of `pnpm verify`. The
-[discovery workflow](../.github/workflows/discovery.yml) runs it with `--check-links` on every pull
-request and every Monday, so a public link that stops answering is found by us rather than by an
-agent.
+tree, every other host is on the allowlist. It is part of `pnpm verify`, and the
+[discovery workflow](../.github/workflows/discovery.yml) runs it on every pull request. Every
+Monday, and on a manual dispatch, the same workflow adds `--check-links` and probes every public
+link, so one that stops answering is found by us rather than by an agent. The two are kept apart
+on purpose: a public host being down is not a reason a change to this tree cannot merge.
 
 ## Pull-request checklist
 
