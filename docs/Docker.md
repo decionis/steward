@@ -1,7 +1,8 @@
 # Run Steward in Docker
 
-> One queue for account decisions, the evidence behind each, and a record of every one. Decionis
-> executes.
+> The open-source customer support decisioning platform: see what is happening across your
+> accounts, triage one queue with the evidence behind each recommendation, act before the customer
+> asks. Decisions are recorded and executed by Decionis.
 
 ## What your operators get
 

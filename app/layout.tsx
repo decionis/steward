@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Decionis Steward",
   description:
-    "The review console for customer operations: processing-limit reviews, expansion, friction and KYC/KYB escalations in one queue, the evidence behind each, and every decision recorded and executed by Decionis.",
+    "The open-source customer support decisioning platform: see what is happening across your accounts, triage one queue with the evidence behind each recommendation, act before the customer asks. Decisions are recorded and executed by Decionis.",
   robots: { index: false, follow: false },
 };
 

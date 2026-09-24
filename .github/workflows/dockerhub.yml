@@ -166,7 +166,7 @@ jobs:
           OVERVIEW_FILE: packaging/dockerhub/README.md
           # Docker Hub shows this line under the repository's title; it takes
           # at most 100 characters.
-          SHORT_DESCRIPTION: "One queue for account decisions, the evidence behind each, every decision recorded and executed."
+          SHORT_DESCRIPTION: "Customer support decisioning: see what is happening, triage one queue, act before the customer asks."
         shell: bash
         run: |
           set -euo pipefail

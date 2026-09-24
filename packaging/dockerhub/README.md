@@ -1,9 +1,10 @@
 # Decionis Steward
 
-**One queue for account decisions, the evidence behind each, and a record of every one. Decionis
-executes.**
+**The open-source customer support decisioning platform: see what is happening, triage one queue,
+act before the customer asks.**
 
-`decionis/steward` is the review console for customer operations, risk and revenue teams.
+`decionis/steward` is where customer operations, risk and revenue teams see what is happening
+across their accounts as it happens and act on it before the customer asks.
 Processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations
 arrive in one queue, each with the evidence behind it: the usage, support, settlement, CRM and
 KYC signals, the source and record of each, when it was observed, and whether the connected

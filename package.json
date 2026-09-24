@@ -2,7 +2,7 @@
   "name": "@decionis/steward",
   "version": "0.3.0",
   "private": true,
-  "description": "The review console for customer operations: processing-limit reviews, expansion, friction and KYC/KYB escalations in one queue, the evidence behind each recommendation, and every decision recorded and executed by the Decionis platform.",
+  "description": "The open-source customer support decisioning platform: see what is happening across your accounts, triage one queue of limit reviews, expansion, friction and KYC escalations with the evidence behind each, and act before the customer asks. Decisions are recorded and executed by Decionis.",
   "license": "Apache-2.0",
   "author": "Decionis, Inc. (https://decionis.com)",
   "homepage": "https://github.com/decionis/steward#readme",
