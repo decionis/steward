@@ -1,6 +1,6 @@
 # Decionis Steward
 
-> Steward is the open-source (Apache-2.0) operator tier of the Decionis platform: the control center where customer-operations, risk and revenue teams review account decisions with the evidence in front of them: where each data point came from, how fresh it is, whether its sources are healthy, which signals led to the recommendation and which were overruled. Operators review; Decionis makes, records and executes the authoritative decision. Steward owns no policy, no credential and no customer data at rest, checks no license, and reports nothing.
+> Steward is the open-source (Apache-2.0) operator tier of the Decionis platform: the review console where customer operations, risk and revenue teams handle processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations from one queue, with the evidence behind each recommendation on the page. Reviews are recorded and forwarded; Decionis makes, records and executes the authoritative decision. Steward owns no policy, no credential and no customer data at rest, checks no license, and reports nothing.
 
 What it is for: in regulated fintech, the people closest to a customer can see that an account is ready for a higher processing limit or is about to churn, but cannot act without an auditable, policy-bound path. Steward is that path. Every review an operator submits becomes an attributable event in the Decionis ledger, never an ad-hoc change made in a spreadsheet.
 

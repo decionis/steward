@@ -17,9 +17,9 @@ export function DashboardHeader({
         </div>
         <h1>Control center</h1>
         <p>
-          Review each recommendation with its evidence in view: where it came
-          from, how fresh it is, and what led to it. Decionis decides what
-          executes.
+          Limit reviews, expansion, friction and KYC escalations in one queue,
+          with the evidence behind each. Reviews are recorded here and executed
+          by Decionis.
         </p>
       </div>
       <div className={styles.evidenceNote}>

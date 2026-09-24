@@ -1,24 +1,23 @@
 # Run Steward in Docker
 
-> Put customer and account decisions in front of your operators with the evidence attached: where
-> each data point came from, how fresh it is, whether the sources behind it are healthy, and which
-> information led to the recommendation. They review; Decionis decides, records and executes.
+> One queue for account decisions, the evidence behind each, and a record of every one. Decionis
+> executes.
 
 ## What your operators get
 
-The question an operator has to answer before acting on a recommendation is whether they can see
-where each data point came from, whether it is fresh and complete, and which information led to
-it. One container, and the people closest to your customers, in operations, risk and revenue, can:
+One container, and your operations, risk and revenue teams get:
 
-- **See where every data point came from.** Each signal carries its source, its record reference
-  and its confidence, and the health of every source behind the account sits beside it.
-- **See how fresh and how complete the context is, at the moment they act.** Freshness on every
-  signal; a one-line "Context at review" above the controls naming the weakest freshness and any
-  degraded source; a strip showing which kinds of context, from journey to policy, the evidence
-  covers and which it lacks.
-- **See which information led to the recommendation.** Every recommendation names the evidence it
-  rests on and, when the platform supplies it, why it got its disposition: what governed, what was
-  overruled, what was suppressed, under which policy version.
+- **One queue.** Processing-limit reviews, expansion outreach, friction interventions and KYC/KYB
+  escalations, prioritised, each with the account, the rationale, the confidence and the dossier
+  reference.
+- **The evidence on the page.** The usage, support, settlement, CRM and KYC signals behind each
+  recommendation, with the source and record of each, when it was observed, and whether the
+  connected source is healthy, stale or disconnected.
+- **Freshness at a glance.** A line above the review buttons says whether the linked evidence is
+  current and whether any source behind it is degraded, and a strip shows which kinds of context
+  the evidence covers.
+- **Why the recommendation.** When the platform supplies it, which signals the recommendation
+  rests on, which it overrode, which actions it holds back, and under which policy version.
 - **A review flow that records rather than executes.** Accept, hold or reject, and the review is
   forwarded to the Decionis platform with the operator's own credential. Nothing downstream changes
   until the platform decides. The caption on every control says so.

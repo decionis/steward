@@ -2,7 +2,7 @@
   "name": "@decionis/steward",
   "version": "0.3.0",
   "private": true,
-  "description": "The operator surface for customer and account decisions: every recommendation with its evidence, where each data point came from, how fresh it is, what led to it and what was overruled. Operators review; Decionis decides, records and executes.",
+  "description": "The review console for customer operations: processing-limit reviews, expansion, friction and KYC/KYB escalations in one queue, the evidence behind each recommendation, and every decision recorded and executed by the Decionis platform.",
   "license": "Apache-2.0",
   "author": "Decionis, Inc. (https://decionis.com)",
   "homepage": "https://github.com/decionis/steward#readme",

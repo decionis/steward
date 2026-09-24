@@ -1,19 +1,18 @@
 # Decionis Steward
 
-**Put customer and account decisions in front of your operators with the evidence attached: where
-each data point came from, how fresh it is, whether the sources behind it are healthy, and which
-information led to the recommendation. They review; Decionis decides, records and executes.**
+**One queue for account decisions, the evidence behind each, and a record of every one. Decionis
+executes.**
 
-The question an operator has to answer before acting on a recommendation is whether they can see
-where each data point came from, whether it is fresh and complete, and which information led to
-it. `decionis/steward` is the control center that answers it. Every signal carries its source,
-its record and its freshness; the account page says how fresh the context is at the moment of
-review and which of its sources are degraded; every recommendation names the evidence it rests
-on and, when the platform supplies it, why it got its disposition: what governed, what was
-overruled, what was suppressed. A decision to do nothing appears as a decision, with its
-evidence. Every accept, hold or reject is forwarded to the [Decionis](https://decionis.com)
-platform with the operator's own credential, and nothing downstream changes until the platform
-decides. The caption on every control says so.
+`decionis/steward` is the review console for customer operations, risk and revenue teams.
+Processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations
+arrive in one queue, each with the evidence behind it: the usage, support, settlement, CRM and
+KYC signals, the source and record of each, when it was observed, and whether the connected
+source is healthy. A line above the review buttons says whether that evidence is current and
+whether any source behind it is degraded. When the platform supplies it, the recommendation also
+says which signals it rests on, which it overrode and which actions it holds back. An approver
+accepts, holds or rejects; the review is forwarded to the [Decionis](https://decionis.com)
+platform with the approver's own credential, recorded, and executed there. Nothing downstream
+changes until the platform decides, and the caption on every control says so.
 
 What stays in the platform: policy evaluation, connector credentials, execution grants, Decision
 Dossiers, the audit ledger. The container holds none of them, checks no license, and sends nothing
