@@ -20,8 +20,9 @@ keyless workflow identity. One digest names the release on both registries. Dock
 pull-rate limits to anonymous clients; a cluster that pulls often should authenticate to it, pull
 from GHCR, or mirror.
 
-> Availability: the image is published by the image workflow from the first release tag after it
-> merged. Before that, build it from a clone: `docker build -t decionis-steward .`
+> Availability: the image is published by the image workflow from `v0.3.0` on; the tag is the
+> release version, and `edge` has followed `master` since the workflow merged. For anything older,
+> build it from a clone: `docker build -t decionis-steward .`
 
 ## Demo mode
 

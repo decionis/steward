@@ -10,6 +10,16 @@ you integrate against these types.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.3.0] — 2026-09-24
+
+The distribution release. Steward ships as a signed multi-architecture container on GHCR, mirrored
+by digest to Docker Hub when the mirror is enabled; it describes itself to the agents that evaluate
+it at `/llms.txt`; it states its open-core boundary and shows the activation point in the product;
+and it pins the platform's contract with sample payloads driven through the live path. No contract
+in `domain/` changed, so nothing that integrated against 0.2.0 needs to move.
+
 ### Added
 
 - The README leads with an Install section in the shape AgentSafe uses: Docker, the release
