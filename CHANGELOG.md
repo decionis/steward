@@ -10,9 +10,15 @@ you integrate against these types.
 
 ## [Unreleased]
 
-The next release is **0.2.0**. Contracts in `domain/` gained optional fields (`contextClass` on
-evidence, `arbitration` on opportunities), which the pre-1.0 policy above treats as potentially
-breaking, so this is a minor bump rather than a patch.
+Nothing yet.
+
+## [0.2.0] — 2026-09-24
+
+The context-engineering release. Every decision the platform makes is more legible at the moment
+an operator reviews it. Contracts in `domain/` gained optional fields (`contextClass` on evidence,
+`arbitration` on opportunities), which the pre-1.0 policy above treats as potentially breaking, so
+this is a minor bump rather than a patch. The fields are optional: an upstream that has not shipped
+them parses exactly as before, and the interface shows nothing it was not told.
 
 ### Added
 
