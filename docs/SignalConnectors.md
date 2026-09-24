@@ -180,13 +180,13 @@ workspace; Steward does not drive the mapping session.
 
 ## Sequencing
 
-| Stage          | Work   | Gate                                                                     |
-| -------------- | ------ | ------------------------------------------------------------------------ |
-| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR (#90)       |
-| **2. Reuse**   |        | Answered: the Protocol publishes the ingress; Steward's client speaks it |
-| **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green   |
-| **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch      |
-| **5. Cadence** | S6     | After at least one live source has run by hand                           |
+| Stage          | Work   | Gate                                                                           |
+| -------------- | ------ | ------------------------------------------------------------------------------ |
+| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR (#90)             |
+| **2. Reuse**   |        | Answered: the Protocol publishes the ingress; Steward's client speaks it (#91) |
+| **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green         |
+| **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch            |
+| **5. Cadence** | S6     | After at least one live source has run by hand                                 |
 
 ## Decisions recorded
 
