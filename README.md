@@ -74,12 +74,14 @@ Open <http://localhost:3000>.
 `ADMIN` and `APPROVER` roles in the `demo-fintech` organization, so the full review flow is
 exercisable end to end:
 
-- **Portfolio dashboard** (`/`) — account health, evidence coverage, and the summary counters that
-  drive triage.
+- **Portfolio dashboard** (`/`) — account health, evidence coverage, the summary counters that
+  drive triage, and the decisions that reached an outcome under "Recently resolved".
 - **Opportunity queue** — friction interventions, KYC/KYB escalations, processing-limit reviews, and
-  expansion outreach, each with its rationale, confidence, and linked evidence.
-- **Account detail** (`/accounts/[id]`) — evidence signals, connection health, applicable policy, and
-  the decision timeline.
+  expansion outreach, each with its rationale, confidence, linked evidence, and the platform's "Why
+  this disposition". Deliberate inaction is grouped beneath the queue rather than hidden.
+- **Account detail** (`/accounts/[id]`) — evidence signals with their context class and a coverage
+  strip, connection health, applicable policy, the state of the context at the moment of review,
+  and the decision timeline.
 
 ![The governed action queue: each recommendation carries its rationale, confidence, evidence coverage, and dossier reference](docs/screenshot-opportunity-queue.png)
 

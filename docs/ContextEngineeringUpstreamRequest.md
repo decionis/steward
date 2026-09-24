@@ -3,8 +3,10 @@
 **Status: answered 24 September 2026.** The platform will carry both fields below;
 `GET /v1/cdi/opportunities` returns open and completed items; contract additions are versioned, so
 these ship as a versioned CDI change and the Steward release carrying them is a minor bump. Kept as
-the record of what was asked and agreed. Stage 2 of [ContextEngineering.md](ContextEngineering.md)
-(W1, W2, W5) and W6 are being implemented.
+the record of what was asked and agreed. Steward's side shipped on 24 September 2026 (#69
+`contextClass`, #70 `arbitration`, #71 coverage by class, #66 outcomes); see
+[ContextEngineering.md](ContextEngineering.md). Live activation waits on the platform's versioned
+change.
 
 ## Two optional fields
 
