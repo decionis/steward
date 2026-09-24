@@ -29,6 +29,14 @@ you integrate against these types.
   from "no recommendation was returned", which it previously conflated under a "No action" badge.
   Workstream W3 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
   request).
+- The account page states the context at the moment of review: whether the evidence a
+  recommendation links is live, aging, or stale, whether any source that produced it reports
+  degraded health, and when the account's evidence was last updated. A confidence badge no longer
+  sits above stale evidence from a degraded connector without a word saying so. After a review, the
+  interface says if the platform's disposition differs from the one that was on screen.
+  `DecisionContext` in `presentation/` summarises fields already on the page and makes no judgment.
+  Workstream W4 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
+  request).
 
 ### Changed
 

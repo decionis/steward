@@ -362,3 +362,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+.reviewContext {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f5f3ff;
+  color: var(--ink-700);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.reviewContext > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--violet-600);
+}
+.reviewContext strong {
+  display: block;
+  color: var(--ink-500);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.reviewContext[data-tone="attention"] {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+.reviewContext[data-tone="attention"] > svg {
+  color: #b45309;
+}

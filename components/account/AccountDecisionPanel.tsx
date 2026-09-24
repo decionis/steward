@@ -1,8 +1,12 @@
-import { FileKey2 } from "lucide-react";
+import { FileKey2, Radar } from "lucide-react";
+import type { ConnectorHealth } from "@/domain/accounts/CustomerAccount";
+import type { EvidenceSignal } from "@/domain/evidence/EvidenceSignal";
 import type { CustomerOpportunity } from "@/domain/opportunities/CustomerOpportunity";
+import { RelativeTime } from "@/components/common/RelativeTime";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { StewardFormat } from "@/presentation/format/StewardFormat";
 import { ReviewAction } from "@/components/dashboard/ReviewAction";
+import { DecisionContext } from "@/presentation/context/DecisionContext";
+import { StewardFormat } from "@/presentation/format/StewardFormat";
 import styles from "./Account.module.css";
 
 /**
@@ -13,13 +17,26 @@ import styles from "./Account.module.css";
  * `NO_ACTION` opportunity with evidence and a dossier: a decision that was
  * made and recorded. Rendering the first as if it were the second told an
  * operator the account had been assessed when it had not.
+ *
+ * Above the review buttons, one line says what state the context is in at
+ * the moment of review: whether the linked evidence is fresh and whether its
+ * sources are healthy. A confidence badge above stale evidence from a
+ * degraded connector is the interface making an uncertain decision look more
+ * certain than it is; this line is the correction. `DecisionContext` only
+ * summarises fields already on this page.
  */
 export function AccountDecisionPanel({
   opportunity,
   canReview,
+  evidence,
+  connectors,
+  updatedAt,
 }: {
   opportunity: CustomerOpportunity | null;
   canReview: boolean;
+  evidence: EvidenceSignal[];
+  connectors: ConnectorHealth[];
+  updatedAt: string;
 }) {
   if (!opportunity) {
     return (
@@ -39,6 +56,11 @@ export function AccountDecisionPanel({
   }
 
   const isNoAction = opportunity.kind === "NO_ACTION";
+  const context = new DecisionContext(
+    opportunity,
+    evidence,
+    connectors,
+  ).summarize();
 
   return (
     <section className={styles.decisionPanel}>
@@ -73,7 +95,26 @@ export function AccountDecisionPanel({
         <FileKey2 size={15} aria-hidden="true" />
         {opportunity.dossierId ?? "Decision Dossier pending"}
       </div>
-      <ReviewAction opportunityId={opportunity.id} canReview={canReview} />
+      <div
+        className={styles.reviewContext}
+        data-tone={context.tone}
+        role="note"
+        aria-label="Context at review"
+      >
+        <Radar size={14} aria-hidden="true" />
+        <div>
+          <strong>Context at review</strong>
+          <span>
+            {context.headline} Account evidence updated{" "}
+            <RelativeTime value={updatedAt} />.
+          </span>
+        </div>
+      </div>
+      <ReviewAction
+        opportunityId={opportunity.id}
+        canReview={canReview}
+        displayedDisposition={opportunity.disposition}
+      />
     </section>
   );
 }
