@@ -10,6 +10,10 @@ you integrate against these types.
 
 ## [Unreleased]
 
+The next release is **0.2.0**. Contracts in `domain/` gained optional fields (`contextClass` on
+evidence, `arbitration` on opportunities), which the pre-1.0 policy above treats as potentially
+breaking, so this is a minor bump rather than a patch.
+
 ### Added
 
 - [docs/ContextEngineering.md](./docs/ContextEngineering.md): a review of two September 2026 articles

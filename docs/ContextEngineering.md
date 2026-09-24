@@ -1,9 +1,10 @@
 # Context Engineering and Steward
 
-**Status: approved 24 September 2026, all recommendations accepted.** The platform team answered
-the three upstream questions the same day (see "Decisions needed for approval"), so every workstream
-is being implemented, each on its own branch off `master`. The map is a reading of the tree at
-approval time.
+**Status: implemented.** All seven workstreams merged on 24 September 2026, each from its own
+branch off `master`: W0 #63, W1 #69, W2 #70, W3 #68, W4 #64, W5 #71, W6 #66, with the audit fix
+as #65. Stage 4, live activation, waits on the platform shipping the versioned contract change;
+nothing in Steward changes when it does, the optional fields simply start arriving. The map below
+is a reading of the tree at approval time.
 
 Two sources, read together:
 
@@ -278,7 +279,7 @@ Each is one pull request. Each passes `pnpm verify`, is signed off (DCO), regene
 screenshots if it changes the interface, and adds a line under `[Unreleased]` in
 [CHANGELOG.md](../CHANGELOG.md).
 
-#### W0 — Adopt the vocabulary (documentation only) ✅ Done
+#### W0 — Adopt the vocabulary (documentation only) ✅ Done (#63)
 
 - Merge this document.
 - [Architecture.md](../Architecture.md): one short section naming the loop and mapping it onto
@@ -288,7 +289,7 @@ screenshots if it changes the interface, and adds a line under `[Unreleased]` in
 
 Layer: none. Upstream dependency: none. Closes: nothing directly; it is the frame for the rest.
 
-#### W1 — Context class on evidence (closes G1, enables G2 and G6)
+#### W1 — Context class on evidence (closes G1, enables G2 and G6) ✅ Done (#69)
 
 Add an optional `contextClass` to [EvidenceSignal](../domain/evidence/EvidenceSignal.ts):
 
@@ -321,7 +322,7 @@ statement in a contract. Pre-1.0, adding a sixth later costs one line.
 
 Layer: `domain/`, `infra/demo/`, `components/account/`. CODEOWNER review required.
 
-#### W2 — Arbitration made legible (closes G3, most of G2)
+#### W2 — Arbitration made legible (closes G3, most of G2) ✅ Done (#70)
 
 Add an optional `arbitration` to
 [CustomerOpportunity](../domain/opportunities/CustomerOpportunity.ts):
@@ -362,7 +363,7 @@ account page names the version in force.
 Layer: `domain/`, `infra/demo/`, `components/dashboard/`, `components/account/`. CODEOWNER review
 required. Depends on W1 for `ContextClassSchema`.
 
-#### W3 — Inaction as a first-class decision (closes G4)
+#### W3 — Inaction as a first-class decision (closes G4) ✅ Done (#68)
 
 No contract change. Presentation and fixtures only.
 
@@ -379,7 +380,7 @@ No contract change. Presentation and fixtures only.
 
 Layer: `infra/demo/`, `components/`.
 
-#### W4 — Context at the moment of review (closes G5)
+#### W4 — Context at the moment of review (closes G5) ✅ Done (#64)
 
 No contract change. A summary of data already on the page. This is the direct answer to CX Today's
 "a more elegant interface makes an uncertain decision look more certain than it is".
@@ -403,7 +404,7 @@ Layer: `presentation/`, `components/`. Note for the reviewer: this is the one wo
 line between "formatting policy" and "logic" needs a glance. The class summarises fields; the
 Architecture.md sentence in W0 is what licenses it.
 
-#### W5 — Coverage by class (closes G6)
+#### W5 — Coverage by class (closes G6) ✅ Done (#71)
 
 Depends on W1.
 
@@ -415,7 +416,7 @@ Depends on W1.
 
 Layer: `components/account/`, `presentation/`.
 
-#### W6 — Close the loop: outcomes (closes G7)
+#### W6 — Close the loop: outcomes (closes G7) ✅ Done (#66)
 
 No contract change. `OpportunityStatus.COMPLETED` and `AccountTimelineEvent.kind: "OUTCOME"` already
 exist; nothing exercises them.
@@ -453,13 +454,13 @@ Layer: `infra/demo/`, `components/`.
 
 ### Sequencing
 
-| Stage               | Work                      | Gate to clear before proceeding                                                         |
-| ------------------- | ------------------------- | --------------------------------------------------------------------------------------- |
-| **0. Approve**      | This document (W0)        | The decisions below are made                                                            |
-| **1. Presentation** | W3, then W4, then W6      | `pnpm verify` green; screenshots regenerated; no `domain/` change                       |
-| **2. Contract**     | W1, then W2               | CODEOWNER review; upstream change request filed with the platform team                  |
-| **3. Coverage**     | W5                        | W1 merged                                                                               |
-| **4. Live**         | Platform ships the fields | A live response parses with the fields present; remove the "demo only" note from the UI |
+| Stage               | Work                      | Gate to clear before proceeding                                                                                                      |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **0. Approve**      | This document (W0)        | The decisions below are made                                                                                                         |
+| **1. Presentation** | W3, then W4, then W6      | `pnpm verify` green; screenshots regenerated; no `domain/` change                                                                    |
+| **2. Contract**     | W1, then W2               | CODEOWNER review; upstream change request filed with the platform team                                                               |
+| **3. Coverage**     | W5                        | W1 merged                                                                                                                            |
+| **4. Live**         | Platform ships the fields | A live response parses with the fields present; class badges, the coverage strip and "Why this disposition" then render in live mode |
 
 Stages 1 and 2 are independent and can run in parallel. Stage 1 first is the recommendation because
 it ships value with no upstream dependency and no contract risk, which is also CX Today's advice:
