@@ -23,6 +23,7 @@ function config(
     orgIdCookie: "decionis_org_id",
     signInUrl: "https://decionis.com/sign-in",
     timeoutMs: 8_000,
+    signalIngress: null,
   });
 }
 

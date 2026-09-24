@@ -75,10 +75,14 @@ services:
     cap_drop: ["ALL"]
 ```
 
+To let operators collect signals and forward them, add the two values your Decionis deployment
+bundle issued, `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET`, as secrets in the same
+environment. Without them the Signal sources page still works and "Collect now" answers that
+forwarding is not configured; with one but not the other the process refuses to start.
+
 Put TLS termination in front of it. The operator's session arrives as cookies from the Decionis
 sign-in handoff, and the browser only ever talks to this container, never to the platform directly.
-The [README](../README.md#configuration) lists every variable; the two above are the only ones
-live mode needs.
+The [README](../README.md#configuration) lists every variable; the two above are the only ones live mode requires, and the two the deployment bundle issues are the only others an operator sets.
 
 ## What is free, and where paying starts
 
@@ -129,6 +133,7 @@ cannot take a rollout down with it; Docker Hub rate-limits anonymous pulls.
 | Discovery            | `GET /llms.txt`, no session needed; what this deployment is, for an agent evaluating it       |
 | Demo mode            | The default; `STEWARD_DATA_MODE=demo`                                                         |
 | Live mode            | `STEWARD_DATA_MODE=live` and `DECIONIS_API_BASE_URL`                                          |
+| Signal forwarding    | `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET`, from the Decionis deployment bundle    |
 | Logs                 | Standard output                                                                               |
 | Shutdown             | `docker stop`; nothing is persisted, so nothing is lost                                       |
 | Platforms            | `linux/amd64`, `linux/arm64`                                                                  |

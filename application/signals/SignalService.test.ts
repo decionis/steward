@@ -91,14 +91,14 @@ describe("SignalService", () => {
     );
   });
 
-  it("in live mode says the Protocol operation is not published, and stores nothing", async () => {
+  it("in live mode without the ingress configured says so, and stores nothing", async () => {
     const service = new SignalService(
       registry,
-      new DecionisSignalRepository(),
+      new DecionisSignalRepository(null),
       session(["APPROVER"]),
     );
     await expect(service.collect("src-demo-crm")).rejects.toThrow(
-      /does not yet publish/,
+      /not configured on this deployment/,
     );
   });
 });

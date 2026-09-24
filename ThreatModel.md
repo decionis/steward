@@ -20,6 +20,7 @@ entry in the audit ledger, because Steward holds none of those.
 | Customer account evidence                                   | Fetched per request, not persisted                           | Medium — read exposure, no durable store                                                                            |
 | Review decisions                                            | Forwarded upstream, not stored here                          | Medium — an unauthorized forward                                                                                    |
 | Signal-source credentials                                   | Mounted secret or environment, read by a connector at start  | High — read access to the operator's own systems, within the credential's scope                                     |
+| Decionis ingress secret                                     | `DECIONIS_WEBHOOK_SECRET` in the server environment          | High — write access to this organisation's signal intake; rotate it from the Decionis workspace                     |
 | Collected signals                                           | In memory for the request that forwards them, then discarded | Medium — read exposure of what a source returned; a wrong signal upstream, which the platform weighs and can reject |
 | Policy logic, identity resolution, grants, dossiers, ledger | **Decionis platform only**                                   | **None — not present in this tier**                                                                                 |
 
@@ -162,7 +163,8 @@ steer a decision, and a connector carrying data somewhere it should not.
 Against the first, a connector's output is parsed through the `CapturedSignal` schema before it
 leaves the process, so a source cannot inject arbitrary shapes; each signal names its source and
 record, so provenance survives to the evidence panel; and the platform resolves the account reference
-and weighs the signal itself, with per-signal rejection in the ingestion result. Steward never acts on
+and weighs the signal itself, answering per batch: a 2xx accepts it, a 4xx refuses it with a reason and is not retried, a 5xx
+is retried with backoff. Steward never acts on
 what it collects. Against the second, a batch is forwarded only to the configured platform and is not
 written anywhere; collection needs the `OPERATOR` role, checked in `application/`; and the demo
 connectors make no network request at all.
@@ -172,7 +174,9 @@ and the size and page limits on document intake. Both arrive with S2 in
 [docs/SignalConnectors.md](docs/SignalConnectors.md); until then a live registry holds no connector.
 
 _Verify:_ `SignalService.test.ts` asserts the role gate, the not-configured refusal, and that live
-forwarding reports the unpublished operation rather than accepting silently. `DemoSignalConnector.test.ts`
+forwarding without a configured ingress reports 503 rather than accepting silently.
+`DecionisSignalIngressClient.test.ts` asserts the webhook secret travels in a header and never in the
+URL or an error message, that a 4xx is not retried and a 5xx is. `DemoSignalConnector.test.ts`
 asserts the fixtures satisfy the schema and name no host, URL, address or phone number.
 `CapturedSignal.test.ts` asserts the payload refuses an empty account reference and an out-of-range
 confidence.
