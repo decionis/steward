@@ -35,7 +35,13 @@ export default async function AccountPage({
     return (
       <AppShell session={context.session}>
         <AccountHeader account={account} />
-        <AccountDecisionPanel opportunity={opportunity} canReview={canReview} />
+        <AccountDecisionPanel
+          opportunity={opportunity}
+          canReview={canReview}
+          evidence={account.evidence}
+          connectors={account.connectors}
+          updatedAt={account.updatedAt}
+        />
         <div className={styles.contentGrid}>
           <AccountEvidence evidence={account.evidence} />
           <div className={styles.sideStack}>

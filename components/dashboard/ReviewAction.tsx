@@ -7,9 +7,25 @@ import styles from "./Dashboard.module.css";
 export interface ReviewActionProps {
   opportunityId: string;
   canReview: boolean;
+  /**
+   * The disposition the operator saw when the page rendered. The platform
+   * re-evaluates on every review, so the disposition it returns can differ
+   * from the one that was on screen. When it does, the operator is told;
+   * the re-evaluation is the platform's control, this only makes it visible.
+   */
+  displayedDisposition?: string;
 }
 
-export function ReviewAction({ opportunityId, canReview }: ReviewActionProps) {
+interface ReviewResponseBody {
+  message?: string;
+  opportunity?: { status?: string; disposition?: string };
+}
+
+export function ReviewAction({
+  opportunityId,
+  canReview,
+  displayedDisposition,
+}: ReviewActionProps) {
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle",
   );
@@ -27,15 +43,22 @@ export function ReviewAction({ opportunityId, canReview }: ReviewActionProps) {
           body: JSON.stringify({ decision }),
         },
       );
-      const body = (await response.json()) as {
-        message?: string;
-        opportunity?: { status: string };
-      };
+      const body = (await response.json()) as ReviewResponseBody;
       if (!response.ok)
         throw new Error(body.message ?? "Review could not be saved");
+
+      const returned = body.opportunity?.disposition;
+      const changed =
+        displayedDisposition !== undefined &&
+        returned !== undefined &&
+        returned !== displayedDisposition;
+
       setStatus("saved");
       setMessage(
-        `Recorded as ${body.opportunity?.status?.toLowerCase() ?? "reviewed"}.`,
+        `Recorded as ${body.opportunity?.status?.toLowerCase() ?? "reviewed"}.` +
+          (changed
+            ? ` The platform's disposition changed since this page loaded: it is now ${returned}.`
+            : ""),
       );
     } catch (error) {
       setStatus("error");

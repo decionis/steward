@@ -69,7 +69,11 @@ export function OpportunityCard({
           <FileKey2 size={15} aria-hidden="true" />
           {opportunity.dossierId ?? "Dossier pending"}
         </div>
-        <ReviewAction opportunityId={opportunity.id} canReview={canReview} />
+        <ReviewAction
+          opportunityId={opportunity.id}
+          canReview={canReview}
+          displayedDisposition={opportunity.disposition}
+        />
       </aside>
     </article>
   );
