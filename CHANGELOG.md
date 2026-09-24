@@ -26,6 +26,15 @@ you integrate against these types.
   client, gateway, and `domain/` schemas. The samples are constructed from the agreed contract, not
   captured; replacing them with staging captures once the platform ships is what pins the contract
   to reality. The test also records what a rollout mistake looks like at the boundary.
+- The container is published. The [image workflow](./.github/workflows/image.yml) builds
+  `ghcr.io/decionis/steward` for `linux/amd64` and `linux/arm64` with BuildKit's SBOM and
+  provenance, smoke-tests it on each platform before pushing, and attests the manifest digest;
+  `edge` follows `master`, release tags get `<version>`, `<major>.<minor>`, `<major>` and `latest`.
+  A separate [Docker Hub workflow](./.github/workflows/dockerhub.yml) copies the attested manifest
+  by digest to `docker.io/decionis/steward` when `DOCKERHUB_PUBLISH_ENABLED` is set. The Dockerfile
+  pins its base by digest from the AWS public mirror, builds on the builder's platform, ships
+  `public/`, and carries OCI labels; Dependabot watches the base image. Workstream D1 of
+  `docs/Distribution.md`.
 
 ## [0.2.0] — 2026-09-24
 

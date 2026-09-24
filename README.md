@@ -162,6 +162,17 @@ subtly wrong number on a dashboard.
 
 ## Deployment
 
+The published image is the quickest path. It is built for `linux/amd64` and `linux/arm64`, runs
+unprivileged, defaults to demo mode, and carries a signed provenance attestation:
+
+```bash
+docker run -p 3000:3000 ghcr.io/decionis/steward:<version>   # demo mode, no credentials
+gh attestation verify oci://ghcr.io/decionis/steward:<version> --repo decionis/steward
+```
+
+The same digest is on Docker Hub as `decionis/steward`. [docs/Docker.md](docs/Docker.md) covers
+tags, live mode, verification and what the image does and does not hold.
+
 `next.config.ts` sets `output: "standalone"`, so the build emits a self-contained server. The
 included [Dockerfile](./Dockerfile) packages it:
 
