@@ -3,6 +3,7 @@ import type { ConnectorHealth } from "@/domain/accounts/CustomerAccount";
 import type { EvidenceSignal } from "@/domain/evidence/EvidenceSignal";
 import type { CustomerOpportunity } from "@/domain/opportunities/CustomerOpportunity";
 import { RelativeTime } from "@/components/common/RelativeTime";
+import { ArbitrationNote } from "@/components/common/ArbitrationNote";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ReviewAction } from "@/components/dashboard/ReviewAction";
 import { DecisionContext } from "@/presentation/context/DecisionContext";
@@ -91,6 +92,10 @@ export function AccountDecisionPanel({
         <strong>Recommended next action</strong>
         <span>{opportunity.recommendedAction}</span>
       </div>
+      <ArbitrationNote
+        arbitration={opportunity.arbitration}
+        evidence={evidence}
+      />
       <div className={styles.dossierLine}>
         <FileKey2 size={15} aria-hidden="true" />
         {opportunity.dossierId ?? "Decision Dossier pending"}

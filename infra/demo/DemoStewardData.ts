@@ -513,6 +513,15 @@ function buildOpportunities(): CustomerOpportunity[] {
       priority: "ELEVATED",
       createdAt: ago(5),
       dossierId: "dos_demo_kilo_01",
+      arbitration: {
+        governingClass: "POLICY",
+        governingEvidenceIds: ["ev-kilo-kyb"],
+        overriddenEvidenceIds: [],
+        suppressedActions: [],
+        policyReference: "customer_ops.v4",
+        summary:
+          "The increase exceeds the review threshold, so the active policy routes it to human approval rather than applying it. Partner KYB is current, which is what allows a review rather than a block.",
+      },
     },
     {
       id: "opp-sierra-friction",
@@ -532,6 +541,15 @@ function buildOpportunities(): CustomerOpportunity[] {
       priority: "URGENT",
       createdAt: ago(16),
       dossierId: "dos_demo_sierra_01",
+      arbitration: {
+        governingClass: "OPERATIONAL",
+        governingEvidenceIds: ["ev-sierra-completion"],
+        overriddenEvidenceIds: [],
+        suppressedActions: ["Expansion outreach"],
+        policyReference: "customer_ops.v4",
+        summary:
+          "A corridor-specific fall in completion rate, corroborated by support volume, is an active service condition. The policy escalates to an operations incident and suppresses commercial outreach while it persists.",
+      },
     },
     {
       id: "opp-tango-hold",
@@ -551,6 +569,15 @@ function buildOpportunities(): CustomerOpportunity[] {
       priority: "ROUTINE",
       createdAt: ago(120),
       dossierId: "dos_demo_tango_01",
+      arbitration: {
+        governingClass: "POLICY",
+        governingEvidenceIds: ["ev-tango-kyb"],
+        overriddenEvidenceIds: ["ev-tango-usage"],
+        suppressedActions: ["Processing-limit review"],
+        policyReference: "customer_ops.v4",
+        summary:
+          "Beneficial-ownership evidence is outside the 90-day freshness window the active policy requires. Utilisation supports a review and is overridden until the record is refreshed.",
+      },
     },
     {
       // Inaction is a decision. This fixture exists so the demo shows the
@@ -574,6 +601,15 @@ function buildOpportunities(): CustomerOpportunity[] {
       priority: "ROUTINE",
       createdAt: ago(200),
       dossierId: "dos_demo_victor_01",
+      arbitration: {
+        governingClass: "POLICY",
+        governingEvidenceIds: ["ev-victor-kyb", "ev-victor-usage"],
+        overriddenEvidenceIds: [],
+        suppressedActions: [],
+        policyReference: "customer_ops.v4",
+        summary:
+          "Volume is steady inside the envelope and KYB is current, so the active policy recorded a deliberate no-action decision rather than leaving the account unassessed.",
+      },
     },
   ];
 }

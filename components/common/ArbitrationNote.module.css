@@ -1,0 +1,56 @@
+.note {
+  margin-top: 14px;
+  border-left: 2px solid var(--amber-700);
+  padding-left: 12px;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.heading strong {
+  font-weight: 700;
+}
+.note > p {
+  margin: 5px 0 0;
+  color: var(--ink-700);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.facts {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+.facts > div {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.facts dt {
+  flex: none;
+  width: 104px;
+  color: var(--ink-500);
+}
+.facts dd {
+  margin: 0;
+  color: var(--ink-700);
+}
+.facts code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+}
+.contextClass {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: var(--amber-100);
+  color: var(--amber-700);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}

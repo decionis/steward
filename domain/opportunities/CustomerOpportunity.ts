@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ContextClassSchema } from "@/domain/common/ContextClass";
 import { DecisionDispositionSchema } from "@/domain/common/DecisionDisposition";
 
 export const OpportunityKindSchema = z.enum([
@@ -19,6 +20,22 @@ export const OpportunityStatusSchema = z.enum([
   "COMPLETED",
 ]);
 
+/**
+ * Why the platform's policy pack arrived at this disposition: which class of
+ * context governed, which signals it rested on, which it overrode, what it
+ * suppressed, and under which policy version. Steward renders this and never
+ * computes it. Optional until the platform ships it; when absent the card
+ * looks as it did before. See docs/ContextEngineering.md, W2.
+ */
+export const ArbitrationSchema = z.object({
+  governingClass: ContextClassSchema,
+  governingEvidenceIds: z.array(z.string().min(1)).min(1),
+  overriddenEvidenceIds: z.array(z.string().min(1)),
+  suppressedActions: z.array(z.string().min(1)),
+  policyReference: z.string().min(1),
+  summary: z.string().min(1),
+});
+
 export const CustomerOpportunitySchema = z.object({
   id: z.string().min(1),
   accountId: z.string().min(1),
@@ -35,6 +52,7 @@ export const CustomerOpportunitySchema = z.object({
   priority: z.enum(["ROUTINE", "ELEVATED", "URGENT"]),
   createdAt: z.string().datetime(),
   dossierId: z.string().min(1).nullable(),
+  arbitration: ArbitrationSchema.optional(),
 });
 
 export const OpportunityReviewSchema = z.object({
@@ -50,6 +68,7 @@ export const OpportunityReviewResultSchema = z.object({
 
 export type OpportunityKind = z.infer<typeof OpportunityKindSchema>;
 export type OpportunityStatus = z.infer<typeof OpportunityStatusSchema>;
+export type Arbitration = z.infer<typeof ArbitrationSchema>;
 export type CustomerOpportunity = z.infer<typeof CustomerOpportunitySchema>;
 export type OpportunityReview = z.infer<typeof OpportunityReviewSchema>;
 export type OpportunityReviewResult = z.infer<

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, FileKey2 } from "lucide-react";
 import { RelativeTime } from "@/components/common/RelativeTime";
+import { ArbitrationNote } from "@/components/common/ArbitrationNote";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import type { CustomerOpportunity } from "@/domain/opportunities/CustomerOpportunity";
 import { StewardFormat } from "@/presentation/format/StewardFormat";
@@ -48,6 +49,7 @@ export function OpportunityCard({
           <strong>Recommended next action</strong>
           <span>{opportunity.recommendedAction}</span>
         </div>
+        <ArbitrationNote arbitration={opportunity.arbitration} />
       </div>
 
       <aside
