@@ -476,6 +476,9 @@ prove it where the foundation is already strong.
 
 ### Inputs needed
 
+The upstream questions and both field proposals are drafted, ready to send, in
+[ContextEngineeringUpstreamRequest.md](ContextEngineeringUpstreamRequest.md).
+
 | Input                                                         | Needed for                                                  |
 | ------------------------------------------------------------- | ----------------------------------------------------------- |
 | A contact or ticket queue on the Decionis platform team       | The W1, W2, and W6 upstream questions                       |
