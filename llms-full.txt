@@ -1,21 +1,23 @@
 # Decionis Steward
 
-> Steward is the open-source (Apache-2.0) customer support decisioning platform: the console where customer operations, risk and revenue teams see what is happening across their accounts as it happens, triage one queue of processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations with the evidence behind each, and act before the customer asks. Reviews are recorded and forwarded; Decionis, the authority behind Steward, makes, records and executes the authoritative decision. Steward owns no policy, no credential and no customer data at rest, checks no license, and reports nothing.
+> Steward is the open-source (Apache-2.0) customer support decisioning platform: the console where customer operations, risk and revenue teams see what is happening across their accounts as it happens, triage one queue of processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations with the evidence behind each, and act before the customer asks. Reviews are recorded and forwarded; Decionis, the authority behind Steward, makes, records and executes the authoritative decision. Steward collects the signals that become context from the operator's own systems (CRM, ERP, MCP servers, uploaded documents, file servers) and forwards them; it owns no policy and no customer data at rest, holds only the mounted credentials of the sources it is configured to collect from, checks no license, and reports nothing.
 
 What it is for: in regulated fintech, the people closest to a customer can see that an account is ready for a higher processing limit or is about to churn, but cannot act without an auditable, policy-bound path. Steward is that path. Every review an operator submits becomes an attributable event in the Decionis ledger, never an ad-hoc change made in a spreadsheet.
 
-What it is not: Steward does not evaluate policy, hold connector secrets, issue execution grants, or keep the audit ledger. Those stay in the Decionis platform (https://decionis.com). A review accepted in Steward cannot by itself change a limit; every review control says so: "Records a review only; no downstream limit is changed." That sentence is also the free tier. The platform making the change is what is paid, and commerce enters at exactly that point.
+What it is not: Steward does not evaluate policy, resolve identity, weigh signals, issue execution grants, or keep the audit ledger. Those stay in the Decionis platform (https://decionis.com). A review accepted in Steward cannot by itself change a limit; every review control says so: "Records a review only; no downstream limit is changed." That sentence is also the free tier. The platform making the change is what is paid, and commerce enters at exactly that point.
 
 How it runs: demo mode (the default, STEWARD_DATA_MODE=demo) serves deterministic fixtures with no account and no credential, and the whole review flow works. Live mode (STEWARD_DATA_MODE=live with DECIONIS_API_BASE_URL) requires a Decionis session on every path except /api/health, /sign-in and these two files, and never falls back to fixtures. Distributed as source, a signed release tarball with a CycloneDX SBOM and SLSA provenance, a container image (ghcr.io/decionis/steward, mirrored by digest to docker.io/decionis/steward) and a hosted demo (https://decionis-steward.vercel.app).
 
 ## Documentation
 
-- [README](https://github.com/decionis/steward#readme): the trust boundary, quickstart, configuration, routes, deployment, conventions, the four non-negotiable rules.
+- [README](https://github.com/decionis/steward#readme): the trust boundary, quickstart, configuration, routes, deployment, conventions, the five non-negotiable rules.
 - [Architecture](https://github.com/decionis/steward/blob/master/Architecture.md): four layers with one direction of dependency, the two runtime modes, and the decision loop the account timeline records as SIGNAL, DECISION, ACTION, OUTCOME.
 - [Open-core boundary](https://github.com/decionis/steward/blob/master/OpenCore.md): what is Apache-2.0 here (all of Steward), what Decionis operates, the seam (one interface, four operations), what is free and what is paid, the activation point, five commitments.
-- [Threat model](https://github.com/decionis/steward/blob/master/ThreatModel.md): assets, trust boundaries, seven threats with the code and tests behind each mitigation, the security headers, and the gaps accepted rather than fixed.
+- [Threat model](https://github.com/decionis/steward/blob/master/ThreatModel.md): assets, trust boundaries, eight threats with the code and tests behind each mitigation, the security headers, and the gaps accepted rather than fixed.
 - [Evidence pack](https://github.com/decionis/steward/blob/master/EvidencePack.md): the security-review questionnaire mapped to artifacts a reviewer can read and run without a call.
 - [Context engineering](https://github.com/decionis/steward/blob/master/docs/ContextEngineering.md): how the interface makes the platform's decisions legible: context classes on evidence, arbitration rendered as "Why this disposition", inaction as a decision, the state of the context at the moment of review, coverage by class, decisions that reached an outcome.
+- [Proactive support](https://github.com/decionis/steward/blob/master/docs/ProactiveSupport.md): the plan that turns the customer-support decisioning statement into features: planning by region, segment, value and cluster; events around the customer; proactive support plays; the loop measured.
+- [Signal connectors](https://github.com/decionis/steward/blob/master/docs/SignalConnectors.md): the decision that Steward collects the signals that become context, from the operator's own systems; the payload, the security model, the connector catalogue, the ingestion operation requested of the Decionis Protocol, and six workstreams.
 - [Distribution](https://github.com/decionis/steward/blob/master/docs/Distribution.md): the container on GHCR and Docker Hub, machine discovery, and the commercial boundary modelled on NGINX's open-source-plus-subscription shape.
 - [Run in Docker](https://github.com/decionis/steward/blob/master/docs/Docker.md): ghcr.io/decionis/steward and docker.io/decionis/steward at the same digest; tags (immutable version, minor, major, latest, edge), demo and live mode, verification, what the image holds and does not.
 - [Machine discovery](https://github.com/decionis/steward/blob/master/docs/Discovery.md): the surfaces this file is one of, the rules, and the gate that keeps them true.
@@ -26,6 +28,7 @@ How it runs: demo mode (the default, STEWARD_DATA_MODE=demo) serves deterministi
 ## Contracts
 
 - [Evidence signal](https://github.com/decionis/steward/blob/master/domain/evidence/EvidenceSignal.ts): a signal with source, freshness (LIVE, CURRENT, AGING, STALE), confidence, impact, a source category, and an optional context class (JOURNEY, INTENT, FRICTION, OPERATIONAL, POLICY).
+- [Captured signal](https://github.com/decionis/steward/blob/master/domain/signals/CapturedSignal.ts): the minimum viable payload a connector produces: source, source record, the account reference as the source knows it, observed and captured times, a category (the evidence categories plus DOCUMENT), an optional context class, title, detail, confidence; batched, forwarded, never stored.
 - [Customer opportunity](https://github.com/decionis/steward/blob/master/domain/opportunities/CustomerOpportunity.ts): a recommendation with kind, status, disposition (ALLOW, BLOCK, ESCALATE, REVIEW), confidence, evidence coverage, linked evidence ids, a dossier reference, and an optional arbitration naming what governed, what was overridden, what was suppressed, and under which policy version.
 - [Customer account](https://github.com/decionis/steward/blob/master/domain/accounts/CustomerAccount.ts): summary, connectors with health, evidence, timeline, and the policy envelope in force.
 - [Portfolio snapshot](https://github.com/decionis/steward/blob/master/domain/portfolio/PortfolioSnapshot.ts): the organisation's accounts and opportunities, marked LIVE or DEMO.
@@ -34,8 +37,9 @@ How it runs: demo mode (the default, STEWARD_DATA_MODE=demo) serves deterministi
 
 ## Routing
 
-- Policy evaluation, execution grants, Decision Dossiers, the audit ledger, connector credentials, tenant identity -> Decionis: https://decionis.com. Not this repository.
-- Running the operator tier, its screens, its contracts, its tests, its image -> this repository.
+- Policy evaluation, identity resolution, the weighing of signals, execution grants, Decision Dossiers, the audit ledger, tenant identity -> Decionis: https://decionis.com. Not this repository.
+- Running the operator tier, its screens, its signal connectors, its contracts, its tests, its image -> this repository.
+- Whether Steward stores what it collects -> no. A connector reaches the host its source names, parses the result into CapturedSignal, forwards the batch over the Decionis Protocol, and discards it; live forwarding answers 503 until the Protocol publishes the ingestion operation.
 - Whether a review accepted in Steward changes a processing limit by itself -> no. Steward forwards the review with the operator's own credential; the platform decides, executes, and returns the resulting state and a dossier reference.
 - Whether Steward's role check is a security control -> no. It is a UX affordance; the platform re-authorizes every review, and the threat model says so under T2.
 - Whether there is a paid or feature-gated build of Steward -> no, and there will not be one. The image is the same bytes for a free tenant and a paying one; what differs is what the platform returns.
@@ -76,9 +80,11 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - GET /api/steward/accounts/:id: one account; 404 when unknown.
 - GET /api/steward/opportunities: the recommendation queue, open and completed.
 - POST /api/steward/opportunities/:id/review: body {"decision": "APPROVE" | "REJECT" | "HOLD", "note"?: string}; requires the APPROVER or ADMIN role, else 403; forwarded to the platform, never applied here.
+- GET /api/steward/signals/sources: the signal sources this deployment is configured to collect from, each with kind, categories, health, last collection and count.
+- POST /api/steward/signals/sources/:id/collect: collect from one source and forward the batch; requires OPERATOR, APPROVER or ADMIN, else 403; 503 when the source is not configured or the Protocol has not published the ingestion operation; nothing is stored.
 - GET /api/health: unauthenticated liveness probe.
 - GET /llms.txt, GET /llms-full.txt: these files, served in every data mode without a session and without the noindex header the rest of the application carries.
-- Pages: / (control center), /accounts/:id (account detail), /sign-in (the Decionis identity handoff).
+- Pages: / (control center), /accounts/:id (account detail), /signals (signal sources), /sign-in (the Decionis identity handoff).
 
 ## Upstream operations the live mode expects
 
@@ -86,6 +92,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - GET /v1/cdi/accounts/:accountId
 - GET /v1/cdi/opportunities
 - POST /v1/cdi/opportunities/:opportunityId/reviews
+- POST /v1/cdi/signals: requested of the Decionis Protocol, not yet published; live collection reports it unavailable until it is.
 - Every response is parsed through a Zod contract in domain/ before it enters the application layer. Schema drift fails loudly at the boundary rather than rendering as a subtly wrong number. The organisation scope travels as a query parameter and as the X-Decionis-Org-Id header; the credential travels only in the Authorization header, never in a URL.
 
 ## What the interface shows
@@ -94,6 +101,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - Governed action queue: friction interventions, KYC/KYB escalations, processing-limit reviews, expansion outreach, each with rationale, confidence, linked evidence, a dossier reference, and, when the platform supplies it, "Why this disposition": the governing context class, the signals it rested on, the signals it overrode, the actions it suppressed, the policy version. Deliberate inaction (NO_ACTION and held items) is grouped beneath the queue rather than hidden.
 - Account detail: evidence with source category and context class, a coverage strip across the five context classes, connector health, the policy envelope in force, "Context at review" (the weakest freshness among linked evidence and any degraded source) above the review controls, and the timeline with SIGNAL, DECISION, ACTION and OUTCOME events.
 - After a review: the interface reports the recorded status and says if the platform's disposition changed since the page loaded.
+- Signal sources: the systems this deployment collects from, each with kind, the categories it yields, health, when it was last collected and how many signals; "Collect now" pulls a batch, forwards it, and reports how many were accepted upstream.
 
 ## Security properties a reviewer can run
 
@@ -103,13 +111,14 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - An unhandled error maps to a generic 500 that leaks no internal detail (StewardApiErrorMapper.test.ts).
 - A live API failure never falls back to fixtures (StewardRepositoryFactory.test.ts, DemoStewardRepository.test.ts).
 - Seven security headers on every response and a nonce-based Content-Security-Policy per request with no unsafe-inline or unsafe-eval on scripts in production (middleware.test.ts).
-- No telemetry, no analytics, no third-party scripts, no outbound request except to the configured platform, no cookies set by this application, no PII in URLs, no customer data at rest.
+- No telemetry, no analytics, no third-party scripts, no outbound request except to the configured platform and the signal sources the deployment configures, no cookies set by this application, no PII in URLs, no customer data at rest.
 
 ## Demo fixtures
 
 - Organisations are named from the NATO phonetic alphabet (Kilo Payments, Sierra Treasury, Tango Trade Services, Victor Remit), people carry the Example surname, external references are CRM-DEMO-000n, and connectors are generic capabilities. DemoStewardData.test.ts enforces all of it, so no real customer data can arrive by accident.
 - Kilo: expansion-ready, a processing-limit review open, a prior review completed. Sierra: friction, an escalation with a degraded settlement connector. Tango: held pending a KYB refresh, a stale policy signal overriding utilisation. Victor: healthy, a deliberate no-action decision with evidence and a dossier.
+- Signal sources in demo mode: a CRM, a support desk, a settlement ledger reached as an MCP server (degraded), and document upload not yet configured; every collected signal references CRM-DEMO-000n and names no host. DemoSignalConnector.test.ts enforces it.
 
 ## The commercial boundary, in one paragraph
 
-All of Steward is free, forever, including demo mode and live mode against a Decionis workspace in shadow, where real evidence and recommendations are shown and reviews are recorded. What Decionis sells is operating the platform: policy evaluation, execution grants, Decision Dossier retention, the audit ledger, connectors, identity, Presence, support, and hosted Steward for tenants who do not want to run the container. Commerce enters at the first review that is meant to execute rather than only be recorded. Nothing in this repository moves that line; the platform does, per tenant.
+All of Steward is free, forever, including demo mode and live mode against a Decionis workspace in shadow, where real evidence and recommendations are shown and reviews are recorded. What Decionis sells is operating the platform: policy evaluation, execution grants, Decision Dossier retention, the audit ledger, signal ingestion, identity, Presence, support, and hosted Steward for tenants who do not want to run the container. Commerce enters at the first review that is meant to execute rather than only be recorded. Nothing in this repository moves that line; the platform does, per tenant.

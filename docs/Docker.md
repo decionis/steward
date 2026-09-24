@@ -25,9 +25,10 @@ One container, and your operations, risk and revenue teams get:
 - **Inaction and outcomes made visible.** A decision to do nothing appears as a decision, with its
   evidence and dossier; decisions that reached an outcome appear under "Recently resolved".
 
-What stays where it belongs: policy evaluation, connector credentials, execution grants, Decision
+What stays where it belongs: policy evaluation, identity resolution, execution grants, Decision
 Dossiers and the audit ledger all live in the platform. The container holds none of them, checks no
-license, and sends nothing anywhere but the platform you point it at.
+license, and sends nothing anywhere but the platform you point it at and the signal sources you
+configure.
 
 ## Five minutes, no account
 
@@ -132,6 +133,6 @@ cannot take a rollout down with it; Docker Hub rate-limits anonymous pulls.
 | Shutdown             | `docker stop`; nothing is persisted, so nothing is lost                                       |
 | Platforms            | `linux/amd64`, `linux/arm64`                                                                  |
 | What the image holds | The built server, its static assets, `public/`                                                |
-| What it never holds  | A policy, a credential, a connector secret, a database, customer data, a license check        |
+| What it never holds  | A policy, a baked-in credential, a database, customer data, a license check                   |
 
 The [threat model](../ThreatModel.md) says what a compromise of this tier can and cannot reach.

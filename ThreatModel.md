@@ -4,24 +4,27 @@
 against, what it deliberately does not defend against, and where a reviewer can verify each claim in
 code.
 
-The short version: **Steward is not authoritative.** It renders evidence and forwards operator reviews.
-An attacker who fully compromises this tier can misrepresent what an operator sees and can forward
-reviews the operator's own credential was already entitled to make. They cannot change a processing
-limit, alter a policy, read a connector secret, or forge an entry in the audit ledger, because Steward
-holds none of those.
+The short version: **Steward is not authoritative.** It collects signals, renders evidence and forwards
+operator reviews. An attacker who fully compromises this tier can misrepresent what an operator sees,
+can forward reviews the operator's own credential was already entitled to make, can feed wrong signals
+upstream, and can read the credentials of the signal sources this deployment is configured to collect
+from. They cannot change a processing limit, alter a policy, decide what a signal weighs, or forge an
+entry in the audit ledger, because Steward holds none of those.
 
 ## Assets
 
-| Asset                                                     | Where it lives                         | Exposure if Steward is compromised       |
-| --------------------------------------------------------- | -------------------------------------- | ---------------------------------------- |
-| Operator access token                                     | Cookie, server memory during a request | High — grants the operator's own rights  |
-| Organization scope (`orgId`)                              | Cookie or request header               | High — the tenant boundary               |
-| Customer account evidence                                 | Fetched per request, not persisted     | Medium — read exposure, no durable store |
-| Review decisions                                          | Forwarded upstream, not stored here    | Medium — an unauthorized forward         |
-| Policy logic, connector secrets, grants, dossiers, ledger | **Decionis platform only**             | **None — not present in this tier**      |
+| Asset                                                       | Where it lives                                               | Exposure if Steward is compromised                                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Operator access token                                       | Cookie, server memory during a request                       | High — grants the operator's own rights                                                                             |
+| Organization scope (`orgId`)                                | Cookie or request header                                     | High — the tenant boundary                                                                                          |
+| Customer account evidence                                   | Fetched per request, not persisted                           | Medium — read exposure, no durable store                                                                            |
+| Review decisions                                            | Forwarded upstream, not stored here                          | Medium — an unauthorized forward                                                                                    |
+| Signal-source credentials                                   | Mounted secret or environment, read by a connector at start  | High — read access to the operator's own systems, within the credential's scope                                     |
+| Collected signals                                           | In memory for the request that forwards them, then discarded | Medium — read exposure of what a source returned; a wrong signal upstream, which the platform weighs and can reject |
+| Policy logic, identity resolution, grants, dossiers, ledger | **Decionis platform only**                                   | **None — not present in this tier**                                                                                 |
 
-Steward has no database, no session store, and no durable customer data. There is nothing here to
-exfiltrate at rest. That is a design property, not an accident, and it is the single largest
+Steward has no database, no session store, and no durable customer data; a collected batch lives for
+the request that forwards it. There is nothing here to exfiltrate at rest. That is a design property, not an accident, and it is the single largest
 reduction in this tier's blast radius.
 
 ## Trust boundaries
@@ -29,6 +32,9 @@ reduction in this tier's blast radius.
 ```text
 [1] Browser  ──►  [2] Steward Next.js server / BFF  ──►  [3] Decionis /v1/cdi APIs
      untrusted         semi-trusted, this repo          authoritative
+                              │
+                              └──►  [4] Signal sources: CRM, ERP, MCP servers, documents, file servers
+                                        the operator's own systems, reached with mounted credentials
 ```
 
 **Boundary 1 → 2** is the one this repository enforces. Everything from the browser is untrusted:
@@ -36,6 +42,13 @@ cookies, headers, path segments, and request bodies.
 
 **Boundary 2 → 3** is where authority actually lives. Steward presents the operator's token and org
 scope; the platform decides. Steward cannot elevate what that token is entitled to do.
+
+**Boundary 2 → 4** is the one signal collection adds. A connector reaches only the host its configured
+source names, with a credential mounted on the server, and treats what comes back as data: parsed
+through the `CapturedSignal` schema, forwarded across boundary 3, never stored and never executed. A
+compromised source can feed a wrong signal; it cannot make a decision, because the platform resolves
+and weighs every signal it receives and can reject it. [docs/SignalConnectors.md](docs/SignalConnectors.md)
+records the decision that put this boundary here.
 
 ## Threats and mitigations
 
@@ -92,9 +105,9 @@ logs, browser history, and referrer headers.
 
 The subtler exposure is React Server Components: any prop passed from a server component into a
 client component is serialized into the RSC payload delivered to the browser. `AppShell` receives the
-whole `StewardSession`, which carries `accessToken`. It is a server component, and the only interactive
-client component — `ReviewAction` — receives just an opportunity id and a `canReview` boolean, both
-derived server-side. The token never crosses the boundary.
+whole `StewardSession`, which carries `accessToken`. It is a server component, and the interactive
+client components, `ReviewAction` and `CollectAction`, receive an id and a boolean each, derived
+server-side. Neither the token nor a signal-source credential crosses the boundary.
 
 Nothing in the type system enforces that: adding `"use client"` to `AppShell` would ship the access
 token in every page payload without failing typecheck or any behavioural test.
@@ -140,13 +153,38 @@ outside 400–599 are clamped to `502`.
 _Verify:_ `StewardApiErrorMapper.test.ts` asserts an unrecognized error's original message — including
 host and port detail — does not reach the response body.
 
+### T8 — A signal source that lies, or a connector that leaks
+
+**Mitigated in part; the rest lands with the first live connector.** A connector is the one place this
+tier reaches a system other than the platform. Two failures matter: a source returning data meant to
+steer a decision, and a connector carrying data somewhere it should not.
+
+Against the first, a connector's output is parsed through the `CapturedSignal` schema before it
+leaves the process, so a source cannot inject arbitrary shapes; each signal names its source and
+record, so provenance survives to the evidence panel; and the platform resolves the account reference
+and weighs the signal itself, with per-signal rejection in the ingestion result. Steward never acts on
+what it collects. Against the second, a batch is forwarded only to the configured platform and is not
+written anywhere; collection needs the `OPERATOR` role, checked in `application/`; and the demo
+connectors make no network request at all.
+
+Not yet in the tree: the egress allowlist that pins a live connector to the host its source names,
+and the size and page limits on document intake. Both arrive with S2 in
+[docs/SignalConnectors.md](docs/SignalConnectors.md); until then a live registry holds no connector.
+
+_Verify:_ `SignalService.test.ts` asserts the role gate, the not-configured refusal, and that live
+forwarding reports the unpublished operation rather than accepting silently. `DemoSignalConnector.test.ts`
+asserts the fixtures satisfy the schema and name no host, URL, address or phone number.
+`CapturedSignal.test.ts` asserts the payload refuses an empty account reference and an out-of-range
+confidence.
+
 ## The container
 
 `ghcr.io/decionis/steward` is the same server as the release tarball, built by
 [`image.yml`](.github/workflows/image.yml) for two architectures and smoke-tested on each before
 it is pushed. It holds the built server, its static assets and `public/`. It does not hold a
-policy, a credential, a connector secret, a database, customer data, or a license check, and it
-makes no outbound request to any host but the configured `DECIONIS_API_BASE_URL`. It runs as the
+policy, a baked-in credential, a database, customer data, or a license check (signal-source
+credentials are mounted at run time), and it makes no outbound request to any host but the configured
+`DECIONIS_API_BASE_URL` and the signal sources the deployment configures. It runs as the
 unprivileged `node` user; the base image is pinned by digest and moved only by a Dependabot pull
 request; the manifest digest is attested with the workflow's keyless identity, so a consumer can
 prove the bytes came from this repository:
@@ -231,10 +269,13 @@ Stated plainly, because a threat model that lists only mitigations is marketing.
 ## Data handling
 
 - **No telemetry, no analytics, no third-party scripts.** The server tier makes no outbound request
-  to any host other than the configured `DECIONIS_API_BASE_URL`. The browser calls only this
+  to any host other than the configured `DECIONIS_API_BASE_URL` and the signal sources the deployment
+  configures, each named in configuration and reached with a credential mounted on the server. The
+  browser calls only this
   application's own same-origin BFF routes under `/api/steward/`; it never contacts Decionis or any third
   party directly.
-- **No customer data at rest.** No database, no cache, no session store, no log of evidence content.
+- **No customer data at rest.** No database, no cache, no session store, no log of evidence content;
+  a collected batch is held in memory for the request that forwards it and then discarded.
 - **No cookies set by this application.** Session cookies originate from the Decionis identity
   handoff; Steward only reads them.
 - **No PII in URLs.** Account identifiers are opaque references, not customer identity.

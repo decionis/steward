@@ -5,14 +5,17 @@
 ```text
 Browser
   -> Steward Next.js server / BFF
+    -> signal connectors: CRM, ERP, MCP servers, documents, file servers
     -> Decionis /v1/cdi APIs
-      -> SignalFed, connectors, identity resolution
+      -> signal ingestion, identity resolution, weighting
       -> customer_ops policy pack
       -> execution grants, dossiers, ledger
 ```
 
-The Steward repository owns presentation and server-side orchestration only. The Decionis platform owns
-all authoritative customer signals, policy decisions, credentials, and action execution.
+The Steward repository owns presentation, server-side orchestration, and the connectors that collect
+signals from the operator's own systems. The Decionis platform owns identity resolution, the weighing
+of signals, policy decisions, and action execution. [docs/SignalConnectors.md](docs/SignalConnectors.md)
+records the decision that put collection here.
 
 ## Directory structure
 
@@ -21,15 +24,18 @@ app/                          Next.js routes and framework entrypoints
   accounts/[id]/              Account evidence view
   api/steward/                    Browser-facing Steward BFF
   sign-in/                    Decionis identity handoff
+  signals/                    Signal sources page
 application/                  Use-case services and permission checks
   accounts/
   dashboard/
   opportunities/
+  signals/
 components/                   Feature-grouped React presentation
   account/
   common/
   dashboard/
   layout/
+  signals/
 domain/                       Typed, runtime-validated Steward contracts
   accounts/
   auth/
@@ -37,11 +43,13 @@ domain/                       Typed, runtime-validated Steward contracts
   evidence/
   opportunities/
   portfolio/
+  signals/
 infra/                        External systems and implementation details
   api/
   auth/
   composition/
   config/
+  connectors/
   demo/
   errors/
   repositories/
@@ -73,15 +81,15 @@ and execution boundary, and return the resulting state and dossier reference.
 Every account decision passes through the same four stages, and `AccountTimelineEvent.kind` already
 names them:
 
-| Stage      | Loop step               | Who performs it                                                                                           |
-| ---------- | ----------------------- | --------------------------------------------------------------------------------------------------------- |
-| `SIGNAL`   | Sense                   | Connectors and SignalFed observe evidence; Steward renders it with source, freshness, health.             |
-| `DECISION` | Interpret and arbitrate | The `customer_ops` policy pack correlates evidence into a `CustomerOpportunity` and sets its disposition. |
-| `ACTION`   | Act                     | An operator review is forwarded; the platform executes under an execution grant.                          |
-| `OUTCOME`  | Result                  | The resulting state, recorded against a Decision Dossier.                                                 |
+| Stage      | Loop step               | Who performs it                                                                                                                                                    |
+| ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SIGNAL`   | Sense                   | Steward's connectors collect from the operator's systems and forward; the platform resolves and weighs; Steward renders the result with source, freshness, health. |
+| `DECISION` | Interpret and arbitrate | The `customer_ops` policy pack correlates evidence into a `CustomerOpportunity` and sets its disposition.                                                          |
+| `ACTION`   | Act                     | An operator review is forwarded; the platform executes under an execution grant.                                                                                   |
+| `OUTCOME`  | Result                  | The resulting state, recorded against a Decision Dossier.                                                                                                          |
 
-Steward renders every stage and performs none of them. It does not sense, does not arbitrate, and
-does not execute. [docs/ContextEngineering.md](docs/ContextEngineering.md) maps this loop onto the
+Steward collects the raw material of the first stage and renders every stage; it does not weigh, does
+not arbitrate, and does not execute. [docs/ContextEngineering.md](docs/ContextEngineering.md) maps this loop onto the
 published context-engineering framework and records the plan for making each stage more legible to
 the operator reviewing it.
 

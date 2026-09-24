@@ -5,6 +5,7 @@ import {
   StewardGatewayError,
   StewardNotFoundError,
   StewardUnauthorizedError,
+  StewardUnavailableError,
 } from "@/infra/errors/StewardErrors";
 
 export class StewardApiErrorMapper {
@@ -25,6 +26,12 @@ export class StewardApiErrorMapper {
       return NextResponse.json(
         { error: "NOT_FOUND", message: error.message },
         { status: 404 },
+      );
+    }
+    if (error instanceof StewardUnavailableError) {
+      return NextResponse.json(
+        { error: "UNAVAILABLE", message: error.message },
+        { status: 503 },
       );
     }
     if (error instanceof ZodError) {
