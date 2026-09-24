@@ -46,7 +46,8 @@ An attacker requests a page or API route with no Decionis session.
 **Mitigated.** [`middleware.ts`](middleware.ts) requires both the access token and org id cookies on
 every path in live mode. Page requests redirect to `/sign-in`; API requests receive `401` rather than
 a redirect, so an API client surfaces the authentication failure instead of a parse error. Only
-`/api/health` and `/sign-in` are exempt.
+`/api/health`, `/sign-in`, `/llms.txt` and `/llms-full.txt` are exempt; the last two are the
+machine-discovery files, public documentation that names no tenant and reads no cookie.
 
 _Verify:_ `middleware.test.ts` — including that a token without an org scope, an org scope without a
 token, and an empty cookie value are all rejected.

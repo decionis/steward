@@ -134,6 +134,20 @@ describe("middleware — live mode", () => {
     expect(response.status).toBe(401);
   });
 
+  it("serves the discovery files without a session", () => {
+    // An agent evaluating a deployment reads /llms.txt before anyone signs
+    // in. The files carry public documentation and nothing about a tenant.
+    goLive();
+
+    for (const path of ["/llms.txt", "/llms-full.txt"]) {
+      const response = middleware(request(path));
+      expect(isPassThrough(response)).toBe(true);
+      expect(response.headers.get("content-security-policy")).toContain(
+        "default-src 'self'",
+      );
+    }
+  });
+
   it("leaves the health probe reachable without a session", () => {
     // Load balancers and uptime checks have no Decionis session.
     goLive();

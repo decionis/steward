@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- Machine discovery. `public/llms.txt` and `public/llms-full.txt`, served at `/llms.txt` and
+  `/llms-full.txt` in every data mode, describe Steward to the agents that evaluate it: what it
+  is, what it is not, how it runs, the contracts, where questions go. The session middleware lets
+  the two paths through without a Decionis session, and they are the only responses without the
+  `noindex` header. Byte-identical copies sit at the repository root for GitHub readers;
+  `pnpm discovery` (now part of `pnpm verify`) checks the pairs, the shape and every link, and the
+  [discovery workflow](./.github/workflows/discovery.yml) probes the public links weekly. The rules
+  are in [docs/Discovery.md](./docs/Discovery.md). Workstream D2 of
+  [docs/Distribution.md](./docs/Distribution.md).
 - [OpenCore.md](./OpenCore.md): the open-core boundary in one place. What is Apache-2.0 here (all
   of Steward), what Decionis operates, the seam (one interface, four operations), what is free and
   what is paid, and the activation point: the first review that is meant to execute. Five

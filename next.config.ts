@@ -13,11 +13,20 @@ const securityHeaders = [
   { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
 ];
 
+const discoveryHeaders = [{ key: "X-Robots-Tag", value: "all" }];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Later entries override earlier ones for the same header key. The
+      // operator console stays out of search indexes; the description of it,
+      // the machine-discovery files, does not.
+      { source: "/llms.txt", headers: discoveryHeaders },
+      { source: "/llms-full.txt", headers: discoveryHeaders },
+    ];
   },
 };
 

@@ -17,6 +17,10 @@ import { NextResponse } from "next/server";
 const UNAUTHENTICATED_PATHS = new Set([
   "/api/health", // load balancer and uptime probes have no session
   "/sign-in", // the destination of the redirect; gating it would loop
+  // Machine discovery: what Steward is, for an agent evaluating a deployment
+  // before anyone has signed in. Public documentation, nothing about a tenant.
+  "/llms.txt",
+  "/llms-full.txt",
 ]);
 
 function isLiveMode(): boolean {
