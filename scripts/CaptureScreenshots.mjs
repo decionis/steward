@@ -42,6 +42,11 @@ const SHOTS = [
     path: "/accounts/acct-kilo",
     description: "Account evidence, policy, and decision timeline",
   },
+  {
+    file: "screenshot-signal-sources.png",
+    path: "/signals",
+    description: "The signal sources this deployment collects from",
+  },
 ];
 
 async function launchBrowser() {

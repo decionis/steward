@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowUpRight,
   Building2,
+  Cable,
   CircleHelp,
   Settings2,
   ShieldCheck,
@@ -45,6 +46,10 @@ export function AppShell({ session, children }: AppShellProps) {
           <Link href="/#opportunities" className={styles.navItem}>
             <ShieldCheck size={18} aria-hidden="true" />
             Governed actions
+          </Link>
+          <Link href="/signals" className={styles.navItem}>
+            <Cable size={18} aria-hidden="true" />
+            Signal sources
           </Link>
         </nav>
 

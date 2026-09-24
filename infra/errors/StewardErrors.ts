@@ -30,3 +30,15 @@ export class StewardNotFoundError extends Error {
     this.name = "StewardNotFoundError";
   }
 }
+
+/**
+ * Something this tier depends on is not available yet: a Protocol operation
+ * the platform has not published, or a signal source that is not configured.
+ * Maps to 503, and the message says which.
+ */
+export class StewardUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StewardUnavailableError";
+  }
+}

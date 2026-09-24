@@ -5,21 +5,24 @@ review gate is, and — most importantly — the one class of change this projec
 
 ## Before you start: what Steward is not
 
-**Steward is not authoritative.** It renders account evidence and forwards operator reviews to the
-Decionis platform, which owns policy evaluation, connector credentials, execution grants, Decision
-Dossiers, and the audit ledger.
+**Steward is not authoritative.** It collects signals from the operator's own systems, renders account
+evidence and forwards operator reviews to the Decionis platform, which owns identity resolution, the
+weighing of signals, policy evaluation, execution grants, Decision Dossiers, and the audit ledger.
 
 That boundary is the product. Changes that move decision authority into this repository will be
 declined regardless of how well they are implemented:
 
 - Evaluating policy locally instead of forwarding to the platform.
-- Persisting customer evidence, reviews, or sessions in this tier — there is deliberately no
+- Persisting customer evidence, collected signals, reviews, or sessions in this tier — there is deliberately no
   database, and adding one changes this repository's risk profile entirely.
 - Falling back to demo fixtures when a live API call fails. Showing an operator fabricated data
   during a regulated decision is a defect, not resilience.
 - Treating Steward's own role check as the security control. It is a UX affordance; the platform
   re-authorizes every review.
-- Adding telemetry, analytics, or any third-party outbound request.
+- Adding telemetry, analytics, or an outbound request to any host other than the configured platform
+  and the signal sources a deployment configures. A connector lives under `infra/connectors/`, reaches
+  only the host its source names, parses what comes back through `CapturedSignal`, and stores nothing;
+  [docs/SignalConnectors.md](./docs/SignalConnectors.md) is the plan for adding one.
 
 If you think one of these is genuinely needed, **open an issue first**. It is a design conversation,
 not a pull request. [ThreatModel.md](./ThreatModel.md) explains why each rule exists.

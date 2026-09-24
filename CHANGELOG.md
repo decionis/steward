@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- Signal collection, the first workstream of [docs/SignalConnectors.md](./docs/SignalConnectors.md):
+  the contracts in `domain/signals/` (`SignalSource`, `CapturedSignal`, `SignalBatch`,
+  `SignalForwardResult`), the `SignalConnector` interface and registry under `infra/connectors/`
+  with demo connectors, `SignalService` with collection gated to `OPERATOR` and above,
+  `GET /api/steward/signals/sources` and `POST /api/steward/signals/sources/[id]/collect`, and the
+  Signal sources page at `/signals` with "Collect now". Live mode answers `503` until the Decionis
+  Protocol publishes its ingestion operation; nothing collected is stored. The boundary documents
+  (README, CONTRIBUTING, Architecture, ThreatModel with T8, EvidencePack, OpenCore, SECURITY, the
+  Docker guide and the discovery files) say the same thing as the tree.
 - [docs/SignalConnectors.md](./docs/SignalConnectors.md): the decision that Steward collects the
   signals that become context for the decisioning engine, from the operator's own systems: ERP,
   CRM, MCP servers, uploaded documents, file servers. A trust-boundary change, recorded as one:

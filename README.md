@@ -34,19 +34,28 @@ becomes a reviewed, attributable event upstream — never an ad-hoc change made 
 
 This boundary is the most important thing to understand before contributing.
 
-Steward does **not** own policy evaluation, connector secrets, execution grants, or Decision Dossiers.
-Those remain authoritative in the Decionis platform. Steward is a presentation and orchestration layer:
+Steward does **not** own policy evaluation, identity resolution, execution grants, or Decision Dossiers.
+Those remain authoritative in the Decionis platform. Steward collects the signals that become context,
+presents what the platform decided, and forwards what the operator does:
 
-| Steward owns                           | Decionis platform owns                                |
-| -------------------------------------- | ----------------------------------------------------- |
-| The operator UI and review workflow    | Policy evaluation and the `customer_ops` policy pack  |
-| Server-side orchestration (the BFF)    | Connector credentials and identity resolution         |
-| Typed, runtime-validated API contracts | Execution grants, Decision Dossiers, the audit ledger |
-| Formatting and presentation policy     | The authoritative record of every review              |
+| Steward owns                                                     | Decionis platform owns                                |
+| ---------------------------------------------------------------- | ----------------------------------------------------- |
+| The operator UI and review workflow                              | Policy evaluation and the `customer_ops` policy pack  |
+| Server-side orchestration (the BFF)                              | Identity resolution and the weighing of signals       |
+| Signal connectors and the credentials they run with, server-side | Execution grants, Decision Dossiers, the audit ledger |
+| Typed, runtime-validated API contracts                           | The authoritative record of every review              |
+| Formatting and presentation policy                               |                                                       |
 
 An operator can accept a review in Steward. That acceptance cannot, by itself, change a processing limit
 or a policy. Steward forwards the review; Decionis decides, executes, and returns the resulting state and
 a dossier reference.
+
+Steward also collects. Connectors under `infra/connectors/` reach the operator's own systems (CRM,
+support desk, ERP, MCP servers, uploaded documents, file servers), produce signals in one small shape,
+and forward them to the platform over the Decionis Protocol, where they are resolved to accounts and
+weighed. Steward stores none of it. [docs/SignalConnectors.md](docs/SignalConnectors.md) records the
+decision and the workstreams; the first, the connector framework and the Signal sources page, is in
+the tree.
 
 [OpenCore.md](./OpenCore.md) states the same boundary as a business model: what is free forever,
 what Decionis operates, and the one point where commerce enters the flow.
@@ -56,8 +65,9 @@ being found by the agents that evaluate it.
 ```text
 Browser
   -> Steward Next.js server / BFF          <- this repository
+    -> signal connectors: CRM, ERP, MCP servers, documents, file servers
     -> Decionis /v1/cdi APIs
-      -> SignalFed, connectors, identity resolution
+      -> signal ingestion, identity resolution, weighting
       -> customer_ops policy pack
       -> execution grants, dossiers, ledger
 ```
@@ -108,6 +118,9 @@ exercisable end to end:
 - **Account detail** (`/accounts/[id]`) — evidence signals with their context class and a coverage
   strip, connection health, applicable policy, the state of the context at the moment of review,
   and the decision timeline.
+- **Signal sources** (`/signals`) — the systems this deployment collects from, each with its kind,
+  the categories it yields, health, when it was last collected and how many signals; "Collect now"
+  pulls a batch and forwards it, and reports how many were accepted upstream.
 
 ![The governed action queue: each recommendation carries its rationale, confidence, evidence coverage, and dossier reference](docs/screenshot-opportunity-queue.png)
 
@@ -120,6 +133,12 @@ the top bar's "Connect your platform" link leads to the Decionis sign-in handoff
 
 Reviews submitted in demo mode return a deterministic result. Nothing is persisted and no downstream
 action is executed.
+
+![Signal sources: the systems this deployment collects from, their health, when each was last collected, and "Collect now"](docs/screenshot-signal-sources.png)
+
+In demo mode the sources are fixtures and collecting them forwards nowhere. In live mode collection
+answers `503` until the Decionis Protocol publishes its signal ingestion operation, rather than
+pretending a batch was accepted.
 
 Screenshots are generated from a running instance with `pnpm screenshots`, so they can be refreshed
 rather than left to drift out of date.
@@ -164,14 +183,16 @@ feature.
 
 ### Routes this app exposes
 
-| Route                                    | Method | Notes                                       |
-| ---------------------------------------- | ------ | ------------------------------------------- |
-| `/api/steward/portfolio`                 | GET    | Portfolio snapshot for the session's org.   |
-| `/api/steward/accounts/[id]`             | GET    | `404` when the account is unknown.          |
-| `/api/steward/opportunities`             | GET    | Opportunity queue.                          |
-| `/api/steward/opportunities/[id]/review` | POST   | Requires `APPROVER` or `ADMIN`, else `403`. |
-| `/api/health`                            | GET    | Unauthenticated liveness probe.             |
-| `/llms.txt`, `/llms-full.txt`            | GET    | Machine discovery; no session, indexable.   |
+| Route                                       | Method | Notes                                                                                   |
+| ------------------------------------------- | ------ | --------------------------------------------------------------------------------------- |
+| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                               |
+| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                                      |
+| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                                      |
+| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                             |
+| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                                 |
+| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until the Protocol publishes ingestion. |
+| `/api/health`                               | GET    | Unauthenticated liveness probe.                                                         |
+| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                               |
 
 ### Upstream endpoints it expects
 
@@ -179,6 +200,8 @@ feature.
 - `GET /v1/cdi/accounts/:accountId`
 - `GET /v1/cdi/opportunities`
 - `POST /v1/cdi/opportunities/:opportunityId/reviews`
+- `POST /v1/cdi/signals` — requested of the Protocol, not yet published; live collection answers
+  `503` until it is ([docs/SignalConnectors.md](docs/SignalConnectors.md))
 
 Every upstream response is parsed through a Zod contract in `domain/` before it is allowed into the
 application layer, so schema drift upstream fails loudly at the boundary instead of rendering as a
@@ -297,13 +320,16 @@ the upstream `next` range resolves past it on its own.
 3. Review actions are role-gated in `application/` and forwarded to Decionis — the UI is not the
    enforcement point.
 4. No credential, token, or connector secret reaches client-side code.
+5. A connector reaches only the host its configured source names, and nothing it collects is stored
+   here. Collection is gated in `application/` like reviews; the platform resolves and weighs what it
+   receives.
 
 ## Security
 
 This repository holds no secrets and no policy logic, which is what makes it safe to develop against
 in the open.
 
-The trust boundary is enforced in four files, and each is covered by tests you can run:
+The trust boundary is enforced in five files, and each is covered by tests you can run:
 
 | Enforcement                                             | Code                                                                     | Tests                            |
 | ------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------- |
@@ -311,6 +337,7 @@ The trust boundary is enforced in four files, and each is covered by tests you c
 | Role parsing and the `VIEWER` privilege floor           | [StewardSessionResolver.ts](infra/auth/StewardSessionResolver.ts)        | `StewardSessionResolver.test.ts` |
 | Credential handling and boundary schema validation      | [JsonHttpClient.ts](infra/api/JsonHttpClient.ts)                         | `JsonHttpClient.test.ts`         |
 | Role-gated review forwarding                            | [OpportunityService.ts](application/opportunities/OpportunityService.ts) | `OpportunityService.test.ts`     |
+| Role-gated signal collection and forwarding             | [SignalService.ts](application/signals/SignalService.ts)                 | `SignalService.test.ts`          |
 
 Four properties the tests assert directly: the access token never appears in a request URL, only in
 the `Authorization` header; no client component ever receives the session, so the token is never
@@ -320,7 +347,7 @@ than to an empty role set; and an unhandled error maps to a generic 500 that lea
 **Evaluating Steward as a vendor?** [EvidencePack.md](./EvidencePack.md) maps the usual security-review
 questions to the artifact that answers each one, and states the gaps as plainly as the strengths.
 
-[ThreatModel.md](./ThreatModel.md) sets out the assets, trust boundaries, seven named threats with the
+[ThreatModel.md](./ThreatModel.md) sets out the assets, trust boundaries, eight named threats with the
 code and test backing each mitigation, the security headers this app sets — and, deliberately, the
 gaps we have accepted rather than fixed.
 

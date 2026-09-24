@@ -8,11 +8,11 @@ does not have to infer the business model from the code.
 ## The short version
 
 - **Open (Apache-2.0):** all of Steward. The operator interface, the review workflow, the
-  server-side orchestration, the typed contracts, the demo fixtures, the tests that prove the trust
+  server-side orchestration, the signal connectors, the typed contracts, the demo fixtures, the tests that prove the trust
   boundary, the image, the tarball, the documentation and the machine-discovery files.
 - **Operated (Decionis, not in this repository):** the platform behind `/v1/cdi`: policy evaluation
   and the `customer_ops` policy pack, execution grants, Decision Dossiers, the audit ledger,
-  connector credentials, identity resolution, and Presence.
+  signal ingestion, identity resolution, and Presence.
 - **The seam:** one TypeScript interface and four versioned HTTP operations. Anyone can implement
   the interface. Steward does not check a plan, a key, or an entitlement.
 - **The activation point:** the first review that is meant to execute. Everything before it is
@@ -42,8 +42,8 @@ The platform behind the `/v1/cdi` API owns:
 - execution grants: the authority for an approved review to change a processing limit or a policy
   state, and the record that it did;
 - Decision Dossier creation, retention, and the audit ledger that Steward's timeline renders;
-- connector credentials, SignalFed, and identity resolution across usage, support, CRM,
-  transaction and KYC/KYB sources;
+- signal ingestion and identity resolution across usage, support, CRM, transaction, KYC/KYB and
+  document signals, however they were collected;
 - tenant identity, the sign-in handoff, organisation scope, roles, and Presence for
   human-verified approval where policy escalates.
 
@@ -72,22 +72,23 @@ implementation against another backend is a first-class citizen.
 
 **Wire operations**, parsed through the Zod contracts in `domain/`:
 
-| Operation                                           | Purpose                                                                                     |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `GET /v1/cdi/portfolio`                             | The portfolio snapshot for the session's organisation                                       |
-| `GET /v1/cdi/accounts/:accountId`                   | One account: evidence, connectors, timeline, policy envelope                                |
-| `GET /v1/cdi/opportunities`                         | Open and completed recommendations                                                          |
-| `POST /v1/cdi/opportunities/:opportunityId/reviews` | Forward a review; the platform decides, executes, and returns state and a dossier reference |
+| Operation                                           | Purpose                                                                                                                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /v1/cdi/portfolio`                             | The portfolio snapshot for the session's organisation                                                                                                        |
+| `GET /v1/cdi/accounts/:accountId`                   | One account: evidence, connectors, timeline, policy envelope                                                                                                 |
+| `GET /v1/cdi/opportunities`                         | Open and completed recommendations                                                                                                                           |
+| `POST /v1/cdi/opportunities/:opportunityId/reviews` | Forward a review; the platform decides, executes, and returns state and a dossier reference                                                                  |
+| `POST /v1/cdi/signals` (requested)                  | Forward a batch of collected signals; the platform resolves accounts and weighs. Not yet published; see [docs/SignalConnectors.md](docs/SignalConnectors.md) |
 
 ## Free and paid
 
-| Free, forever, in this repository                                                                                    | Paid, operated by Decionis                                                         |
-| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| The whole operator tier, every screen, the review flow                                                               | Policy evaluation and the policy pack, with versions                               |
-| Demo mode: deterministic fixtures, no account, no credential, nothing persisted                                      | Execution grants: the review that actually changes a limit                         |
-| Live mode against a Decionis workspace in shadow: real evidence and recommendations, reviews recorded, dossiers read | Decision Dossier retention, the audit ledger, export                               |
-| The image on GHCR and Docker Hub, the release tarball, the source                                                    | Connectors at scale, identity resolution, SSO and SCIM, Presence-verified approval |
-| Documentation, the threat model, the evidence pack, machine discovery                                                | Support, SLAs, and hosted Steward for tenants who do not want to run the container |
+| Free, forever, in this repository                                                                                    | Paid, operated by Decionis                                                               |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| The whole operator tier, every screen, the review flow                                                               | Policy evaluation and the policy pack, with versions                                     |
+| Demo mode: deterministic fixtures, no account, no credential, nothing persisted                                      | Execution grants: the review that actually changes a limit                               |
+| Live mode against a Decionis workspace in shadow: real evidence and recommendations, reviews recorded, dossiers read | Decision Dossier retention, the audit ledger, export                                     |
+| The signal connectors, the image on GHCR and Docker Hub, the release tarball, the source                             | Signal ingestion at scale, identity resolution, SSO and SCIM, Presence-verified approval |
+| Documentation, the threat model, the evidence pack, machine discovery                                                | Support, SLAs, and hosted Steward for tenants who do not want to run the container       |
 
 ## Where commerce enters the flow
 
@@ -123,14 +124,15 @@ trust-boundary change and goes through a public pull request with code-owner app
 
 1. Steward stays Apache-2.0. No source-available, delayed-open, or dual license.
 2. Demo mode stays complete: every screen and the review flow work with no account.
-3. No license check, plan check, entitlement read, telemetry, or outbound request to any host but
-   the configured platform, in any mode.
+3. No license check, plan check, entitlement read, or telemetry, in any mode; no outbound request
+   to any host but the configured platform and the signal sources the operator configures, each
+   named in that deployment's configuration.
 4. The four operations stay published, and `domain/` stays the contract that parses them.
 5. Contributions are accepted under the Developer Certificate of Origin, not a contributor
    license agreement. Decionis does not collect copyright assignments.
 
 **What does Decionis sell?** Operating the platform: policy, execution, dossiers, the ledger,
-connectors, identity, Presence, and support. Commercial terms are not part of this repository.
+signal ingestion, identity, Presence, and support. Commercial terms are not part of this repository.
 
 **Can I fork it?** Yes, under Apache-2.0. A modified distribution should not present itself as the
 official project or imply Decionis endorsement; see [NOTICE](./NOTICE).
