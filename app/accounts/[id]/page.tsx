@@ -43,7 +43,10 @@ export default async function AccountPage({
           updatedAt={account.updatedAt}
         />
         <div className={styles.contentGrid}>
-          <AccountEvidence evidence={account.evidence} />
+          <AccountEvidence
+            evidence={account.evidence}
+            linkedEvidenceIds={opportunity?.evidenceIds}
+          />
           <div className={styles.sideStack}>
             <AccountConnections connectors={account.connectors} />
             <AccountPolicy policy={account.policyEnvelope} />

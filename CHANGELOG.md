@@ -44,6 +44,12 @@ you integrate against these types.
   did before. The three open demo recommendations explain themselves, and the fixture tests require
   it. Workstream W2 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
   request).
+- The account evidence panel shows a context-coverage strip for the open recommendation: which of
+  the five context classes its linked evidence covers, filled when live or current, hollow when
+  only aging or stale, dashed when absent. "87% evidence coverage" could not say that no
+  operational signal backs an expansion; this can. It renders only when every linked signal carries
+  a class, so an upstream that has not shipped classes sees no change. Workstream W5 of the
+  context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
 
 ### Changed
 
