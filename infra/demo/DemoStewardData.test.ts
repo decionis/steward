@@ -90,6 +90,56 @@ describe("DemoStewardData — provenance", () => {
   });
 });
 
+describe("DemoStewardData — arbitration", () => {
+  // Fixtures set the bar for a good upstream response: every open
+  // recommendation says why it got its disposition, in terms an approver can
+  // disagree with precisely.
+  const open = portfolio.opportunities.filter(
+    (opportunity) => opportunity.status === "OPEN",
+  );
+
+  it("explains every open opportunity", () => {
+    for (const opportunity of open) {
+      expect(
+        opportunity.arbitration,
+        `${opportunity.id} has no arbitration`,
+      ).toBeDefined();
+    }
+  });
+
+  it("rests on and overrides only evidence that exists on the named account", () => {
+    for (const opportunity of open) {
+      const account = accounts.find(
+        (candidate) => candidate?.id === opportunity.accountId,
+      );
+      const available = new Set(
+        account?.evidence.map((signal) => signal.id) ?? [],
+      );
+      const referenced = [
+        ...(opportunity.arbitration?.governingEvidenceIds ?? []),
+        ...(opportunity.arbitration?.overriddenEvidenceIds ?? []),
+      ];
+      for (const evidenceId of referenced) {
+        expect(
+          available,
+          `${evidenceId} is not on ${opportunity.accountId}`,
+        ).toContain(evidenceId);
+      }
+    }
+  });
+
+  it("names the policy version in force on the account", () => {
+    for (const opportunity of open) {
+      const account = accounts.find(
+        (candidate) => candidate?.id === opportunity.accountId,
+      );
+      expect(opportunity.arbitration?.policyReference).toBe(
+        account?.policyEnvelope.policyVersion,
+      );
+    }
+  });
+});
+
 describe("DemoStewardData — freshness", () => {
   // Timestamps are relative to read time. They were absolute until
   // StewardFormat.relativeTime stopped defaulting `now` to a hardcoded date, at

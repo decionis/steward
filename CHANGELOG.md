@@ -37,12 +37,20 @@ you integrate against these types.
   `DecisionContext` in `presentation/` summarises fields already on the page and makes no judgment.
   Workstream W4 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
   request).
+- Opportunities carry an optional `arbitration`: which class of context governed the disposition,
+  which signals it rested on, which it overrode, what it suppressed, and under which policy version.
+  The queue card and the account decision panel render it as "Why this disposition". Steward renders
+  the object the platform sends and never computes one; a `BLOCK` without `arbitration` looks as it
+  did before. The three open demo recommendations explain themselves, and the fixture tests require
+  it. Workstream W2 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
+  request).
 
 ### Changed
 
 - **Contract:** `EvidenceSignal` in `domain/` gained the optional `contextClass` field. The platform
   ships it as a versioned CDI contract change, and the Steward release that carries it is a minor
   bump under the pre-1.0 policy above.
+- **Contract:** `CustomerOpportunity` in `domain/` gained the optional `arbitration` object. The platform ships it as a versioned CDI contract change, and the Steward release that carries it is a minor bump under the pre-1.0 policy above.
 
 ### Security
 
