@@ -146,6 +146,14 @@ function buildAccounts(): CustomerAccount[] {
       ],
       timeline: [
         {
+          id: "tl-kilo-0",
+          title: "Previous limit increase applied",
+          detail:
+            "The £400k → £500k increase approved on the prior review was executed under grant; utilisation settled at 71% of the new envelope.",
+          occurredAt: ago(1320),
+          kind: "OUTCOME",
+        },
+        {
           id: "tl-kilo-1",
           title: "Utilisation crossed the review threshold",
           detail:
@@ -522,6 +530,32 @@ function buildOpportunities(): CustomerOpportunity[] {
         summary:
           "The increase exceeds the review threshold, so the active policy routes it to human approval rather than applying it. Partner KYB is current, which is what allows a review rather than a block.",
       },
+    },
+    {
+      // A decision that reached its outcome. The timeline draws the loop
+      // (SIGNAL, DECISION, ACTION, OUTCOME) but nothing closed it on screen:
+      // the queue showed what needed a decision and nothing showed what a
+      // decision produced. This is the prior review that set Kilo's current
+      // £500k envelope. It sits after the open recommendation on purpose:
+      // history follows the live decision, and lookups that take the first
+      // opportunity of a kind or an account keep finding the open one.
+      id: "opp-kilo-limit-prior",
+      accountId: "acct-kilo",
+      accountName: "Kilo Payments",
+      kind: "PROCESSING_LIMIT_REVIEW",
+      status: "COMPLETED",
+      title: "Processing limit raised to £500k",
+      rationale:
+        "Sustained utilisation above the review threshold with a stable exception rate and current partner KYB supported a controlled increase from £400k.",
+      recommendedAction:
+        "Approved and executed under grant. Utilisation settled at 71% of the new envelope before the current velocity rise.",
+      disposition: "ALLOW",
+      confidence: 0.95,
+      evidenceCoverage: 91,
+      evidenceIds: ["ev-kilo-exceptions", "ev-kilo-kyb"],
+      priority: "ROUTINE",
+      createdAt: ago(1380),
+      dossierId: "dos_demo_kilo_00",
     },
     {
       id: "opp-sierra-friction",

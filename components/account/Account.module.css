@@ -325,6 +325,10 @@
   border-radius: 999px;
   background: white;
 }
+.timeline li[data-kind="OUTCOME"] > span {
+  border-color: var(--emerald-700);
+  background: var(--emerald-700);
+}
 
 .timeline li:not(:last-child)::before {
   content: "";

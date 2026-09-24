@@ -25,9 +25,14 @@ export default async function AccountPage({
       context.accounts.requireAccount(accountId),
       context.opportunities.list(),
     ]);
+    // The open recommendation, not the first one: a completed decision on
+    // the same account is history, and belongs on the timeline.
     const opportunity =
-      opportunities.find((candidate) => candidate.accountId === account.id) ??
-      null;
+      opportunities.find(
+        (candidate) =>
+          candidate.accountId === account.id &&
+          candidate.status !== "COMPLETED",
+      ) ?? null;
     const canReview = context.session.roles.some(
       (role) => role === "APPROVER" || role === "ADMIN",
     );

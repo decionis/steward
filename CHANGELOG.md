@@ -50,6 +50,12 @@ you integrate against these types.
   operational signal backs an expansion; this can. It renders only when every linked signal carries
   a class, so an upstream that has not shipped classes sees no change. Workstream W5 of the
   context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
+- The loop is closed on screen. The dashboard lists completed decisions under "Recently resolved",
+  read-only with their dossier references, beneath the queue; the queue itself no longer carries
+  them. The account timeline marks `OUTCOME` events distinctly, and the account page shows the open
+  recommendation rather than whichever came first. The demo carries the prior limit review that set
+  Kilo Payments' current envelope, completed, with its outcome event. Workstream W6 of the
+  context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
 
 ### Changed
 
