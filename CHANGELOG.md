@@ -10,7 +10,13 @@ you integrate against these types.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- The Docker documentation is written for the operator who will run it, and leads with the
+  outcome: a governed surface for reviewing customer and account decisions, without moving policy
+  authority into the interface. What operators get, five minutes with no account, connecting the
+  platform, where paying starts, trusting the image, then the reference. The Docker Hub overview,
+  its short description and the image's OCI description say the same thing in the same words.
 
 ## [0.3.0] — 2026-09-24
 

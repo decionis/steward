@@ -1,73 +1,80 @@
-# Decionis Steward — the operator tier for governed customer decisions
+# Decionis Steward
 
-`decionis/steward` is Steward as a container: the control center customer-operations, risk and
-revenue teams use to review account evidence and route every decision through the
-[Decionis](https://decionis.com) platform, where the authoritative decision is made, recorded and
-executed. Steward renders evidence and forwards reviews. It decides nothing itself, holds no policy,
-no credential and no customer data at rest, checks no license and reports nothing.
+**Give your operators a governed surface for reviewing customer and account decisions, without
+moving policy authority into the interface.**
 
-This is the same image as `ghcr.io/decionis/steward`, built once by the release workflow of
-[decionis/steward](https://github.com/decionis/steward) for `linux/amd64` and `linux/arm64`,
-non-root, with no configuration and no credential inside it.
+`decionis/steward` is the control center your customer-operations, risk and revenue teams use to
+act on account evidence: a queue of evidence-backed recommendations, account detail an approver can
+trust, and a review flow that records rather than executes. Every accept, hold or reject is
+forwarded to the [Decionis](https://decionis.com) platform with the operator's own credential, and
+nothing downstream changes until the platform decides. The caption on every control says so.
 
-## Tags
+What stays in the platform: policy evaluation, connector credentials, execution grants, Decision
+Dossiers, the audit ledger. The container holds none of them, checks no license, and sends nothing
+anywhere but the platform you point it at.
 
-```text
-decionis/steward:<version>     immutable: use this in production
-decionis/steward:<major>.<minor>
-decionis/steward:<major>
-decionis/steward:latest        moves; never in production
-```
-
-The tag is the release version; the
-[releases page](https://github.com/decionis/steward/releases) lists them with their digests.
-Docker Hub carries the same manifest list as `ghcr.io/decionis/steward`: after each release the
-manifest is copied here by digest, a copy whose digest differs is refused, and the Docker Hub name
-is attested by the same keyless workflow identity. One digest therefore names a release on both
-registries, and either name pulls the same bytes. `edge`, the moving build of `master`, is on GHCR
-only.
-
-## Run it
-
-Demo mode is the default: deterministic fixtures, no account, no credential, nothing persisted,
-the whole review flow.
+## Five minutes, no account
 
 ```bash
-docker run --rm -p 3000:3000 decionis/steward:<version>
+docker run --rm -p 3000:3000 decionis/steward:0.3.0
 ```
 
-Open <http://localhost:3000>. Every review control is captioned "Records a review only; no
-downstream limit is changed."
+Open <http://localhost:3000>. You are a fixture operator with the approver role over four invented
+accounts, and the interface says `DEMO EVIDENCE`. Work the queue; each review is recorded and
+nothing is executed, which is exactly what production looks like until the platform is entitled to
+act.
 
-Live mode runs against a Decionis tenant. The session comes from the Decionis sign-in handoff;
-the container never holds a credential of its own.
+## Connect your platform
 
 ```bash
 docker run --rm -p 3000:3000 \
   -e STEWARD_DATA_MODE=live \
   -e DECIONIS_API_BASE_URL=https://api.decionis.com \
-  decionis/steward:<version>
+  decionis/steward:0.3.0
 ```
 
-The process refuses to start in live mode without a base URL, and a live API failure is an error,
-never a fall-back to demo fixtures. `GET /api/health` answers without a session for probes;
-`/llms.txt` describes the deployment to an agent evaluating it.
+Operators sign in through Decionis and see their own portfolio. The container still holds no
+policy and no credential; a review still cannot change a limit by itself; and if the platform
+cannot be reached they see an error, never invented data. Put TLS termination in front of it. The
+full guide, including a hardened compose file, is
+[docs/Docker.md](https://github.com/decionis/steward/blob/master/docs/Docker.md).
 
-## Verify it
+## What is free, and where paying starts
+
+The whole surface, demo mode, and live mode against a Decionis workspace deciding in shadow are
+free and stay free. Paying starts at the first review that is meant to execute, where the platform
+changes a limit under an execution grant. The image is the same bytes for a free tenant and a
+paying one;
+[OpenCore.md](https://github.com/decionis/steward/blob/master/OpenCore.md) states the boundary.
+
+## Tags, and trusting them
+
+```text
+decionis/steward:<version>     immutable: run this in production
+decionis/steward:<major>.<minor>
+decionis/steward:<major>
+decionis/steward:latest        moves with releases; not for production
+```
+
+This is the same manifest as `ghcr.io/decionis/steward`, built once by the release workflow of
+[decionis/steward](https://github.com/decionis/steward) for `linux/amd64` and `linux/arm64`,
+non-root, smoke-tested on both platforms before it was pushed, and copied here by digest: a copy
+whose digest differs is refused, and the Docker Hub name is attested by the same keyless workflow
+identity. Prove it before your operators rely on it:
 
 ```bash
-gh attestation verify oci://docker.io/decionis/steward:<version> --repo decionis/steward
-docker buildx imagetools inspect docker.io/decionis/steward:<version>
+gh attestation verify oci://docker.io/decionis/steward:0.3.0 --repo decionis/steward
+docker buildx imagetools inspect docker.io/decionis/steward:0.3.0
 ```
 
-The manifest carries BuildKit's SBOM and provenance attestations for both architectures; the
-`inspect` digest equals the GHCR one for every version, and a difference is a reason to stop and
-report it. Mirror the image into your own registry before a cluster pulls it.
+The `inspect` digest equals the GHCR one for every version; a difference is a reason to stop and
+report it. Mirror the image into your own registry before a cluster pulls it. `edge`, the moving
+build of `master`, is on GHCR only.
 
-## What is free, and what is not
+## Reference
 
-All of Steward is Apache-2.0 and this image is the whole of it. What Decionis sells is the platform
-behind it: policy evaluation, execution grants, Decision Dossiers, the audit ledger, connectors,
-identity and support. Commerce enters at one point, the first review that is meant to execute
-rather than only be recorded. The boundary and the commitments about it are in
-[OpenCore.md](https://github.com/decionis/steward/blob/master/OpenCore.md).
+`3000` is the port. `GET /api/health` answers without a session for probes; `GET /llms.txt`
+describes the deployment to an agent evaluating it. Logs go to standard output; `docker stop` ends
+it and nothing is lost, because nothing is persisted. The
+[threat model](https://github.com/decionis/steward/blob/master/ThreatModel.md) says what a
+compromise of this tier can and cannot reach. Apache-2.0.
