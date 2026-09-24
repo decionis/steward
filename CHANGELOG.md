@@ -10,6 +10,10 @@ you integrate against these types.
 
 ## [Unreleased]
 
+The next release is **0.2.0**. Contracts in `domain/` gained optional fields (`contextClass` on
+evidence, `arbitration` on opportunities), which the pre-1.0 policy above treats as potentially
+breaking, so this is a minor bump rather than a patch.
+
 ### Added
 
 - [docs/ContextEngineering.md](./docs/ContextEngineering.md): a review of two September 2026 articles
@@ -21,48 +25,47 @@ you integrate against these types.
   `POLICY`): what kind of situation a signal describes, alongside the existing `category`, which
   says where it came from. The account evidence panel shows the class when the platform supplies it
   and nothing when it does not; Steward never infers it. Every demo signal is classified. Workstream
-  W1 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
+  W1 of the context-engineering plan in `docs/ContextEngineering.md` (#69).
 - Inaction is a first-class decision in the interface. The demo carries a `NO_ACTION` decision for
   Victor Remit with its evidence, dossier, and a `DECISION` timeline event. The dashboard groups
   `NO_ACTION` and held items under their own heading beneath the queue rather than mixing them into
   "what needs a decision now". The account page now distinguishes "the platform decided no action"
   from "no recommendation was returned", which it previously conflated under a "No action" badge.
-  Workstream W3 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
-  request).
+  Workstream W3 of the context-engineering plan in `docs/ContextEngineering.md` (#68).
 - The account page states the context at the moment of review: whether the evidence a
   recommendation links is live, aging, or stale, whether any source that produced it reports
   degraded health, and when the account's evidence was last updated. A confidence badge no longer
   sits above stale evidence from a degraded connector without a word saying so. After a review, the
   interface says if the platform's disposition differs from the one that was on screen.
   `DecisionContext` in `presentation/` summarises fields already on the page and makes no judgment.
-  Workstream W4 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
-  request).
+  Workstream W4 of the context-engineering plan in `docs/ContextEngineering.md` (#64).
 - Opportunities carry an optional `arbitration`: which class of context governed the disposition,
   which signals it rested on, which it overrode, what it suppressed, and under which policy version.
   The queue card and the account decision panel render it as "Why this disposition". Steward renders
   the object the platform sends and never computes one; a `BLOCK` without `arbitration` looks as it
   did before. The three open demo recommendations explain themselves, and the fixture tests require
-  it. Workstream W2 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull
-  request).
+  it. Workstream W2 of the context-engineering plan in `docs/ContextEngineering.md` (#70).
 - The account evidence panel shows a context-coverage strip for the open recommendation: which of
   the five context classes its linked evidence covers, filled when live or current, hollow when
   only aging or stale, dashed when absent. "87% evidence coverage" could not say that no
   operational signal backs an expansion; this can. It renders only when every linked signal carries
   a class, so an upstream that has not shipped classes sees no change. Workstream W5 of the
-  context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
+  context-engineering plan in `docs/ContextEngineering.md` (#71).
 - The loop is closed on screen. The dashboard lists completed decisions under "Recently resolved",
   read-only with their dossier references, beneath the queue; the queue itself no longer carries
   them. The account timeline marks `OUTCOME` events distinctly, and the account page shows the open
   recommendation rather than whichever came first. The demo carries the prior limit review that set
   Kilo Payments' current envelope, completed, with its outcome event. Workstream W6 of the
-  context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
+  context-engineering plan in `docs/ContextEngineering.md` (#66).
 
 ### Changed
 
 - **Contract:** `EvidenceSignal` in `domain/` gained the optional `contextClass` field. The platform
   ships it as a versioned CDI contract change, and the Steward release that carries it is a minor
   bump under the pre-1.0 policy above.
-- **Contract:** `CustomerOpportunity` in `domain/` gained the optional `arbitration` object. The platform ships it as a versioned CDI contract change, and the Steward release that carries it is a minor bump under the pre-1.0 policy above.
+- **Contract:** `CustomerOpportunity` in `domain/` gained the optional `arbitration` object. The
+  platform ships it as a versioned CDI contract change, and the Steward release that carries it is
+  a minor bump under the pre-1.0 policy above.
 
 ### Security
 
