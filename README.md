@@ -59,6 +59,22 @@ Browser
       -> execution grants, dossiers, ledger
 ```
 
+## Install
+
+One application, four ways to run it. The image, the tarball and the source are built from the
+same commit, and nothing about the trust boundary differs between them.
+
+| Where           | How                                                                                                                                                  | Page                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Docker          | `docker run -p 3000:3000 ghcr.io/decionis/steward:<version>`; the same digest as `docker.io/decionis/steward`; two architectures, non-root, attested | [docs/Docker.md](docs/Docker.md)           |
+| Release tarball | `decionis-steward-<version>.tar.gz` from the [releases](https://github.com/decionis/steward/releases), with its SBOM and provenance                  | [Deployment](#deployment)                  |
+| From source     | `pnpm install && pnpm dev`, demo mode, no credentials                                                                                                | [Quickstart](#quickstart)                  |
+| Hosted demo     | <https://decionis-steward.vercel.app>, demo mode, nothing to install                                                                                 | [What you get](#what-you-get-in-demo-mode) |
+
+Every path starts in demo mode and ends at the same place: connecting a Decionis workspace, which
+[OpenCore.md](./OpenCore.md) explains costs nothing until a review is meant to execute. An agent
+evaluating a deployment reads `/llms.txt` on any of them.
+
 ## Quickstart
 
 Requires **Node >= 20** and **pnpm 9**. No Decionis credentials are needed — the app boots against

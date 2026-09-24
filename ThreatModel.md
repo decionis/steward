@@ -140,6 +140,26 @@ outside 400–599 are clamped to `502`.
 _Verify:_ `StewardApiErrorMapper.test.ts` asserts an unrecognized error's original message — including
 host and port detail — does not reach the response body.
 
+## The container
+
+`ghcr.io/decionis/steward` is the same server as the release tarball, built by
+[`image.yml`](.github/workflows/image.yml) for two architectures and smoke-tested on each before
+it is pushed. It holds the built server, its static assets and `public/`. It does not hold a
+policy, a credential, a connector secret, a database, customer data, or a license check, and it
+makes no outbound request to any host but the configured `DECIONIS_API_BASE_URL`. It runs as the
+unprivileged `node` user; the base image is pinned by digest and moved only by a Dependabot pull
+request; the manifest digest is attested with the workflow's keyless identity, so a consumer can
+prove the bytes came from this repository:
+
+```bash
+gh attestation verify oci://ghcr.io/decionis/steward:<version> --repo decionis/steward
+```
+
+The residual risks are the tier's, not the image's. T2 and T6 apply unchanged: a container that
+sets `STEWARD_DATA_MODE=demo` in production serves the privileged fixture session as deliberately
+as any other deployment, and `docs/Docker.md` says so. `docker stop` ends it; nothing is
+persisted to lose.
+
 ## Transport and browser hardening
 
 Set globally in [`next.config.ts`](next.config.ts):
