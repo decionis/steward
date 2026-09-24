@@ -107,7 +107,7 @@ evidence panel shows it like any other.
 
 ## Workstreams
 
-#### S1 — The connector framework and the Sources page (no new dependency)
+#### S1 — The connector framework and the Sources page (no new dependency) ✅ Done (#90)
 
 - `domain/signals/`: `SignalSource`, `CapturedSignal`, `SignalBatch`, `SignalForwardResult`.
 - `infra/connectors/`: the `SignalConnector` interface, `SignalConnectorRegistry` built from
@@ -162,7 +162,7 @@ request.
 
 | Stage          | Work   | Gate                                                                              |
 | -------------- | ------ | --------------------------------------------------------------------------------- |
-| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR                      |
+| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR (#90)                |
 | **2. Ask**     |        | The ingestion operation requested of the Protocol; its version and shape answered |
 | **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green            |
 | **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch               |
