@@ -10,6 +10,14 @@ you integrate against these types.
 
 ## [Unreleased]
 
+### Added
+
+- "Plan support" on the dashboard: the portfolio by region and by segment, each group with its
+  accounts, active friction, expansion ready, reviews required, average health and utilisation,
+  ordered by friction then reviews so the group that needs effort first is at the top. Counts of
+  what the platform already said about each account; nothing decided here. P1 of
+  `docs/ProactiveSupport.md`.
+
 ### Changed
 
 - Steward is described as the open-source customer support decisioning platform, on every surface:

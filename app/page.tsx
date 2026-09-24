@@ -3,6 +3,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { OpportunityQueue } from "@/components/dashboard/OpportunityQueue";
 import { PortfolioSummary } from "@/components/dashboard/PortfolioSummary";
 import { ResolvedDecisions } from "@/components/dashboard/ResolvedDecisions";
+import { SupportPlan } from "@/components/dashboard/SupportPlan";
 import { AppShell } from "@/components/layout/AppShell";
 import { StewardCompositionRoot } from "@/infra/composition/StewardCompositionRoot";
 
@@ -27,6 +28,7 @@ export default async function HomePage() {
       <PortfolioSummary summary={portfolio.summary} />
       <OpportunityQueue opportunities={open} canReview={canReview} />
       <ResolvedDecisions opportunities={resolved} />
+      <SupportPlan accounts={portfolio.accounts} />
       <AccountPortfolioTable accounts={portfolio.accounts} />
     </AppShell>
   );
