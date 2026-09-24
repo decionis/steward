@@ -130,8 +130,8 @@ STEWARD_DATA_MODE=live
 DECIONIS_API_BASE_URL=https://api.decionis.com
 ```
 
-In live mode `middleware.ts` requires a Decionis session on every path except `/api/health` and
-`/sign-in`. Page requests without one are redirected to `/sign-in?returnTo=…`; API requests receive
+In live mode `middleware.ts` requires a Decionis session on every path except `/api/health`,
+`/sign-in`, and the discovery files `/llms.txt` and `/llms-full.txt`. Page requests without one are redirected to `/sign-in?returnTo=…`; API requests receive
 `401 {"error":"UNAUTHORIZED"}`. BFF callers may instead present an `Authorization: Bearer` token with
 an `X-Decionis-Org-Id` header.
 
@@ -148,6 +148,7 @@ feature.
 | `/api/steward/opportunities`             | GET    | Opportunity queue.                          |
 | `/api/steward/opportunities/[id]/review` | POST   | Requires `APPROVER` or `ADMIN`, else `403`. |
 | `/api/health`                            | GET    | Unauthenticated liveness probe.             |
+| `/llms.txt`, `/llms-full.txt`            | GET    | Machine discovery; no session, indexable.   |
 
 ### Upstream endpoints it expects
 

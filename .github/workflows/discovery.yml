@@ -1,0 +1,52 @@
+name: Discovery
+
+# Validates the machine-discovery files (llms.txt, llms-full.txt, and the copies
+# the application serves from public/) and the links inside them.
+#
+# Two questions, kept apart. A pull request or a push checks the tree: the
+# pairs are identical, the shape is valid, every repository link names a file
+# that exists. The weekly run and a manual dispatch also check the world: every
+# public link answers. Links rot without anyone touching the repository, which
+# is why the weekly run exists; and a public host being down is not a reason a
+# change to this tree cannot merge, which is why a pull request does not probe.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "llms.txt"
+      - "llms-full.txt"
+      - "public/llms.txt"
+      - "public/llms-full.txt"
+      - "scripts/CheckDiscovery.mjs"
+      - ".github/workflows/discovery.yml"
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Validate the discovery files against the tree
+        run: node scripts/CheckDiscovery.mjs
+      - name: Probe every public link
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: node scripts/CheckDiscovery.mjs --check-links
