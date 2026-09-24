@@ -232,6 +232,14 @@ jobs:
     # Releases only: Docker Hub carries versions, never edge, and never a
     # dispatch build. The variable is the switch; the secrets are the means.
     if: github.ref_type == 'tag' && needs.image.outputs.published == 'true' && vars.DOCKERHUB_PUBLISH_ENABLED == 'true'
+    # A reusable workflow's job may hold at most what its caller grants. The
+    # first run of this file failed at startup because this job inherited the
+    # workflow's contents: read and the called job asks for more.
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: read
     uses: ./.github/workflows/dockerhub.yml
     with:
       version: ${{ needs.image.outputs.version }}

@@ -36,6 +36,15 @@ you integrate against these types.
   `public/`, and carries OCI labels; Dependabot watches the base image. Workstream D1 of
   `docs/Distribution.md`.
 
+### Fixed
+
+- The image workflow failed at startup on its first run: the job that calls the reusable Docker
+  Hub workflow inherited the workflow's `contents: read` while the called job asks for the
+  attestation and package permissions. The caller now grants them, as AgentSafe's does.
+- `.github/dependabot.yml` was invalid, and had been: an `ignore` rule filtered by
+  `dependency-type`, which the schema does not allow, so Dependabot could not parse the file.
+  The rule now names the build-tooling packages whose majors are taken deliberately.
+
 ## [0.2.0] — 2026-09-24
 
 The context-engineering release. Every decision the platform makes is more legible at the moment
