@@ -1,0 +1,29 @@
+{
+  "opportunity": {
+    "id": "opp-kilo-limit",
+    "accountId": "acct-kilo",
+    "accountName": "Kilo Payments",
+    "kind": "PROCESSING_LIMIT_REVIEW",
+    "status": "HELD",
+    "title": "Review a £150k processing-limit increase",
+    "rationale": "Usage velocity, completed partner KYB and the recorded expansion milestone support a controlled increase. Human approval remains required in shadow mode.",
+    "recommendedAction": "Review a time-bound increase from £500k to £650k for the UK → NG corridor.",
+    "disposition": "REVIEW",
+    "confidence": 0.93,
+    "evidenceCoverage": 94,
+    "evidenceIds": ["ev-kilo-usage", "ev-kilo-kyb", "ev-kilo-milestone"],
+    "priority": "ELEVATED",
+    "createdAt": "2026-09-24T14:55:00.000Z",
+    "dossierId": "dos_kilo_01",
+    "arbitration": {
+      "governingClass": "POLICY",
+      "governingEvidenceIds": ["ev-kilo-kyb"],
+      "overriddenEvidenceIds": [],
+      "suppressedActions": [],
+      "policyReference": "customer_ops.v4",
+      "summary": "The increase exceeds the review threshold, so the active policy routes it to human approval rather than applying it. Partner KYB is current, which is what allows a review rather than a block."
+    }
+  },
+  "reviewId": "review_kilo_01_hold",
+  "recordedAt": "2026-09-24T15:02:00.000Z"
+}

@@ -76,6 +76,16 @@ and `arbitration` is absent, the card looks as it does today.
 | Does `GET /v1/cdi/opportunities` return `COMPLETED` items, or only open ones? If only open, is a `status` filter feasible? | W6 renders recently resolved decisions and their outcomes. Without completed items in the response, it would be demo-only and waits.                 |
 | Is `/v1/cdi` still pre-1.0 upstream, so optional fields can be added without a version bump?                               | Steward's contracts are pre-1.0 and documented as such; the same needs to be true on the producing side, or the additions need a version and a date. |
 
+## Verifying the change when it ships
+
+`infra/api/samples/` holds response bodies in the agreed shape, and `infra/api/DecionisContract.test.ts`
+drives each through Steward's real HTTP client, gateway, and `domain/` schemas. Replace each sample
+with a capture from a staging tenant (rewritten to the demo fixture conventions before commit, the
+test checks) and run `pnpm test`. Green means the contract is pinned to what the platform actually
+sends. The same test records the two mistakes most likely during rollout: a class outside the five
+fails the whole account response, and an arbitration resting on no evidence fails the opportunity
+list.
+
 ## What does not change
 
 - No new endpoint. No new required field. No change to authentication, organisation scoping, or the

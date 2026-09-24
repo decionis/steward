@@ -1,0 +1,132 @@
+{
+  "id": "acct-kilo",
+  "name": "Kilo Payments",
+  "externalReference": "CRM-DEMO-0001",
+  "segment": "Enterprise",
+  "primaryRegion": "United Kingdom",
+  "corridors": ["UK → NG", "UK → KE"],
+  "state": "EXPANSION_READY",
+  "owner": "Alice Example",
+  "healthScore": 91,
+  "evidenceCoverage": 94,
+  "limitUtilization": 92,
+  "currentLimit": { "amount": 500000, "currency": "GBP" },
+  "proposedLimit": { "amount": 650000, "currency": "GBP" },
+  "updatedAt": "2026-09-24T14:54:00.000Z",
+  "connectors": [
+    {
+      "id": "conn-kilo-crm",
+      "name": "CRM",
+      "health": "HEALTHY",
+      "lastSyncAt": "2026-09-24T14:50:00.000Z"
+    },
+    {
+      "id": "conn-kilo-usage",
+      "name": "Product usage",
+      "health": "HEALTHY",
+      "lastSyncAt": "2026-09-24T14:54:00.000Z"
+    },
+    {
+      "id": "conn-kilo-settlement",
+      "name": "Settlement ledger",
+      "health": "HEALTHY",
+      "lastSyncAt": "2026-09-24T14:53:00.000Z"
+    },
+    {
+      "id": "conn-kilo-support",
+      "name": "Support desk",
+      "health": "HEALTHY",
+      "lastSyncAt": "2026-09-24T14:48:00.000Z"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-kilo-usage",
+      "title": "Processing velocity reached 92%",
+      "detail": "Seven-day settled volume is 31% above the prior four-week baseline without an increase in exception rate.",
+      "source": "Product usage",
+      "sourceRecordId": "usage-kilo-20260924",
+      "observedAt": "2026-09-24T14:54:00.000Z",
+      "freshness": "LIVE",
+      "confidence": 0.98,
+      "impact": "POSITIVE",
+      "category": "USAGE",
+      "contextClass": "INTENT"
+    },
+    {
+      "id": "ev-kilo-kyb",
+      "title": "Partner KYB refreshed",
+      "detail": "Beneficial ownership and sanctions screening completed for the two new corridor partners.",
+      "source": "KYC / KYB",
+      "sourceRecordId": "kyb-kilo-20260919",
+      "observedAt": "2026-09-19T08:40:00.000Z",
+      "freshness": "CURRENT",
+      "confidence": 0.95,
+      "impact": "POSITIVE",
+      "category": "KYC_KYB",
+      "contextClass": "POLICY"
+    },
+    {
+      "id": "ev-kilo-milestone",
+      "title": "Expansion milestone recorded",
+      "detail": "Contracted volume commitment for the second half of the year was signed and logged against the account.",
+      "source": "CRM",
+      "sourceRecordId": "crm-kilo-20260916",
+      "observedAt": "2026-09-16T11:05:00.000Z",
+      "freshness": "CURRENT",
+      "confidence": 0.9,
+      "impact": "POSITIVE",
+      "category": "CRM",
+      "contextClass": "JOURNEY"
+    },
+    {
+      "id": "ev-kilo-exceptions",
+      "title": "Exception rate steady at 0.4%",
+      "detail": "No material change in settlement exceptions across the volume increase.",
+      "source": "Settlement ledger",
+      "sourceRecordId": "settle-kilo-20260923",
+      "observedAt": "2026-09-23T21:35:00.000Z",
+      "freshness": "CURRENT",
+      "confidence": 0.93,
+      "impact": "NEUTRAL",
+      "category": "TRANSACTION",
+      "contextClass": "OPERATIONAL"
+    }
+  ],
+  "timeline": [
+    {
+      "id": "tl-kilo-0",
+      "title": "Previous limit increase applied",
+      "detail": "The £400k → £500k increase approved on the prior review was executed under grant; utilisation settled at 71% of the new envelope.",
+      "occurredAt": "2026-09-23T17:00:00.000Z",
+      "kind": "OUTCOME"
+    },
+    {
+      "id": "tl-kilo-1",
+      "title": "Utilisation crossed the review threshold",
+      "detail": "Rolling utilisation passed 90% of the agreed processing envelope.",
+      "occurredAt": "2026-09-24T14:54:00.000Z",
+      "kind": "SIGNAL"
+    },
+    {
+      "id": "tl-kilo-2",
+      "title": "Policy evaluated the account as review-required",
+      "detail": "The active customer operations policy routed the increase to human approval rather than applying it.",
+      "occurredAt": "2026-09-24T14:55:00.000Z",
+      "kind": "DECISION"
+    },
+    {
+      "id": "tl-kilo-3",
+      "title": "Queued for operator review",
+      "detail": "Recommendation surfaced in the governed action queue.",
+      "occurredAt": "2026-09-24T14:55:00.000Z",
+      "kind": "ACTION"
+    }
+  ],
+  "policyEnvelope": {
+    "policyVersion": "customer_ops.v4",
+    "maximumAutoIncreasePercent": 0,
+    "reviewThreshold": { "amount": 250000, "currency": "GBP" },
+    "automaticChangesEnabled": false
+  }
+}

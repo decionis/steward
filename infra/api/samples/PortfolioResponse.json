@@ -1,0 +1,215 @@
+{
+  "generatedAt": "2026-09-24T15:00:00.000Z",
+  "dataStatus": "LIVE",
+  "summary": {
+    "totalAccounts": 4,
+    "healthyAccounts": 1,
+    "accountsWithFriction": 1,
+    "expansionReady": 1,
+    "reviewsRequired": 2,
+    "averageEvidenceCoverage": 82
+  },
+  "accounts": [
+    {
+      "id": "acct-kilo",
+      "name": "Kilo Payments",
+      "externalReference": "CRM-DEMO-0001",
+      "segment": "Enterprise",
+      "primaryRegion": "United Kingdom",
+      "corridors": ["UK → NG", "UK → KE"],
+      "state": "EXPANSION_READY",
+      "owner": "Alice Example",
+      "healthScore": 91,
+      "evidenceCoverage": 94,
+      "limitUtilization": 92,
+      "currentLimit": {
+        "amount": 500000,
+        "currency": "GBP"
+      },
+      "proposedLimit": {
+        "amount": 650000,
+        "currency": "GBP"
+      },
+      "updatedAt": "2026-09-24T14:54:00.000Z"
+    },
+    {
+      "id": "acct-sierra",
+      "name": "Sierra Treasury",
+      "externalReference": "CRM-DEMO-0002",
+      "segment": "Enterprise",
+      "primaryRegion": "United States",
+      "corridors": ["US → MX", "US → PH"],
+      "state": "FRICTION",
+      "owner": "Bob Example",
+      "healthScore": 62,
+      "evidenceCoverage": 87,
+      "limitUtilization": 54,
+      "currentLimit": {
+        "amount": 1200000,
+        "currency": "USD"
+      },
+      "proposedLimit": null,
+      "updatedAt": "2026-09-24T14:42:00.000Z"
+    },
+    {
+      "id": "acct-tango",
+      "name": "Tango Trade Services",
+      "externalReference": "CRM-DEMO-0003",
+      "segment": "Mid-market",
+      "primaryRegion": "Singapore",
+      "corridors": ["SG → ID", "SG → VN"],
+      "state": "REVIEW_REQUIRED",
+      "owner": "Carol Example",
+      "healthScore": 74,
+      "evidenceCoverage": 69,
+      "limitUtilization": 88,
+      "currentLimit": {
+        "amount": 300000,
+        "currency": "SGD"
+      },
+      "proposedLimit": {
+        "amount": 400000,
+        "currency": "SGD"
+      },
+      "updatedAt": "2026-09-24T13:00:00.000Z"
+    },
+    {
+      "id": "acct-victor",
+      "name": "Victor Remit",
+      "externalReference": "CRM-DEMO-0004",
+      "segment": "Mid-market",
+      "primaryRegion": "Norway",
+      "corridors": ["NO → PL"],
+      "state": "HEALTHY",
+      "owner": "Dave Example",
+      "healthScore": 88,
+      "evidenceCoverage": 78,
+      "limitUtilization": 41,
+      "currentLimit": {
+        "amount": 900000,
+        "currency": "NOK"
+      },
+      "proposedLimit": null,
+      "updatedAt": "2026-09-24T11:35:00.000Z"
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "opp-kilo-limit",
+      "accountId": "acct-kilo",
+      "accountName": "Kilo Payments",
+      "kind": "PROCESSING_LIMIT_REVIEW",
+      "status": "OPEN",
+      "title": "Review a £150k processing-limit increase",
+      "rationale": "Usage velocity, completed partner KYB and the recorded expansion milestone support a controlled increase. Human approval remains required in shadow mode.",
+      "recommendedAction": "Review a time-bound increase from £500k to £650k for the UK → NG corridor.",
+      "disposition": "REVIEW",
+      "confidence": 0.93,
+      "evidenceCoverage": 94,
+      "evidenceIds": ["ev-kilo-usage", "ev-kilo-kyb", "ev-kilo-milestone"],
+      "priority": "ELEVATED",
+      "createdAt": "2026-09-24T14:55:00.000Z",
+      "dossierId": "dos_kilo_01",
+      "arbitration": {
+        "governingClass": "POLICY",
+        "governingEvidenceIds": ["ev-kilo-kyb"],
+        "overriddenEvidenceIds": [],
+        "suppressedActions": [],
+        "policyReference": "customer_ops.v4",
+        "summary": "The increase exceeds the review threshold, so the active policy routes it to human approval rather than applying it. Partner KYB is current, which is what allows a review rather than a block."
+      }
+    },
+    {
+      "id": "opp-kilo-limit-prior",
+      "accountId": "acct-kilo",
+      "accountName": "Kilo Payments",
+      "kind": "PROCESSING_LIMIT_REVIEW",
+      "status": "COMPLETED",
+      "title": "Processing limit raised to £500k",
+      "rationale": "Sustained utilisation above the review threshold with a stable exception rate and current partner KYB supported a controlled increase from £400k.",
+      "recommendedAction": "Approved and executed under grant. Utilisation settled at 71% of the new envelope before the current velocity rise.",
+      "disposition": "ALLOW",
+      "confidence": 0.95,
+      "evidenceCoverage": 91,
+      "evidenceIds": ["ev-kilo-exceptions", "ev-kilo-kyb"],
+      "priority": "ROUTINE",
+      "createdAt": "2026-09-23T16:00:00.000Z",
+      "dossierId": "dos_kilo_00"
+    },
+    {
+      "id": "opp-sierra-friction",
+      "accountId": "acct-sierra",
+      "accountName": "Sierra Treasury",
+      "kind": "FRICTION_INTERVENTION",
+      "status": "OPEN",
+      "title": "Assign the US settlement incident",
+      "rationale": "A concentrated support-ticket increase aligns with a corridor-specific fall in completion rate.",
+      "recommendedAction": "Create an operations incident, notify the account owner and hold expansion outreach until settlement health recovers.",
+      "disposition": "ESCALATE",
+      "confidence": 0.91,
+      "evidenceCoverage": 87,
+      "evidenceIds": ["ev-sierra-tickets", "ev-sierra-completion"],
+      "priority": "URGENT",
+      "createdAt": "2026-09-24T14:44:00.000Z",
+      "dossierId": "dos_sierra_01",
+      "arbitration": {
+        "governingClass": "OPERATIONAL",
+        "governingEvidenceIds": ["ev-sierra-completion"],
+        "overriddenEvidenceIds": [],
+        "suppressedActions": ["Expansion outreach"],
+        "policyReference": "customer_ops.v4",
+        "summary": "A corridor-specific fall in completion rate, corroborated by support volume, is an active service condition. The policy escalates to an operations incident and suppresses commercial outreach while it persists."
+      }
+    },
+    {
+      "id": "opp-tango-hold",
+      "accountId": "acct-tango",
+      "accountName": "Tango Trade Services",
+      "kind": "HOLD_FOR_MORE_EVIDENCE",
+      "status": "OPEN",
+      "title": "Hold expansion pending KYB refresh",
+      "rationale": "Utilisation supports an expansion review, but beneficial-ownership evidence is stale under the active policy.",
+      "recommendedAction": "Request a KYB refresh and resume the limit review when evidence is current.",
+      "disposition": "BLOCK",
+      "confidence": 0.89,
+      "evidenceCoverage": 69,
+      "evidenceIds": ["ev-tango-usage", "ev-tango-kyb"],
+      "priority": "ROUTINE",
+      "createdAt": "2026-09-24T13:00:00.000Z",
+      "dossierId": "dos_tango_01",
+      "arbitration": {
+        "governingClass": "POLICY",
+        "governingEvidenceIds": ["ev-tango-kyb"],
+        "overriddenEvidenceIds": ["ev-tango-usage"],
+        "suppressedActions": ["Processing-limit review"],
+        "policyReference": "customer_ops.v4",
+        "summary": "Beneficial-ownership evidence is outside the 90-day freshness window the active policy requires. Utilisation supports a review and is overridden until the record is refreshed."
+      }
+    },
+    {
+      "id": "opp-victor-no-action",
+      "accountId": "acct-victor",
+      "accountName": "Victor Remit",
+      "kind": "NO_ACTION",
+      "status": "OPEN",
+      "title": "No intervention warranted",
+      "rationale": "Settled volume and exception rate are steady against a 30-day baseline, and KYB is verified inside the policy freshness window. The policy assessed the account and chose inaction, with the evidence recorded.",
+      "recommendedAction": "Take no action. Continue routine evidence refresh and re-evaluate on any material change.",
+      "disposition": "ALLOW",
+      "confidence": 0.9,
+      "evidenceCoverage": 78,
+      "evidenceIds": ["ev-victor-usage", "ev-victor-kyb"],
+      "priority": "ROUTINE",
+      "createdAt": "2026-09-24T11:40:00.000Z",
+      "dossierId": "dos_victor_01",
+      "arbitration": {
+        "governingClass": "POLICY",
+        "governingEvidenceIds": ["ev-victor-kyb", "ev-victor-usage"],
+        "overriddenEvidenceIds": [],
+        "suppressedActions": [],
+        "policyReference": "customer_ops.v4",
+        "summary": "Volume is steady inside the envelope and KYB is current, so the active policy recorded a deliberate no-action decision rather than leaving the account unassessed."
+      }
+    }
+  ]
+}
