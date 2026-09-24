@@ -91,7 +91,9 @@ exercisable end to end:
 ![The governed action queue: each recommendation carries its rationale, confidence, evidence coverage, and dossier reference](docs/screenshot-opportunity-queue.png)
 
 Every review control is captioned _"Records a review only; no downstream limit is changed."_ That is
-the trust boundary stated in the interface, not only in the documentation.
+the trust boundary stated in the interface, not only in the documentation. It is also the free tier:
+the top bar's "Connect your platform" link leads to the Decionis sign-in handoff, and
+[OpenCore.md](./OpenCore.md) says what is paid from there.
 
 ![Account detail: processing envelope, the recommendation under review, correlated evidence, and connector health](docs/screenshot-account-detail.png)
 

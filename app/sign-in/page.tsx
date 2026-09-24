@@ -32,6 +32,14 @@ export default async function SignInPage({
         <p className={styles.note}>
           Your organization, roles and policy access stay in Decionis.
         </p>
+        <p className={styles.note}>
+          Steward is free and open source, and demo mode needs no account. A
+          Decionis workspace decides in shadow at no charge; what is paid is the
+          platform executing an approved review.{" "}
+          <a href="https://github.com/decionis/steward/blob/master/OpenCore.md">
+            The boundary, in full.
+          </a>
+        </p>
       </section>
     </main>
   );

@@ -44,6 +44,11 @@ you integrate against these types.
   pins its base by digest from the AWS public mirror, builds on the builder's platform, ships
   `public/`, and carries OCI labels; Dependabot watches the base image. Workstream D1 of
   `docs/Distribution.md`.
+- The activation point, stated where an adopter meets it. In demo mode the top bar carries
+  "Connect your platform", a link to the sign-in page, which now says in two sentences what is free
+  (Steward, demo mode, a Decionis workspace deciding in shadow) and what is paid (the platform
+  executing an approved review), and links [OpenCore.md](./OpenCore.md). Presentation only: nothing
+  checks a plan or an entitlement. Workstream D3 of [docs/Distribution.md](./docs/Distribution.md).
 
 ### Fixed
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   Activity,
+  ArrowUpRight,
   Building2,
   CircleHelp,
   Settings2,
@@ -76,12 +77,23 @@ export function AppShell({ session, children }: AppShellProps) {
                 : session.orgId}
             </strong>
           </div>
-          <StatusBadge
-            tone={session.mode === "DEMO" ? "violet" : "positive"}
-            dot
-          >
-            {session.mode === "DEMO" ? "Demo evidence" : "Live evidence"}
-          </StatusBadge>
+          <div className={styles.topbarActions}>
+            <StatusBadge
+              tone={session.mode === "DEMO" ? "violet" : "positive"}
+              dot
+            >
+              {session.mode === "DEMO" ? "Demo evidence" : "Live evidence"}
+            </StatusBadge>
+            {session.mode === "DEMO" ? (
+              // The activation point, stated where an adopter meets it. The
+              // sign-in page says what is free and what is paid, then hands
+              // off to Decionis. Nothing here checks a plan or an entitlement.
+              <Link href="/sign-in" className={styles.connect}>
+                Connect your platform
+                <ArrowUpRight size={14} aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
         </header>
         <main className={styles.main}>{children}</main>
       </div>
