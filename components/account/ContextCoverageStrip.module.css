@@ -1,0 +1,72 @@
+.strip {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  border: 1px solid var(--ink-200);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--ink-100);
+}
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.label svg {
+  color: var(--violet-600);
+}
+.label strong {
+  margin-left: auto;
+  color: var(--ink-700);
+  text-transform: none;
+}
+.classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.classes li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ink-200);
+  border-radius: 999px;
+  padding: 2px 9px 2px 6px;
+  background: white;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.marker {
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--ink-300);
+  border-radius: 999px;
+  background: transparent;
+}
+.classes li[data-coverage="CURRENT"] .marker {
+  border-color: var(--emerald-700);
+  background: var(--emerald-700);
+}
+.classes li[data-coverage="AGING"] .marker {
+  border-color: var(--amber-700);
+  background: transparent;
+}
+.classes li[data-coverage="ABSENT"] {
+  color: var(--ink-500);
+  border-style: dashed;
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

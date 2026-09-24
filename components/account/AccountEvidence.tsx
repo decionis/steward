@@ -3,6 +3,7 @@ import { RelativeTime } from "@/components/common/RelativeTime";
 import type { EvidenceSignal } from "@/domain/evidence/EvidenceSignal";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { StewardFormat } from "@/presentation/format/StewardFormat";
+import { ContextCoverageStrip } from "./ContextCoverageStrip";
 import styles from "./Account.module.css";
 
 function impactTone(impact: EvidenceSignal["impact"]) {
@@ -11,7 +12,14 @@ function impactTone(impact: EvidenceSignal["impact"]) {
   return "neutral" as const;
 }
 
-export function AccountEvidence({ evidence }: { evidence: EvidenceSignal[] }) {
+export function AccountEvidence({
+  evidence,
+  linkedEvidenceIds,
+}: {
+  evidence: EvidenceSignal[];
+  /** The open recommendation's evidence ids, when there is one. */
+  linkedEvidenceIds?: readonly string[];
+}) {
   return (
     <section className={styles.panel}>
       <div className={styles.panelHeading}>
@@ -21,6 +29,12 @@ export function AccountEvidence({ evidence }: { evidence: EvidenceSignal[] }) {
         </div>
         <Database size={18} aria-hidden="true" />
       </div>
+      {linkedEvidenceIds ? (
+        <ContextCoverageStrip
+          linkedEvidenceIds={linkedEvidenceIds}
+          evidence={evidence}
+        />
+      ) : null}
       <div className={styles.evidenceList}>
         {evidence.map((signal) => (
           <article key={signal.id} className={styles.evidenceItem}>
