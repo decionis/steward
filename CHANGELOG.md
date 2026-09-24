@@ -10,6 +10,14 @@ you integrate against these types.
 
 ## [Unreleased]
 
+### Added
+
+- [docs/ContextEngineering.md](./docs/ContextEngineering.md): a review of two September 2026 articles
+  on context engineering and operational readiness, a map of their framework onto Steward's contracts
+  and trust boundary, and the approved plan for making the platform's decisions more legible at
+  review time. [Architecture.md](./Architecture.md) gains a section naming the
+  sense-interpret-arbitrate-act loop that `AccountTimelineEvent.kind` already records.
+
 ### Security
 
 - `next` 16.3.1 → 16.3.6 (range `^16.3.3`), clearing two critical advisories in the Image Optimization API

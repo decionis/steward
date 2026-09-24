@@ -1,7 +1,8 @@
 # Context Engineering and Steward
 
-**Status: proposal, awaiting approval.** Nothing below is implemented. The map is a reading of the
-current tree; the plan is what this document asks permission to do.
+**Status: approved 24 September 2026, all recommendations accepted.** Stage 1 (W0, W3, W4) is
+being implemented. Stages 2 and 3 (W1, W2, W5) and W6 wait on the platform team's answers to the
+questions under "Decisions needed for approval". The map is a reading of the tree at approval time.
 
 Two sources, read together:
 
@@ -276,7 +277,7 @@ Each is one pull request. Each passes `pnpm verify`, is signed off (DCO), regene
 screenshots if it changes the interface, and adds a line under `[Unreleased]` in
 [CHANGELOG.md](../CHANGELOG.md).
 
-#### W0 — Adopt the vocabulary (documentation only)
+#### W0 — Adopt the vocabulary (documentation only) ✅ Done
 
 - Merge this document.
 - [Architecture.md](../Architecture.md): one short section naming the loop and mapping it onto

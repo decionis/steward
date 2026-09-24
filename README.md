@@ -202,6 +202,10 @@ Swapping demo for live is a single decision in `StewardRepositoryFactory` behind
 interface — the application and UI layers cannot tell the difference. See
 [Architecture.md](./Architecture.md) for the full boundary and directory map.
 
+[docs/ContextEngineering.md](docs/ContextEngineering.md) maps the design onto the
+context-engineering framework (sense, interpret, arbitrate, act) and records the plan for making each
+of the platform's decisions more legible to the operator reviewing it.
+
 ## Development
 
 ```bash
