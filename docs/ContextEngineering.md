@@ -1,8 +1,9 @@
 # Context Engineering and Steward
 
-**Status: approved 24 September 2026, all recommendations accepted.** Stage 1 (W0, W3, W4) is
-being implemented. Stages 2 and 3 (W1, W2, W5) and W6 wait on the platform team's answers to the
-questions under "Decisions needed for approval". The map is a reading of the tree at approval time.
+**Status: approved 24 September 2026, all recommendations accepted.** The platform team answered
+the three upstream questions the same day (see "Decisions needed for approval"), so every workstream
+is being implemented, each on its own branch off `master`. The map is a reading of the tree at
+approval time.
 
 Two sources, read together:
 
@@ -466,13 +467,14 @@ prove it where the foundation is already strong.
 
 ### Decisions needed for approval
 
-| Decision                                                                                       | Recommendation                                                                                        |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Five context classes or CMSWire's six?                                                         | Five. `ENVIRONMENTAL` has no producer. Add it the day one exists.                                     |
-| Will the platform carry `contextClass` and `arbitration`? If not, W1, W2, W5 are demo-only.    | Ask before starting stage 2. Demo-only contract fields are not worth shipping.                        |
-| Where do `NO_ACTION` and `HELD` render on the dashboard?                                       | A separate group beneath the main queue. Visible, attributable, not inflating "needs a decision now". |
-| Does `/v1/cdi/opportunities` return `COMPLETED` items?                                         | Ask alongside the W1/W2 request. If not, W6 waits; do not ship a demo-only "Recently resolved".       |
-| Is a summarising class in `presentation/` inside the Architecture.md definition of that layer? | Yes, with the one-sentence clarification in W0. It formats fields; it does not evaluate anything.     |
+| Decision                                                                                       | Recommendation                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Five context classes or CMSWire's six?                                                         | Five. `ENVIRONMENTAL` has no producer. Add it the day one exists.                                                                                                                                      |
+| Will the platform carry `contextClass` and `arbitration`? If not, W1, W2, W5 are demo-only.    | Ask before starting stage 2. **Answered: yes, the platform will carry both.**                                                                                                                          |
+| Where do `NO_ACTION` and `HELD` render on the dashboard?                                       | A separate group beneath the main queue. Visible, attributable, not inflating "needs a decision now".                                                                                                  |
+| Does `/v1/cdi/opportunities` return `COMPLETED` items?                                         | Ask alongside the W1/W2 request. **Answered: it returns both open and completed items.** W6 proceeds.                                                                                                  |
+| Can optional fields be added to `/v1/cdi` without a version bump?                              | **Answered: no; contract additions are versioned.** The platform ships them as a versioned CDI change, and the Steward release carrying them is a minor bump under the pre-1.0 policy in CHANGELOG.md. |
+| Is a summarising class in `presentation/` inside the Architecture.md definition of that layer? | Yes, with the one-sentence clarification in W0. It formats fields; it does not evaluate anything.                                                                                                      |
 
 ### Inputs needed
 

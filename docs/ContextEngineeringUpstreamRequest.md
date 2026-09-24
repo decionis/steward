@@ -1,9 +1,10 @@
 # Upstream change request: context fields on the CDI contract
 
-**Status: drafted, not yet sent.** From Steward to the Decionis platform team. Stage 2 of
-[ContextEngineering.md](ContextEngineering.md) (workstreams W1, W2, W5) and W6 wait on the answers
-below. Steward will not ship demo-only contract fields, so nothing in stage 2 starts until the
-platform confirms it will carry them.
+**Status: answered 24 September 2026.** The platform will carry both fields below;
+`GET /v1/cdi/opportunities` returns open and completed items; contract additions are versioned, so
+these ship as a versioned CDI change and the Steward release carrying them is a minor bump. Kept as
+the record of what was asked and agreed. Stage 2 of [ContextEngineering.md](ContextEngineering.md)
+(W1, W2, W5) and W6 are being implemented.
 
 ## Two optional fields
 
