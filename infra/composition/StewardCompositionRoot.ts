@@ -3,6 +3,7 @@ import { AccountService } from "@/application/accounts/AccountService";
 import { DashboardService } from "@/application/dashboard/DashboardService";
 import { OpportunityService } from "@/application/opportunities/OpportunityService";
 import { SignalService } from "@/application/signals/SignalService";
+import { DecionisSignalIngressClient } from "@/infra/api/DecionisSignalIngressClient";
 import { SignalConnectorFactory } from "@/infra/connectors/SignalConnectorFactory";
 import { DecionisSignalRepository } from "@/infra/repositories/DecionisSignalRepository";
 import { DemoSignalRepository } from "@/infra/repositories/DemoSignalRepository";
@@ -26,7 +27,14 @@ export class StewardCompositionRoot {
     this.signalRepository =
       config.dataMode === "demo"
         ? new DemoSignalRepository()
-        : new DecionisSignalRepository();
+        : new DecionisSignalRepository(
+            config.signalIngress
+              ? new DecionisSignalIngressClient({
+                  ...config.signalIngress,
+                  timeoutMs: config.timeoutMs,
+                })
+              : null,
+          );
   }
 
   async createServerContext(): Promise<StewardApplicationContext> {

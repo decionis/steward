@@ -13,7 +13,8 @@ does not have to infer the business model from the code.
 - **Operated (Decionis, not in this repository):** the platform behind `/v1/cdi`: policy evaluation
   and the `customer_ops` policy pack, execution grants, Decision Dossiers, the audit ledger,
   signal ingestion, identity resolution, and Presence.
-- **The seam:** one TypeScript interface and four versioned HTTP operations. Anyone can implement
+- **The seam:** one TypeScript interface, four versioned HTTP operations, and the Protocol's
+  published signal ingress. Anyone can implement
   the interface. Steward does not check a plan, a key, or an entitlement.
 - **The activation point:** the first review that is meant to execute. Everything before it is
   free; the platform making a change is what is paid.
@@ -72,13 +73,13 @@ implementation against another backend is a first-class citizen.
 
 **Wire operations**, parsed through the Zod contracts in `domain/`:
 
-| Operation                                           | Purpose                                                                                                                                                      |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /v1/cdi/portfolio`                             | The portfolio snapshot for the session's organisation                                                                                                        |
-| `GET /v1/cdi/accounts/:accountId`                   | One account: evidence, connectors, timeline, policy envelope                                                                                                 |
-| `GET /v1/cdi/opportunities`                         | Open and completed recommendations                                                                                                                           |
-| `POST /v1/cdi/opportunities/:opportunityId/reviews` | Forward a review; the platform decides, executes, and returns state and a dossier reference                                                                  |
-| `POST /v1/cdi/signals` (requested)                  | Forward a batch of collected signals; the platform resolves accounts and weighs. Not yet published; see [docs/SignalConnectors.md](docs/SignalConnectors.md) |
+| Operation                                           | Purpose                                                                                                                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/cdi/portfolio`                             | The portfolio snapshot for the session's organisation                                                                                                                |
+| `GET /v1/cdi/accounts/:accountId`                   | One account: evidence, connectors, timeline, policy envelope                                                                                                         |
+| `GET /v1/cdi/opportunities`                         | Open and completed recommendations                                                                                                                                   |
+| `POST /v1/cdi/opportunities/:opportunityId/reviews` | Forward a review; the platform decides, executes, and returns state and a dossier reference                                                                          |
+| `POST /v1/signals/webhooks/:connectorId`            | Forward a batch of collected signals to the Protocol's published ingress, authenticated by the connector's webhook secret; the platform resolves accounts and weighs |
 
 ## Free and paid
 

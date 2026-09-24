@@ -12,13 +12,22 @@ you integrate against these types.
 
 ### Added
 
+- Live forwarding over the Decionis Protocol's published signal ingress,
+  `POST /v1/signals/webhooks/:connectorId`. Steward is a third-party application built on the
+  Protocol and reuses the operation it publishes: `DecionisSignalIngressClient` sends each batch as
+  ingress events with the connector's webhook secret in a header, accepts on a 2xx, reports a 4xx
+  without retrying, and retries a 5xx or a timeout with backoff; `SignalIngressMapper` pins the
+  outbound body in `infra/api/samples/SignalIngressRequest.json`. Configured by
+  `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET` from a deployment bundle, with
+  `DECIONIS_WEBHOOK_URL` as an override; one without the other fails at startup. The request for a
+  bespoke `/v1/cdi/signals` operation is withdrawn from [docs/SignalConnectors.md](./docs/SignalConnectors.md).
 - Signal collection, the first workstream of [docs/SignalConnectors.md](./docs/SignalConnectors.md):
   the contracts in `domain/signals/` (`SignalSource`, `CapturedSignal`, `SignalBatch`,
   `SignalForwardResult`), the `SignalConnector` interface and registry under `infra/connectors/`
   with demo connectors, `SignalService` with collection gated to `OPERATOR` and above,
   `GET /api/steward/signals/sources` and `POST /api/steward/signals/sources/[id]/collect`, and the
-  Signal sources page at `/signals` with "Collect now". Live mode answers `503` until the Decionis
-  Protocol publishes its ingestion operation; nothing collected is stored. The boundary documents
+  Signal sources page at `/signals` with "Collect now". Live mode answers `503` until forwarding is
+  configured; nothing collected is stored. The boundary documents
   (README, CONTRIBUTING, Architecture, ThreatModel with T8, EvidencePack, OpenCore, SECURITY, the
   Docker guide and the discovery files) say the same thing as the tree.
 - [docs/SignalConnectors.md](./docs/SignalConnectors.md): the decision that Steward collects the

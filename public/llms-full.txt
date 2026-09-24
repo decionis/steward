@@ -17,7 +17,7 @@ How it runs: demo mode (the default, STEWARD_DATA_MODE=demo) serves deterministi
 - [Evidence pack](https://github.com/decionis/steward/blob/master/EvidencePack.md): the security-review questionnaire mapped to artifacts a reviewer can read and run without a call.
 - [Context engineering](https://github.com/decionis/steward/blob/master/docs/ContextEngineering.md): how the interface makes the platform's decisions legible: context classes on evidence, arbitration rendered as "Why this disposition", inaction as a decision, the state of the context at the moment of review, coverage by class, decisions that reached an outcome.
 - [Proactive support](https://github.com/decionis/steward/blob/master/docs/ProactiveSupport.md): the plan that turns the customer-support decisioning statement into features: planning by region, segment, value and cluster; events around the customer; proactive support plays; the loop measured.
-- [Signal connectors](https://github.com/decionis/steward/blob/master/docs/SignalConnectors.md): the decision that Steward collects the signals that become context, from the operator's own systems; the payload, the security model, the connector catalogue, the ingestion operation requested of the Decionis Protocol, and six workstreams.
+- [Signal connectors](https://github.com/decionis/steward/blob/master/docs/SignalConnectors.md): the decision that Steward collects the signals that become context, from the operator's own systems; the payload, the security model, the connector catalogue, the Protocol's published signal ingress that Steward forwards to, and six workstreams.
 - [Distribution](https://github.com/decionis/steward/blob/master/docs/Distribution.md): the container on GHCR and Docker Hub, machine discovery, and the commercial boundary modelled on NGINX's open-source-plus-subscription shape.
 - [Run in Docker](https://github.com/decionis/steward/blob/master/docs/Docker.md): ghcr.io/decionis/steward and docker.io/decionis/steward at the same digest; tags (immutable version, minor, major, latest, edge), demo and live mode, verification, what the image holds and does not.
 - [Machine discovery](https://github.com/decionis/steward/blob/master/docs/Discovery.md): the surfaces this file is one of, the rules, and the gate that keeps them true.
@@ -39,7 +39,7 @@ How it runs: demo mode (the default, STEWARD_DATA_MODE=demo) serves deterministi
 
 - Policy evaluation, identity resolution, the weighing of signals, execution grants, Decision Dossiers, the audit ledger, tenant identity -> Decionis: https://decionis.com. Not this repository.
 - Running the operator tier, its screens, its signal connectors, its contracts, its tests, its image -> this repository.
-- Whether Steward stores what it collects -> no. A connector reaches the host its source names, parses the result into CapturedSignal, forwards the batch over the Decionis Protocol, and discards it; live forwarding answers 503 until the Protocol publishes the ingestion operation.
+- Whether Steward stores what it collects -> no. A connector reaches the host its source names, parses the result into CapturedSignal, forwards the batch over the Decionis Protocol, and discards it; live forwarding goes to the Protocol's published signal ingress, POST /v1/signals/webhooks/:connectorId with the connector's webhook secret in a header, and answers 503 until DECIONIS_CONNECTOR_ID and DECIONIS_WEBHOOK_SECRET are set.
 - Whether a review accepted in Steward changes a processing limit by itself -> no. Steward forwards the review with the operator's own credential; the platform decides, executes, and returns the resulting state and a dossier reference.
 - Whether Steward's role check is a security control -> no. It is a UX affordance; the platform re-authorizes every review, and the threat model says so under T2.
 - Whether there is a paid or feature-gated build of Steward -> no, and there will not be one. The image is the same bytes for a free tenant and a paying one; what differs is what the platform returns.
@@ -70,6 +70,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - STEWARD_DATA_MODE: demo or live. Defaults to live in production, demo elsewhere.
 - DECIONIS_API_BASE_URL: required in live mode; startup throws without it.
 - DECIONIS_STEWARD_SERVICE_TOKEN: optional server-to-server credential; prefer a user session.
+- DECIONIS_CONNECTOR_ID and DECIONIS_WEBHOOK_SECRET: the signal connector and its webhook secret, issued together by a Decionis deployment bundle; where collected signals are forwarded. Set both or neither; startup refuses one without the other. DECIONIS_WEBHOOK_URL overrides the derived ingress URL.
 - STEWARD_ACCESS_TOKEN_COOKIE (decionis_access_token), STEWARD_ORG_ID_COOKIE (decionis_org_id): the cookies the Decionis sign-in handoff sets and Steward reads.
 - NEXT_PUBLIC_DECIONIS_SIGN_IN_URL: the external identity handoff target used by /sign-in.
 - All configuration is parsed once at startup by StewardRuntimeConfig.fromEnvironment(); invalid or missing required values fail fast.
@@ -81,7 +82,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - GET /api/steward/opportunities: the recommendation queue, open and completed.
 - POST /api/steward/opportunities/:id/review: body {"decision": "APPROVE" | "REJECT" | "HOLD", "note"?: string}; requires the APPROVER or ADMIN role, else 403; forwarded to the platform, never applied here.
 - GET /api/steward/signals/sources: the signal sources this deployment is configured to collect from, each with kind, categories, health, last collection and count.
-- POST /api/steward/signals/sources/:id/collect: collect from one source and forward the batch; requires OPERATOR, APPROVER or ADMIN, else 403; 503 when the source is not configured or the Protocol has not published the ingestion operation; nothing is stored.
+- POST /api/steward/signals/sources/:id/collect: collect from one source and forward the batch; requires OPERATOR, APPROVER or ADMIN, else 403; 503 when the source is not configured or forwarding is not configured; nothing is stored.
 - GET /api/health: unauthenticated liveness probe.
 - GET /llms.txt, GET /llms-full.txt: these files, served in every data mode without a session and without the noindex header the rest of the application carries.
 - Pages: / (control center), /accounts/:id (account detail), /signals (signal sources), /sign-in (the Decionis identity handoff).
@@ -92,7 +93,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - GET /v1/cdi/accounts/:accountId
 - GET /v1/cdi/opportunities
 - POST /v1/cdi/opportunities/:opportunityId/reviews
-- POST /v1/cdi/signals: requested of the Decionis Protocol, not yet published; live collection reports it unavailable until it is.
+- POST /v1/signals/webhooks/:connectorId: the Protocol's published signal ingress (https://decionis.com/docs/webhooks); events with a type, an ISO-8601 timestamp and a data object, authenticated by x-webhook-secret; a 2xx accepts the batch, a 4xx is reported and not retried, a 5xx is retried with backoff. Steward is a third-party application built on the Protocol and reuses this operation rather than asking for its own.
 - Every response is parsed through a Zod contract in domain/ before it enters the application layer. Schema drift fails loudly at the boundary rather than rendering as a subtly wrong number. The organisation scope travels as a query parameter and as the X-Decionis-Org-Id header; the credential travels only in the Authorization header, never in a URL.
 
 ## What the interface shows

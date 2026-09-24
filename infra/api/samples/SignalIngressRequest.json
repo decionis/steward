@@ -1,0 +1,41 @@
+{
+  "events": [
+    {
+      "type": "signal.support",
+      "timestamp": "2026-09-24T08:42:00.000Z",
+      "data": {
+        "signal_id": "support-demo-0002-spike",
+        "batch_id": "batch-sierra-20260924-1",
+        "source": "src-demo-support",
+        "source_record": "support-sierra-20260924",
+        "identifier": "CRM-DEMO-0002",
+        "channel": "SUPPORT",
+        "outcome": "Support contacts up 3.4x on one corridor",
+        "detail": "Ticket volume concentrated on US to MX, with settlement delay as the dominant reason code.",
+        "risk_score": 0.94,
+        "context_class": "FRICTION",
+        "observed_at": "2026-09-24T08:42:00.000Z",
+        "captured_at": "2026-09-24T09:00:00.000Z",
+        "collected_at": "2026-09-24T09:00:00.000Z"
+      }
+    },
+    {
+      "type": "signal.document",
+      "timestamp": "2026-09-23T16:10:00.000Z",
+      "data": {
+        "signal_id": "doc-demo-0002-kyb",
+        "batch_id": "batch-sierra-20260924-1",
+        "source": "src-demo-support",
+        "source_record": "upload-sierra-kyb-refresh",
+        "identifier": "CRM-DEMO-0002",
+        "channel": "DOCUMENT",
+        "outcome": "KYB refresh letter received",
+        "detail": "The refreshed beneficial-ownership declaration was uploaded by the account owner.",
+        "risk_score": 0.7,
+        "observed_at": "2026-09-23T16:10:00.000Z",
+        "captured_at": "2026-09-24T09:00:00.000Z",
+        "collected_at": "2026-09-24T09:00:00.000Z"
+      }
+    }
+  ]
+}

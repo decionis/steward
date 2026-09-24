@@ -32,9 +32,10 @@ export class StewardNotFoundError extends Error {
 }
 
 /**
- * Something this tier depends on is not available yet: a Protocol operation
- * the platform has not published, or a signal source that is not configured.
- * Maps to 503, and the message says which.
+ * Something this tier depends on is not available: a signal source or the
+ * signal ingress that is not configured on this deployment, or an upstream
+ * that did not answer after the documented retries. Maps to 503, and the
+ * message says which.
  */
 export class StewardUnavailableError extends Error {
   constructor(message: string) {

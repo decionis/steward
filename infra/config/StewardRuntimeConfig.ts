@@ -16,7 +16,23 @@ const RuntimeEnvironmentSchema = z.object({
     .string()
     .url()
     .default("https://decionis.com/sign-in"),
+  DECIONIS_CONNECTOR_ID: z.string().min(1).optional(),
+  DECIONIS_WEBHOOK_SECRET: z.string().min(1).optional(),
+  DECIONIS_WEBHOOK_URL: z.string().url().optional(),
 });
+
+/**
+ * Where collected signals are forwarded: the Decionis Protocol's published
+ * signal ingress, `POST /v1/signals/webhooks/:connectorId`, authenticated by
+ * the connector's webhook secret. The three values are issued together by a
+ * signal-mapping deployment bundle (https://decionis.com/docs/webhooks) and
+ * are read from the environment under the names the bundle emits.
+ */
+export interface SignalIngressConfig {
+  url: string;
+  connectorId: string;
+  webhookSecret: string;
+}
 
 export type StewardDataMode = "demo" | "live";
 
@@ -28,6 +44,7 @@ export interface StewardRuntimeValues {
   orgIdCookie: string;
   signInUrl: string;
   timeoutMs: number;
+  signalIngress: SignalIngressConfig | null;
 }
 
 export class StewardRuntimeConfig {
@@ -38,6 +55,7 @@ export class StewardRuntimeConfig {
   readonly orgIdCookie: string;
   readonly signInUrl: string;
   readonly timeoutMs: number;
+  readonly signalIngress: SignalIngressConfig | null;
 
   constructor(values: StewardRuntimeValues) {
     this.dataMode = values.dataMode;
@@ -47,6 +65,7 @@ export class StewardRuntimeConfig {
     this.orgIdCookie = values.orgIdCookie;
     this.signInUrl = values.signInUrl;
     this.timeoutMs = values.timeoutMs;
+    this.signalIngress = values.signalIngress;
   }
 
   static fromEnvironment(
@@ -63,14 +82,48 @@ export class StewardRuntimeConfig {
       );
     }
 
+    const apiBaseUrl =
+      parsed.DECIONIS_API_BASE_URL?.replace(/\/+$/, "") ?? null;
+
     return new StewardRuntimeConfig({
       dataMode,
-      apiBaseUrl: parsed.DECIONIS_API_BASE_URL?.replace(/\/+$/, "") ?? null,
+      apiBaseUrl,
       serviceToken: parsed.DECIONIS_STEWARD_SERVICE_TOKEN ?? null,
       accessTokenCookie: parsed.STEWARD_ACCESS_TOKEN_COOKIE,
       orgIdCookie: parsed.STEWARD_ORG_ID_COOKIE,
       signInUrl: parsed.NEXT_PUBLIC_DECIONIS_SIGN_IN_URL,
       timeoutMs: 8_000,
+      signalIngress: StewardRuntimeConfig.readSignalIngress(parsed, apiBaseUrl),
     });
+  }
+
+  private static readSignalIngress(
+    parsed: z.infer<typeof RuntimeEnvironmentSchema>,
+    apiBaseUrl: string | null,
+  ): SignalIngressConfig | null {
+    const connectorId = parsed.DECIONIS_CONNECTOR_ID;
+    const webhookSecret = parsed.DECIONIS_WEBHOOK_SECRET;
+    if (!connectorId && !webhookSecret) return null;
+    if (!connectorId || !webhookSecret) {
+      throw new Error(
+        "DECIONIS_CONNECTOR_ID and DECIONIS_WEBHOOK_SECRET are issued together by the Decionis deployment bundle; set both or neither",
+      );
+    }
+    const url =
+      parsed.DECIONIS_WEBHOOK_URL ??
+      (apiBaseUrl
+        ? `${apiBaseUrl}/v1/signals/webhooks/${encodeURIComponent(connectorId)}`
+        : null);
+    if (!url) {
+      throw new Error(
+        "DECIONIS_WEBHOOK_URL or DECIONIS_API_BASE_URL is required to forward signals",
+      );
+    }
+    if (url.includes(webhookSecret)) {
+      throw new Error(
+        "DECIONIS_WEBHOOK_URL must not carry the webhook secret; it travels in the x-webhook-secret header",
+      );
+    }
+    return { url, connectorId, webhookSecret };
   }
 }

@@ -1,6 +1,6 @@
 # Signal connectors: Steward collects the context
 
-**Status: decided 24 September 2026, implementation begun.** This is a trust-boundary change and
+**Status: decided 24 September 2026; S1 shipped; live forwarding speaks the Protocol's published ingress.** This is a trust-boundary change and
 is recorded as one. Steward collects signals from the operator's own systems and forwards them upstream, over the Decionis Protocol, as context for the decisioning engine. What it does with them stops there: no weighting, no
 policy, no decision, no execution, no record of authority. Those stay upstream.
 
@@ -47,7 +47,7 @@ flowchart LR
     H[Sources page: health, last collection, counts, collect now]
   end
   subgraph Platform["Decionis Protocol, the platform behind it (authoritative)"]
-    I[Signal ingestion operation] --> SF[SignalFed: identity resolution, weighting]
+    I["Signal ingress: POST /v1/signals/webhooks/:connectorId"] --> SF[SignalFed: identity resolution, weighting]
     SF --> R[Recommendations, dispositions, arbitration]
   end
   Sources --> C
@@ -90,8 +90,9 @@ evidence panel shows it like any other.
   role-gated to `OPERATOR` and above.
 - **MCP**: Steward is an MCP client only; it calls tools and reads resources on servers an
   operator configured, and exposes no MCP server of its own.
-- **Forwarding**: a batch carries an idempotency key; the platform accepts, rejects per signal with
-  a reason, and Steward shows both. A batch that cannot be forwarded is reported, not stored.
+- **Forwarding**: every event carries its signal and batch identifiers, so a replay after an
+  uncertain delivery is safe; the ingress answers per batch, and Steward shows the count it
+  accepted. A batch that cannot be forwarded is reported, not stored.
 - **Browser**: nothing changes. The browser talks to this application's BFF only.
 
 ## The connector catalogue
@@ -146,35 +147,55 @@ S3-compatible buckets first: list, fetch, parse with S2's extractor, forward. SF
 
 A schedule per source, a cap per batch, and the forwarding result visible per run.
 
-## Protocol request
+## The Protocol's published ingress
 
-Upstream means the Decionis Protocol: the published wire contract Steward already speaks for the
-four `/v1/cdi` operations. Signal ingestion is one more operation in it. Proposed in the same
-family as `POST /v1/cdi/signals`, accepting a `SignalBatch` with an idempotency key, resolving
-`accountReference` to an account, and returning per-signal accepted or rejected with a reason; the
-Protocol's authors decide the final path, shape and version, and Steward's client follows the
-published contract, parsed through a Zod schema in `domain/` like every other operation. Until the
-operation exists, S1 forwards in demo mode only, and live mode reports the operation as unavailable
-rather than pretending. The `DOCUMENT` category and the connector kinds above are part of the same
-request.
+Upstream means the Decionis Protocol, and Steward is a third-party application built on it: it
+speaks the operations the Protocol publishes and asks for none of its own. The Protocol publishes
+a signal intake ([decionis.com/docs/webhooks](https://decionis.com/docs/webhooks),
+[signal-mapping](https://decionis.com/docs/signal-mapping), [auth](https://decionis.com/docs/auth)),
+and that is where a collected batch goes:
+
+| Aspect     | The published contract                                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Route      | `POST /v1/signals/webhooks/:connectorId`; each connector has its own ingress URL                            |
+| Credential | The connector's webhook secret in `x-webhook-secret`, a write-path credential, not the operator's bearer    |
+| Body       | `{"events": [{"type", "timestamp", "data": {...}}]}`: a type, an ISO-8601 UTC timestamp, mapped fields      |
+| Delivery   | At-least-once: a 2xx is accepted; a 4xx means fix the payload or the credential, no retry; a 5xx is retried |
+| Issued by  | A signal-mapping session: sample upload, mapping keys confirmed, dry-run, then the deployment bundle        |
+
+The deployment bundle emits `DECIONIS_CONNECTOR_ID`, `DECIONIS_WEBHOOK_SECRET` and
+`DECIONIS_WEBHOOK_URL`, and Steward reads them under those names. A `CapturedSignal` becomes one
+event: its category is the type (`signal.support`, `signal.document`), its observation time is the
+timestamp, and its data carries the keys the mapping session recognises (`identifier` for the
+account reference, `outcome` for the title, `channel` for the category, `risk_score` for the
+confidence) beside the provenance (`source`, `source_record`, `signal_id`, `batch_id`, the three
+times, and `context_class` when the connector assigned one). The exact body for a known batch is
+pinned in `infra/api/samples/SignalIngressRequest.json`.
+
+What this replaces: the earlier request for a `/v1/cdi/signals` operation with per-signal
+rejection is withdrawn. The ingress acknowledges per batch, so `SignalForwardResult` reports the
+count accepted; the `DOCUMENT` category and the connector kinds are Steward's own event
+vocabulary and need no Protocol change. An operator provisions the connector in the Decionis
+workspace; Steward does not drive the mapping session.
 
 ## Sequencing
 
-| Stage          | Work   | Gate                                                                              |
-| -------------- | ------ | --------------------------------------------------------------------------------- |
-| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR (#90)                |
-| **2. Ask**     |        | The ingestion operation requested of the Protocol; its version and shape answered |
-| **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green            |
-| **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch               |
-| **5. Cadence** | S6     | After at least one live source has run by hand                                    |
+| Stage          | Work   | Gate                                                                     |
+| -------------- | ------ | ------------------------------------------------------------------------ |
+| **1. Frame**   | S1     | `pnpm verify`; the boundary documents changed in the same PR (#90)       |
+| **2. Reuse**   |        | Answered: the Protocol publishes the ingress; Steward's client speaks it |
+| **3. Intake**  | S2, S3 | Dependencies under the license policy; the egress and size tests green   |
+| **4. Systems** | S4, S5 | Per adapter, with an operator's real source behind a feature branch      |
+| **5. Cadence** | S6     | After at least one live source has run by hand                           |
 
 ## Decisions recorded
 
-| Question                                               | Decision                                                                                 |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Who observes and collects signals?                     | Steward, through connectors in the operator's trust domain                               |
-| Who resolves identity, weighs, decides, executes?      | The platform, reached over the Decionis Protocol, unchanged                              |
-| Does Steward persist anything?                         | No. Collected signals are in memory until forwarded; documents are discarded             |
-| Where do connector credentials live?                   | Mounted secrets or environment on the Steward server; never in the repository or browser |
-| Does the value-tier vocabulary belong to the platform? | Yes                                                                                      |
-| Is a proactive play an opportunity?                    | Yes, a new kind with a target group                                                      |
+| Question                                               | Decision                                                                                    |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Who observes and collects signals?                     | Steward, through connectors in the operator's trust domain                                  |
+| Who resolves identity, weighs, decides, executes?      | The platform, reached over the Decionis Protocol, unchanged                                 |
+| Does Steward persist anything?                         | No. Collected signals are in memory until forwarded; documents are discarded                |
+| Where do connector credentials live?                   | Mounted secrets or environment on the Steward server; never in the repository or browser    |
+| Does the value-tier vocabulary belong to the platform? | Yes                                                                                         |
+| Is a proactive play an opportunity?                    | Yes, a new kind with a target group                                                         |
+| Does Steward ask the Protocol for its own operation?   | No. Steward is a third-party application built on the Protocol; it reuses the published API |

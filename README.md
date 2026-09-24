@@ -136,9 +136,10 @@ action is executed.
 
 ![Signal sources: the systems this deployment collects from, their health, when each was last collected, and "Collect now"](docs/screenshot-signal-sources.png)
 
-In demo mode the sources are fixtures and collecting them forwards nowhere. In live mode collection
-answers `503` until the Decionis Protocol publishes its signal ingestion operation, rather than
-pretending a batch was accepted.
+In demo mode the sources are fixtures and collecting them forwards nowhere. In live mode a batch
+goes to the Decionis Protocol's published signal ingress, authenticated by the connector's webhook
+secret from your deployment bundle, and collection answers `503` until those two values are set,
+rather than pretending a batch was accepted.
 
 Screenshots are generated from a running instance with `pnpm screenshots`, so they can be refreshed
 rather than left to drift out of date.
@@ -148,19 +149,27 @@ rather than left to drift out of date.
 All configuration is parsed and validated once, at startup, by `StewardRuntimeConfig.fromEnvironment()`.
 Invalid or missing required values fail fast rather than degrading at request time.
 
-| Variable                           | Required         | Default                           | Purpose                                                         |
-| ---------------------------------- | ---------------- | --------------------------------- | --------------------------------------------------------------- |
-| `STEWARD_DATA_MODE`                | no               | `live` in production, else `demo` | Selects `DemoStewardRepository` or `DecionisStewardRepository`. |
-| `DECIONIS_API_BASE_URL`            | **in live mode** | —                                 | Decionis API origin. Startup throws in live mode if unset.      |
-| `DECIONIS_STEWARD_SERVICE_TOKEN`   | no               | —                                 | Server-to-server fallback credential. Prefer a user session.    |
-| `STEWARD_ACCESS_TOKEN_COOKIE`      | no               | `decionis_access_token`           | Cookie carrying the Decionis access token.                      |
-| `STEWARD_ORG_ID_COOKIE`            | no               | `decionis_org_id`                 | Cookie carrying the organization scope.                         |
-| `NEXT_PUBLIC_DECIONIS_SIGN_IN_URL` | no               | `https://decionis.com/sign-in`    | External identity handoff target used by `/sign-in`.            |
+| Variable                           | Required         | Default                                 | Purpose                                                         |
+| ---------------------------------- | ---------------- | --------------------------------------- | --------------------------------------------------------------- |
+| `STEWARD_DATA_MODE`                | no               | `live` in production, else `demo`       | Selects `DemoStewardRepository` or `DecionisStewardRepository`. |
+| `DECIONIS_API_BASE_URL`            | **in live mode** | —                                       | Decionis API origin. Startup throws in live mode if unset.      |
+| `DECIONIS_STEWARD_SERVICE_TOKEN`   | no               | —                                       | Server-to-server fallback credential. Prefer a user session.    |
+| `STEWARD_ACCESS_TOKEN_COOKIE`      | no               | `decionis_access_token`                 | Cookie carrying the Decionis access token.                      |
+| `STEWARD_ORG_ID_COOKIE`            | no               | `decionis_org_id`                       | Cookie carrying the organization scope.                         |
+| `NEXT_PUBLIC_DECIONIS_SIGN_IN_URL` | no               | `https://decionis.com/sign-in`          | External identity handoff target used by `/sign-in`.            |
+| `DECIONIS_CONNECTOR_ID`            | to forward       | —                                       | The signal connector issued by the Decionis deployment bundle.  |
+| `DECIONIS_WEBHOOK_SECRET`          | to forward       | —                                       | Its webhook secret; sent in a header, never in a URL or a log.  |
+| `DECIONIS_WEBHOOK_URL`             | no               | `<API origin>/v1/signals/webhooks/<id>` | The ingress URL from the bundle, if it differs.                 |
 
 Two further cookies are read opportunistically in live mode and are **not** required:
 `decionis_display_name` (URL-encoded, for the app shell) and `decionis_roles` (a comma-separated
 subset of `VIEWER,OPERATOR,APPROVER,ADMIN`; anything unrecognized is dropped, and an empty result
 falls back to `VIEWER`).
+
+The connector id and the webhook secret are issued together by a signal-mapping session in your
+Decionis workspace ([decionis.com/docs/signal-mapping](https://decionis.com/docs/signal-mapping));
+setting one without the other fails at startup. Without them, the Signal sources page still lists
+and checks sources, and "Collect now" answers `503`.
 
 No API credential is ever exposed to browser code. The upstream client is server-only, and its
 request timeout is currently fixed at 8s in `StewardRuntimeConfig`.
@@ -183,16 +192,16 @@ feature.
 
 ### Routes this app exposes
 
-| Route                                       | Method | Notes                                                                                   |
-| ------------------------------------------- | ------ | --------------------------------------------------------------------------------------- |
-| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                               |
-| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                                      |
-| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                                      |
-| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                             |
-| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                                 |
-| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until the Protocol publishes ingestion. |
-| `/api/health`                               | GET    | Unauthenticated liveness probe.                                                         |
-| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                               |
+| Route                                       | Method | Notes                                                                           |
+| ------------------------------------------- | ------ | ------------------------------------------------------------------------------- |
+| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                       |
+| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                              |
+| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                              |
+| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                     |
+| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                         |
+| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until forwarding is configured. |
+| `/api/health`                               | GET    | Unauthenticated liveness probe.                                                 |
+| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                       |
 
 ### Upstream endpoints it expects
 
@@ -200,8 +209,9 @@ feature.
 - `GET /v1/cdi/accounts/:accountId`
 - `GET /v1/cdi/opportunities`
 - `POST /v1/cdi/opportunities/:opportunityId/reviews`
-- `POST /v1/cdi/signals` — requested of the Protocol, not yet published; live collection answers
-  `503` until it is ([docs/SignalConnectors.md](docs/SignalConnectors.md))
+- `POST /v1/signals/webhooks/:connectorId` — the Protocol's published signal ingress
+  ([decionis.com/docs/webhooks](https://decionis.com/docs/webhooks)), authenticated by the
+  connector's webhook secret in the `x-webhook-secret` header; where a collected batch goes
 
 Every upstream response is parsed through a Zod contract in `domain/` before it is allowed into the
 application layer, so schema drift upstream fails loudly at the boundary instead of rendering as a
