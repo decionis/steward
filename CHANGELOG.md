@@ -12,6 +12,14 @@ you integrate against these types.
 
 ### Changed
 
+- Steward is described as the open-source customer support decisioning platform, on every surface:
+  see what is happening across your accounts as it happens, triage one queue of processing-limit
+  reviews, expansion, friction and KYC/KYB escalations with the evidence behind each, act before the
+  customer asks, and have every decision recorded and executed by Decionis, the authority behind
+  it. The README tagline and
+  opening, the repository description, the HTML metadata, the dashboard header, the discovery
+  summary, the Docker guide, the Docker Hub overview and short description, and the image's OCI
+  description use the same words, in place of "signal capture and decisioning".
 - The Docker documentation is written for the operator who will run it, and leads with the
   outcome: a governed surface for reviewing customer and account decisions, without moving policy
   authority into the interface. What operators get, five minutes with no account, connecting the

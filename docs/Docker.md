@@ -1,19 +1,24 @@
 # Run Steward in Docker
 
-> Give your operators a governed surface for reviewing customer and account decisions, without
-> moving policy authority into the interface.
+> The open-source customer support decisioning platform: see what is happening across your
+> accounts, triage one queue with the evidence behind each recommendation, act before the customer
+> asks. Decisions are recorded and executed by Decionis.
 
 ## What your operators get
 
-One container, and the people closest to your customers, in operations, risk and revenue, get a
-place to act that is auditable by construction:
+One container, and your operations, risk and revenue teams get:
 
-- **A queue of evidence-backed recommendations.** Friction interventions, KYC/KYB escalations,
-  processing-limit reviews and expansion outreach, each with its rationale, its confidence, the
-  evidence it rests on, and, when the platform supplies it, why it got the disposition it did.
-- **Account detail an approver can trust.** Every signal with its source and freshness, the health
-  of the sources behind it, the policy envelope in force, and a one-line statement of how fresh the
-  context is at the moment they review.
+- **One queue.** Processing-limit reviews, expansion outreach, friction interventions and KYC/KYB
+  escalations, prioritised, each with the account, the rationale, the confidence and the dossier
+  reference.
+- **The evidence on the page.** The usage, support, settlement, CRM and KYC signals behind each
+  recommendation, with the source and record of each, when it was observed, and whether the
+  connected source is healthy, stale or disconnected.
+- **Freshness at a glance.** A line above the review buttons says whether the linked evidence is
+  current and whether any source behind it is degraded, and a strip shows which kinds of context
+  the evidence covers.
+- **Why the recommendation.** When the platform supplies it, which signals the recommendation
+  rests on, which it overrode, which actions it holds back, and under which policy version.
 - **A review flow that records rather than executes.** Accept, hold or reject, and the review is
   forwarded to the Decionis platform with the operator's own credential. Nothing downstream changes
   until the platform decides. The caption on every control says so.

@@ -9,16 +9,19 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/decionis/steward/badge)](https://scorecard.dev/viewer/?uri=github.com/decionis/steward)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 
-**Signal capture and decisioning for enterprise customer operations.**
+**The open-source customer support decisioning platform: see what is happening, triage one queue, act before the customer asks.**
 
 **[Try the live demo →](https://decionis-steward.vercel.app)** — the whole operator workflow on
 deterministic fixtures. No account, no credentials, nothing to install.
 
-Steward is the operational control center for Adaptive Customer Decision Intelligence. It gives customer
-operations, risk, and revenue teams a single reviewable surface over their account portfolio: it
-correlates account evidence, surfaces friction and expansion opportunities, and forwards every
-operator review to the Decionis execution control plane — where the authoritative decision is made,
-recorded, and executed.
+Steward is the open-source (Apache-2.0) customer support decisioning platform. Customer
+operations, risk and revenue teams see what is happening across their accounts as it happens: the
+usage, support, settlement, CRM and KYC signals, each with its source, its record, when it was
+observed and whether the source is healthy, weighed at the moment a decision is made rather than
+read from a stale profile. They triage one queue of processing-limit reviews, expansion outreach,
+friction interventions and KYC/KYB escalations, and act before the customer asks. An approver
+accepts, holds or rejects; the review is recorded and forwarded to Decionis, the authority behind
+Steward, which executes the change and files the Decision Dossier. Nothing changes until it does.
 
 The problem it solves: in regulated fintech, the people closest to the customer can see that an
 account is ready for a higher processing limit or is about to churn, but they cannot act on it

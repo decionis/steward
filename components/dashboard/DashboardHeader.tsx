@@ -17,8 +17,9 @@ export function DashboardHeader({
         </div>
         <h1>Control center</h1>
         <p>
-          Find customer friction and safe expansion opportunities, then route
-          the next action through the active Decionis policy.
+          See what is happening across your accounts, triage the queue with the
+          evidence behind each recommendation, and act before the customer asks.
+          Reviews are recorded here and executed by Decionis.
         </p>
       </div>
       <div className={styles.evidenceNote}>
