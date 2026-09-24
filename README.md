@@ -357,7 +357,7 @@ deployable application, not a library — and does not restrict use of the sourc
 > GitHub URL redirects, but releases `v0.1.0`–`v0.1.2` keep `decionis-cdi-*` artifact names — those
 > names are bound into signed provenance attestations and are left as the historical record.
 
-Public and Apache-2.0 licensed. Latest release **v0.2.0**; pre-1.0 and under active development, so
+Public and Apache-2.0 licensed. Latest release **v0.3.0**; pre-1.0 and under active development, so
 contracts in `domain/` may change without a deprecation period before `1.0.0` — pin exactly if you
 integrate against those types. [CHANGELOG.md](./CHANGELOG.md) records what has shipped.
 

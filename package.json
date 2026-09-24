@@ -1,6 +1,6 @@
 {
   "name": "@decionis/steward",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Signal capture and decisioning for customer operations teams \u2014 correlate usage, support and CRM evidence, surface churn and expansion before the customer calls, and route every operator review through a Decionis policy verdict.",
   "license": "Apache-2.0",
