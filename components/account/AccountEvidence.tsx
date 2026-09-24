@@ -25,9 +25,14 @@ export function AccountEvidence({ evidence }: { evidence: EvidenceSignal[] }) {
         {evidence.map((signal) => (
           <article key={signal.id} className={styles.evidenceItem}>
             <div className={styles.evidenceTopline}>
-              <StatusBadge tone={impactTone(signal.impact)}>
-                {signal.category}
-              </StatusBadge>
+              <div className={styles.evidenceBadges}>
+                <StatusBadge tone={impactTone(signal.impact)}>
+                  {signal.category}
+                </StatusBadge>
+                {signal.contextClass ? (
+                  <StatusBadge tone="info">{signal.contextClass}</StatusBadge>
+                ) : null}
+              </div>
               <span>
                 <RelativeTime value={signal.observedAt} />
               </span>

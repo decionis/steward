@@ -195,3 +195,29 @@ describe("DemoStewardData — contract validity", () => {
     }
   });
 });
+
+describe("DemoStewardData — context classes", () => {
+  // The fixtures set the bar for what a good upstream response looks like.
+  // A live response may omit the class until the platform ships it; the demo
+  // may not, or nobody evaluating Steward ever sees the distinction.
+  const signals = accounts.flatMap((account) => account?.evidence ?? []);
+
+  it("classifies every signal", () => {
+    for (const signal of signals) {
+      expect(signal.contextClass, `${signal.id} has no class`).toBeDefined();
+    }
+  });
+
+  it("exercises every class the contract allows", () => {
+    const present = new Set(signals.map((signal) => signal.contextClass));
+    for (const contextClass of [
+      "JOURNEY",
+      "INTENT",
+      "FRICTION",
+      "OPERATIONAL",
+      "POLICY",
+    ]) {
+      expect(present, `no fixture is ${contextClass}`).toContain(contextClass);
+    }
+  });
+});
