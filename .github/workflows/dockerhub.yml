@@ -166,7 +166,7 @@ jobs:
           OVERVIEW_FILE: packaging/dockerhub/README.md
           # Docker Hub shows this line under the repository's title; it takes
           # at most 100 characters.
-          SHORT_DESCRIPTION: "The operator tier for governed customer decisions: evidence in, a review out, Decionis decides."
+          SHORT_DESCRIPTION: "A governed surface for reviewing customer decisions; policy authority stays with Decionis."
         shell: bash
         run: |
           set -euo pipefail
