@@ -1,17 +1,21 @@
-import Link from "next/link";
-import { RelativeTime } from "@/components/common/RelativeTime";
-import { ArrowRight, FileKey2 } from "lucide-react";
 import type { CustomerOpportunity } from "@/domain/opportunities/CustomerOpportunity";
 import { StewardFormat } from "@/presentation/format/StewardFormat";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { ReviewAction } from "./ReviewAction";
+import { OpportunityCard } from "./OpportunityCard";
 import styles from "./Dashboard.module.css";
 
-function dispositionTone(disposition: CustomerOpportunity["disposition"]) {
-  if (disposition === "ALLOW") return "positive" as const;
-  if (disposition === "BLOCK") return "critical" as const;
-  if (disposition === "ESCALATE") return "warning" as const;
-  return "violet" as const;
+/**
+ * Inaction is a decision. A `NO_ACTION` recommendation and a review that was
+ * `HELD` are both the platform choosing not to act, with evidence and a
+ * dossier behind the choice. They are grouped beneath the queue rather than
+ * inside it so that "what needs a decision now" stays a list of things that
+ * need a decision now, and so that deliberate inaction is visible rather than
+ * silently absent.
+ *
+ * This is grouping, not derivation: nothing here infers a disposition or a
+ * suppressed action from the kind. That structure comes from the platform.
+ */
+function isDeliberateInaction(opportunity: CustomerOpportunity): boolean {
+  return opportunity.kind === "NO_ACTION" || opportunity.status === "HELD";
 }
 
 export function OpportunityQueue({
@@ -21,78 +25,75 @@ export function OpportunityQueue({
   opportunities: CustomerOpportunity[];
   canReview: boolean;
 }) {
+  const pending = opportunities.filter(
+    (opportunity) => !isDeliberateInaction(opportunity),
+  );
+  const inaction = opportunities.filter(isDeliberateInaction);
+
   return (
-    <section id="opportunities" className={styles.section}>
-      <div className={styles.sectionHeading}>
-        <div>
-          <span>Governed action queue</span>
-          <h2>What needs a decision now</h2>
+    <>
+      <section
+        id="opportunities"
+        className={styles.section}
+        aria-labelledby="opportunities-heading"
+      >
+        <div className={styles.sectionHeading}>
+          <div>
+            <span>Governed action queue</span>
+            <h2 id="opportunities-heading">What needs a decision now</h2>
+          </div>
+          <p>
+            {StewardFormat.count(
+              pending.length,
+              "evidence-backed recommendation",
+            )}
+          </p>
         </div>
-        <p>{opportunities.length} evidence-backed recommendations</p>
-      </div>
 
-      <div className={styles.opportunityList}>
-        {opportunities.map((opportunity) => (
-          <article className={styles.opportunityCard} key={opportunity.id}>
-            <div className={styles.opportunityMain}>
-              <div className={styles.opportunityMeta}>
-                <StatusBadge
-                  tone={dispositionTone(opportunity.disposition)}
-                  dot
-                >
-                  {opportunity.disposition}
-                </StatusBadge>
-                <span>{opportunity.kind.replaceAll("_", " ")}</span>
-                <span>
-                  <RelativeTime value={opportunity.createdAt} />
-                </span>
-              </div>
-              <h3>{opportunity.title}</h3>
-              <Link
-                href={`/accounts/${opportunity.accountId}`}
-                className={styles.accountLink}
-              >
-                {opportunity.accountName}
-                <ArrowRight size={14} aria-hidden="true" />
-              </Link>
-              <p>{opportunity.rationale}</p>
-              <div className={styles.recommendation}>
-                <strong>Recommended next action</strong>
-                <span>{opportunity.recommendedAction}</span>
-              </div>
-            </div>
-
-            <aside
-              className={styles.opportunityEvidence}
-              aria-label="Decision evidence summary"
-            >
-              <div className={styles.metricPair}>
-                <span>Confidence</span>
-                <strong>
-                  {StewardFormat.confidence(opportunity.confidence)}
-                </strong>
-              </div>
-              <div className={styles.metricPair}>
-                <span>Evidence</span>
-                <strong>
-                  {StewardFormat.percent(opportunity.evidenceCoverage)}
-                </strong>
-              </div>
-              <div className={styles.progressTrack}>
-                <span style={{ width: `${opportunity.evidenceCoverage}%` }} />
-              </div>
-              <div className={styles.dossier}>
-                <FileKey2 size={15} aria-hidden="true" />
-                {opportunity.dossierId ?? "Dossier pending"}
-              </div>
-              <ReviewAction
-                opportunityId={opportunity.id}
+        {pending.length > 0 ? (
+          <div className={styles.opportunityList}>
+            {pending.map((opportunity) => (
+              <OpportunityCard
+                key={opportunity.id}
+                opportunity={opportunity}
                 canReview={canReview}
               />
-            </aside>
-          </article>
-        ))}
-      </div>
-    </section>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.reviewNotice}>
+            Nothing is waiting for a decision.
+          </p>
+        )}
+      </section>
+
+      {inaction.length > 0 ? (
+        <section
+          id="inaction"
+          className={styles.section}
+          aria-labelledby="inaction-heading"
+        >
+          <div className={styles.sectionHeading}>
+            <div>
+              <span>Deliberate inaction</span>
+              <h2 id="inaction-heading">Decided: no action, or held</h2>
+            </div>
+            <p>
+              {StewardFormat.count(inaction.length, "decision")} to suppress or
+              defer action, backed by evidence and a dossier
+            </p>
+          </div>
+          <div className={styles.opportunityList}>
+            {inaction.map((opportunity) => (
+              <OpportunityCard
+                key={opportunity.id}
+                opportunity={opportunity}
+                canReview={canReview}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </>
   );
 }

@@ -122,6 +122,45 @@ describe("DemoStewardData — freshness", () => {
   });
 });
 
+describe("DemoStewardData — inaction is a decision", () => {
+  // The interface distinguishes "the platform decided no action" from "no
+  // recommendation was returned". The demo has to exercise the first state or
+  // the distinction is never seen by anyone evaluating it.
+  const inaction = portfolio.opportunities.filter(
+    (opportunity) => opportunity.kind === "NO_ACTION",
+  );
+
+  it("carries at least one deliberate no-action decision", () => {
+    expect(inaction.length).toBeGreaterThan(0);
+  });
+
+  it("backs every no-action decision with evidence and a dossier", () => {
+    for (const opportunity of inaction) {
+      expect(
+        opportunity.evidenceIds.length,
+        `${opportunity.id} has no evidence`,
+      ).toBeGreaterThan(0);
+      expect(
+        opportunity.dossierId,
+        `${opportunity.id} has no dossier`,
+      ).not.toBe(null);
+      expect(opportunity.disposition).toBe("ALLOW");
+    }
+  });
+
+  it("records each no-action decision on the account timeline", () => {
+    for (const opportunity of inaction) {
+      const account = accounts.find(
+        (candidate) => candidate?.id === opportunity.accountId,
+      );
+      expect(
+        account?.timeline.some((event) => event.kind === "DECISION"),
+        `${opportunity.accountId} has no DECISION event`,
+      ).toBe(true);
+    }
+  });
+});
+
 describe("DemoStewardData — contract validity", () => {
   it("produces a portfolio that satisfies the published schema", () => {
     // The fixtures are the only data a reviewer running the demo will see, so

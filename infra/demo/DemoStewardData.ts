@@ -474,6 +474,14 @@ function buildAccounts(): CustomerAccount[] {
           occurredAt: ago(205),
           kind: "OUTCOME",
         },
+        {
+          id: "tl-victor-2",
+          title: "Policy assessed the account as needing no action",
+          detail:
+            "Evidence is current and inside the envelope. The active policy recorded a deliberate no-action decision rather than leaving the account unassessed.",
+          occurredAt: ago(200),
+          kind: "DECISION",
+        },
       ],
       policyEnvelope: {
         policyVersion: "customer_ops.v4",
@@ -543,6 +551,29 @@ function buildOpportunities(): CustomerOpportunity[] {
       priority: "ROUTINE",
       createdAt: ago(120),
       dossierId: "dos_demo_tango_01",
+    },
+    {
+      // Inaction is a decision. This fixture exists so the demo shows the
+      // platform choosing not to intervene, with the evidence that supported
+      // the choice and a dossier recording it, rather than showing a healthy
+      // account as simply having nothing to say.
+      id: "opp-victor-no-action",
+      accountId: "acct-victor",
+      accountName: "Victor Remit",
+      kind: "NO_ACTION",
+      status: "OPEN",
+      title: "No intervention warranted",
+      rationale:
+        "Settled volume and exception rate are steady against a 30-day baseline, and KYB is verified inside the policy freshness window. The policy assessed the account and chose inaction, with the evidence recorded.",
+      recommendedAction:
+        "Take no action. Continue routine evidence refresh and re-evaluate on any material change.",
+      disposition: "ALLOW",
+      confidence: 0.9,
+      evidenceCoverage: 78,
+      evidenceIds: ["ev-victor-usage", "ev-victor-kyb"],
+      priority: "ROUTINE",
+      createdAt: ago(200),
+      dossierId: "dos_demo_victor_01",
     },
   ];
 }
