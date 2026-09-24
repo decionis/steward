@@ -16,6 +16,11 @@ you integrate against these types.
   decisioning statement into features: planning by region, segment, value and cluster; events around
   the customer; proactive support plays; the minimum viable payload; the loop measured. Each is
   shipped, presentation-only, a contract addition or platform work, with the boundary held.
+- "Plan support" on the dashboard: the portfolio by region and by segment, each group with its
+  accounts, active friction, expansion ready, reviews required, average health and utilisation,
+  ordered by friction then reviews so the group that needs effort first is at the top. Counts of
+  what the platform already said about each account; nothing decided here. P1 of
+  `docs/ProactiveSupport.md`.
 
 ### Changed
 

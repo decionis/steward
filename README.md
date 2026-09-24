@@ -99,7 +99,9 @@ Open <http://localhost:3000>.
 exercisable end to end:
 
 - **Portfolio dashboard** (`/`) — account health, evidence coverage, the summary counters that
-  drive triage, and the decisions that reached an outcome under "Recently resolved".
+  drive triage, the decisions that reached an outcome under "Recently resolved", and "Plan
+  support": the portfolio by region and by segment, friction first, so effort goes where it is
+  needed.
 - **Opportunity queue** — friction interventions, KYC/KYB escalations, processing-limit reviews, and
   expansion outreach, each with its rationale, confidence, linked evidence, and the platform's "Why
   this disposition". Deliberate inaction is grouped beneath the queue rather than hidden.

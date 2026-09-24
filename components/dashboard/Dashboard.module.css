@@ -316,6 +316,11 @@
   color: var(--rose-700);
 }
 
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
 .tableWrap {
   overflow-x: auto;
   border: 1px solid var(--ink-200);
@@ -384,6 +389,10 @@
 }
 
 @media (max-width: 760px) {
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+
   .header,
   .sectionHeading {
     align-items: flex-start;
