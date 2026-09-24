@@ -257,6 +257,30 @@ describe("DemoStewardData — contract validity", () => {
     }
   });
 
+  it("gives every completed opportunity a dossier and an OUTCOME on its account", () => {
+    // A decision that reached its outcome is the loop closed. The demo has
+    // to show one, and it has to be attributable to a dossier like any
+    // other decision.
+    const completed = portfolio.opportunities.filter(
+      (opportunity) => opportunity.status === "COMPLETED",
+    );
+    expect(completed.length).toBeGreaterThan(0);
+
+    for (const opportunity of completed) {
+      expect(
+        opportunity.dossierId,
+        `${opportunity.id} completed without a dossier`,
+      ).not.toBeNull();
+      const account = accounts.find(
+        (candidate) => candidate?.id === opportunity.accountId,
+      );
+      expect(
+        account?.timeline.some((event) => event.kind === "OUTCOME"),
+        `${opportunity.accountId} records no OUTCOME`,
+      ).toBe(true);
+    }
+  });
+
   it("references only evidence that exists on the named account", () => {
     for (const opportunity of portfolio.opportunities) {
       const account = accounts.find(

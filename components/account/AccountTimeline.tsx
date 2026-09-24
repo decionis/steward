@@ -19,7 +19,7 @@ export function AccountTimeline({
       </div>
       <ol className={styles.timeline}>
         {events.map((event) => (
-          <li key={event.id}>
+          <li key={event.id} data-kind={event.kind}>
             <span aria-hidden="true" />
             <div>
               <strong>{event.title}</strong>
