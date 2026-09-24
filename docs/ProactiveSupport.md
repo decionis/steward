@@ -121,15 +121,16 @@ producer.
 
 ## Decisions needed
 
-| Decision                                                     | Recommendation                                                                                     |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| Does Steward stay non-authoritative under the new statement? | Yes. "Platform" names the product; the platform behind it decides. OpenCore.md's commitments hold. |
-| Which value-tier vocabulary?                                 | The platform's; three tiers is enough to plan with.                                                |
-| Are events observed by the platform or by Steward?           | The platform, through SignalFed; Steward renders. Steward adds no collector.                       |
-| Is a proactive play an opportunity or a new object?          | An opportunity with a new kind and a target group; the review flow and the record already exist.   |
+| Decision                                                     | Recommendation                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Does Steward stay non-authoritative under the new statement? | **Accepted.** "Platform" names the product; the platform behind it decides.                                                                                                                                                                                                    |
+| Which value-tier vocabulary?                                 | **Accepted:** the platform's; three tiers is enough to plan with.                                                                                                                                                                                                              |
+| Are events observed by the platform or by Steward?           | **Decided otherwise: Steward collects.** Steward connects to the operator's signal sources (ERP, CRM, MCP servers, uploaded documents, file servers) and forwards the minimum viable payload; the platform weighs and decides. See [SignalConnectors.md](SignalConnectors.md). |
+| Is a proactive play an opportunity or a new object?          | **Accepted:** an opportunity with a new kind and a target group.                                                                                                                                                                                                               |
 
 ## Not in this plan
 
-No collector, scraper, feed reader or model in Steward. No persistence. No local weighting of
-signals. The intelligence is the platform's; the console that makes it legible and actionable is
-this repository's.
+No model in Steward, no persistence, no local weighting of signals. Collection is Steward's from
+this date, through the connectors planned in [SignalConnectors.md](SignalConnectors.md); the
+weighing and the decisions are the platform's; the console that makes them legible and actionable
+is this repository's.
