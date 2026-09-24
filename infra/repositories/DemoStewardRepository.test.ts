@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DemoStewardRepository } from "./DemoStewardRepository";
+import { DemoStewardData } from "@/infra/demo/DemoStewardData";
 
 describe("DemoStewardRepository", () => {
   it("returns a contract-valid governed portfolio", async () => {
@@ -8,7 +9,9 @@ describe("DemoStewardRepository", () => {
 
     expect(portfolio.dataStatus).toBe("DEMO");
     expect(portfolio.accounts).toHaveLength(4);
-    expect(portfolio.opportunities).toHaveLength(4);
+    expect(portfolio.opportunities).toHaveLength(
+      DemoStewardData.opportunities().length,
+    );
     expect(portfolio.opportunities.every((item) => item.dossierId)).toBe(true);
   });
 
