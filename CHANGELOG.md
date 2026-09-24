@@ -12,6 +12,12 @@ you integrate against these types.
 
 ### Added
 
+- The README leads with an Install section in the shape AgentSafe uses: Docker, the release
+  tarball, from source, the hosted demo, each ending at the same place. The evidence pack gains
+  rows for image provenance, base-image pinning and the pre-push smoke test, and the image
+  verification commands; the threat model gains a section on the container as a deployment
+  surface; the discovery files link the Docker and discovery guides. Workstream D4 of
+  [docs/Distribution.md](./docs/Distribution.md).
 - Machine discovery. `public/llms.txt` and `public/llms-full.txt`, served at `/llms.txt` and
   `/llms-full.txt` in every data mode, describe Steward to the agents that evaluate it: what it
   is, what it is not, how it runs, the contracts, where questions go. The session middleware lets

@@ -1,8 +1,11 @@
 # Distribution: containers, machine discovery, and the commercial boundary
 
-**Status: plan approved for autonomous implementation, 24 September 2026.** Each workstream below
-lands as its own pull request off `master`. The commercial boundary it states is recorded as a
-commitment in [OpenCore.md](../OpenCore.md).
+**Status: implemented, 24 September 2026.** Each workstream landed as its own pull request off
+`master`: D0 #77, D1 #78 with its CI fix #81, D2 #79, D3 #80, D4 this document's follow-up. The
+first `edge` image is published, attested and verified from a consumer's machine. The commercial
+boundary is recorded as a commitment in [OpenCore.md](../OpenCore.md). Still with the maintainer:
+the Docker Hub secrets and variable for the mirror, and the next release tag, which publishes the
+versioned image for real.
 
 ## The one-paragraph answer
 
@@ -154,11 +157,11 @@ because the platform returned it.
 Each is one pull request off `master`, passes `pnpm verify`, is signed off, and adds a changelog
 line.
 
-#### D0 — This plan and the open-core boundary (documentation)
+#### D0 — This plan and the open-core boundary (documentation) ✅ Done (#77)
 
 `docs/Distribution.md`, `OpenCore.md`, a README pointer. No code.
 
-#### D1 — The image and the registries
+#### D1 — The image and the registries ✅ Done (#78, #81)
 
 - `Dockerfile`: digest-pinned base from the AWS public mirror, `--platform=$BUILDPLATFORM` on the
   install and build stages, `COPY public/`, OCI labels via build args, unchanged runtime user and
@@ -179,7 +182,7 @@ line.
 Gate: a dry-run dispatch builds, smoke-tests and attests without publishing. Then the next
 release tag publishes for real.
 
-#### D2 — Machine discovery
+#### D2 — Machine discovery ✅ Done (#79)
 
 - `public/llms.txt`, `public/llms-full.txt`; root copies; `scripts/CheckDiscovery.mjs` (pairs
   identical, structure valid, local links exist, public links resolve on an allowlist of hosts);
@@ -191,14 +194,14 @@ release tag publishes for real.
 Depends on D1's `COPY public/` for the container to serve the files; the tarball and Vercel
 already ship `public/`.
 
-#### D3 — The activation point in the product
+#### D3 — The activation point in the product ✅ Done (#80)
 
 - The app shell's demo badge gains "Connect your platform", a link to the sign-in handoff.
 - The sign-in page says what is free and what is paid, in two sentences, with a link to
   `OpenCore.md`, so the line is stated where an adopter meets it.
 - No entitlement logic, no plan check. Presentation only.
 
-#### D4 — Documentation and evidence
+#### D4 — Documentation and evidence ✅ Done (this PR)
 
 - README: an "Install" section in AgentSafe's shape (Docker, tarball, source, hosted demo), the
   image verification command, and the free/paid line.

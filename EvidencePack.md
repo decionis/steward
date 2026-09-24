@@ -28,7 +28,7 @@ under Apache-2.0 — a reviewer can verify the trust boundary rather than take o
 | Copyleft or reciprocal obligations           | Same file, "Notes on non-permissive licenses" — the LGPL and CC-BY entries answered in advance |
 | Known vulnerabilities in the dependency tree | [audit.yml](.github/workflows/audit.yml) — blocking on every PR plus weekly                    |
 | SBOM                                         | CycloneDX JSON attached to each GitHub release by [release.yml](.github/workflows/release.yml) |
-| Build integrity / artifact provenance        | Signed SLSA attestation per release; verify with the command below                             |
+| Build integrity / artifact provenance        | Signed SLSA attestation per release and per image; verify with the commands below              |
 | Vulnerability disclosure process and SLA     | [SECURITY.md](./SECURITY.md)                                                                   |
 | Architecture and data flow                   | [Architecture.md](./Architecture.md)                                                           |
 | Threat model and residual risk               | [ThreatModel.md](./ThreatModel.md)                                                             |
@@ -52,6 +52,9 @@ tests they can run.
 | Upstream responses validated before use          | [domain/](domain/) Zod contracts                                              | `JsonHttpClient.test.ts`         |
 | No fixture fallback on live failure              | [StewardRepositoryFactory.ts](infra/repositories/StewardRepositoryFactory.ts) | `DemoStewardRepository.test.ts`  |
 | Errors disclose no internal detail               | [StewardApiErrorMapper.ts](infra/api/StewardApiErrorMapper.ts)                | `StewardApiErrorMapper.test.ts`  |
+| The image is what the workflow built             | [image.yml](.github/workflows/image.yml), digest attested                     | `gh attestation verify oci://…`  |
+| The image's base cannot drift silently           | [Dockerfile](Dockerfile), digest-pinned base                                  | Dependabot, in a PR of its own   |
+| The image is smoke-tested before it is pushed    | [image.yml](.github/workflows/image.yml), both platforms                      | The run's log, per platform      |
 
 A reviewer can run the whole suite in under a minute, with no credentials:
 
@@ -85,6 +88,13 @@ Verifying a release artifact came from this source and not from someone's laptop
 gh attestation verify decionis-steward-<version>.tar.gz --repo decionis/steward
 ```
 
+The same for the image, on either registry; the two `inspect` digests are equal for every version:
+
+```bash
+gh attestation verify oci://ghcr.io/decionis/steward:<version> --repo decionis/steward
+docker buildx imagetools inspect ghcr.io/decionis/steward:<version>
+```
+
 ## Running it without credentials
 
 The application boots against deterministic fixtures. A reviewer can exercise the entire operator
@@ -101,19 +111,21 @@ control is captioned "Records a review only; no downstream limit is changed."
 
 ## Fast answers to common questionnaire rows
 
-| Row                                     | Answer                                                                                 |
-| --------------------------------------- | -------------------------------------------------------------------------------------- |
-| Customer data at rest in this component | **None.** No database, no cache, no session store.                                     |
-| Telemetry or analytics                  | **None.** No third-party scripts; no outbound request except the Decionis API.         |
-| Cookies set by this component           | **None.** Session cookies come from the Decionis identity handoff; Steward reads them. |
-| PII in URLs                             | **No.** Account identifiers are opaque references.                                     |
-| Secrets in this repository              | **None.** No credential, key, or connector secret is present or required.              |
-| Sub-processors introduced by this tier  | **None.**                                                                              |
-| Security headers                        | Seven set globally — tabulated in [ThreatModel.md](./ThreatModel.md).                  |
-| Content-Security-Policy                 | **Yes**, nonce-based, per request, no `unsafe-inline`/`unsafe-eval` on scripts.        |
-| Penetration test report                 | **Not yet commissioned.**                                                              |
-| SOC 2 / ISO 27001                       | Certifications belong to the Decionis platform, not to this repository.                |
-| Rate limiting in this tier              | **None.** Expected at the edge or upstream.                                            |
+| Row                                     | Answer                                                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Customer data at rest in this component | **None.** No database, no cache, no session store.                                                          |
+| Telemetry or analytics                  | **None.** No third-party scripts; no outbound request except the Decionis API.                              |
+| Cookies set by this component           | **None.** Session cookies come from the Decionis identity handoff; Steward reads them.                      |
+| PII in URLs                             | **No.** Account identifiers are opaque references.                                                          |
+| Secrets in this repository              | **None.** No credential, key, or connector secret is present or required.                                   |
+| Sub-processors introduced by this tier  | **None.**                                                                                                   |
+| Security headers                        | Seven set globally — tabulated in [ThreatModel.md](./ThreatModel.md).                                       |
+| Content-Security-Policy                 | **Yes**, nonce-based, per request, no `unsafe-inline`/`unsafe-eval` on scripts.                             |
+| Penetration test report                 | **Not yet commissioned.**                                                                                   |
+| SOC 2 / ISO 27001                       | Certifications belong to the Decionis platform, not to this repository.                                     |
+| Rate limiting in this tier              | **None.** Expected at the edge or upstream.                                                                 |
+| Container image                         | `ghcr.io/decionis/steward`, two architectures, non-root, attested; Docker Hub by digest                     |
+| License checks or usage reporting       | **None.** The image is the same bytes for a free tenant and a paying one; see [OpenCore.md](./OpenCore.md). |
 
 The last three are deliberately in this table. A reviewer finds gaps faster than we can hide them,
 and a vendor that states its own weak spots is easier to trust on the rest.
