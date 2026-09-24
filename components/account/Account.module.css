@@ -209,6 +209,11 @@
   color: var(--ink-500);
   font-size: 9px;
 }
+.evidenceBadges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .evidenceItem h3 {
   margin: 13px 0 6px;

@@ -17,6 +17,17 @@ you integrate against these types.
   and trust boundary, and the approved plan for making the platform's decisions more legible at
   review time. [Architecture.md](./Architecture.md) gains a section naming the
   sense-interpret-arbitrate-act loop that `AccountTimelineEvent.kind` already records.
+- Evidence carries an optional `contextClass` (`JOURNEY`, `INTENT`, `FRICTION`, `OPERATIONAL`,
+  `POLICY`): what kind of situation a signal describes, alongside the existing `category`, which
+  says where it came from. The account evidence panel shows the class when the platform supplies it
+  and nothing when it does not; Steward never infers it. Every demo signal is classified. Workstream
+  W1 of the context-engineering plan in `docs/ContextEngineering.md` (its own pull request).
+
+### Changed
+
+- **Contract:** `EvidenceSignal` in `domain/` gained the optional `contextClass` field. The platform
+  ships it as a versioned CDI contract change, and the Steward release that carries it is a minor
+  bump under the pre-1.0 policy above.
 
 ### Security
 

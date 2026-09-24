@@ -99,6 +99,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.98,
           impact: "POSITIVE",
           category: "USAGE",
+          contextClass: "INTENT",
         },
         {
           id: "ev-kilo-kyb",
@@ -112,6 +113,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.95,
           impact: "POSITIVE",
           category: "KYC_KYB",
+          contextClass: "POLICY",
         },
         {
           id: "ev-kilo-milestone",
@@ -125,6 +127,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.9,
           impact: "POSITIVE",
           category: "CRM",
+          contextClass: "JOURNEY",
         },
         {
           id: "ev-kilo-exceptions",
@@ -138,6 +141,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.93,
           impact: "NEUTRAL",
           category: "TRANSACTION",
+          contextClass: "OPERATIONAL",
         },
       ],
       timeline: [
@@ -226,6 +230,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.94,
           impact: "NEGATIVE",
           category: "SUPPORT",
+          contextClass: "FRICTION",
         },
         {
           id: "ev-sierra-completion",
@@ -239,6 +244,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.91,
           impact: "NEGATIVE",
           category: "TRANSACTION",
+          contextClass: "OPERATIONAL",
         },
         {
           id: "ev-sierra-sync",
@@ -252,6 +258,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.72,
           impact: "NEUTRAL",
           category: "TRANSACTION",
+          contextClass: "OPERATIONAL",
         },
       ],
       timeline: [
@@ -341,6 +348,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.96,
           impact: "POSITIVE",
           category: "USAGE",
+          contextClass: "INTENT",
         },
         {
           id: "ev-tango-kyb",
@@ -354,6 +362,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.99,
           impact: "NEGATIVE",
           category: "KYC_KYB",
+          contextClass: "POLICY",
         },
         {
           id: "ev-tango-support",
@@ -366,6 +375,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.88,
           impact: "POSITIVE",
           category: "SUPPORT",
+          contextClass: "FRICTION",
         },
       ],
       timeline: [
@@ -440,6 +450,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.92,
           impact: "NEUTRAL",
           category: "USAGE",
+          contextClass: "INTENT",
         },
         {
           id: "ev-victor-kyb",
@@ -452,6 +463,7 @@ function buildAccounts(): CustomerAccount[] {
           confidence: 0.97,
           impact: "POSITIVE",
           category: "KYC_KYB",
+          contextClass: "POLICY",
         },
       ],
       timeline: [

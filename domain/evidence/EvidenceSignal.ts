@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ContextClassSchema } from "@/domain/common/ContextClass";
 
 export const EvidenceImpactSchema = z.enum(["POSITIVE", "NEGATIVE", "NEUTRAL"]);
 export const EvidenceFreshnessSchema = z.enum([
@@ -19,6 +20,8 @@ export const EvidenceSignalSchema = z.object({
   confidence: z.number().min(0).max(1),
   impact: EvidenceImpactSchema,
   category: z.enum(["USAGE", "SUPPORT", "CRM", "TRANSACTION", "KYC_KYB"]),
+  /** Optional until the platform ships it. Absent renders as absent, never as a guess. */
+  contextClass: ContextClassSchema.optional(),
 });
 
 export type EvidenceSignal = z.infer<typeof EvidenceSignalSchema>;
