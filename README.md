@@ -45,6 +45,11 @@ An operator can accept a review in Steward. That acceptance cannot, by itself, c
 or a policy. Steward forwards the review; Decionis decides, executes, and returns the resulting state and
 a dossier reference.
 
+[OpenCore.md](./OpenCore.md) states the same boundary as a business model: what is free forever,
+what Decionis operates, and the one point where commerce enters the flow.
+[docs/Distribution.md](docs/Distribution.md) is the plan for shipping Steward as a container and
+being found by the agents that evaluate it.
+
 ```text
 Browser
   -> Steward Next.js server / BFF          <- this repository
