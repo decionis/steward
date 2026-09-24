@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- [OpenCore.md](./OpenCore.md): the open-core boundary in one place. What is Apache-2.0 here (all
+  of Steward), what Decionis operates, the seam (one interface, four operations), what is free and
+  what is paid, and the activation point: the first review that is meant to execute. Five
+  commitments about the boundary, changeable only through a public code-owner-approved pull
+  request.
+- [docs/Distribution.md](./docs/Distribution.md): the plan for a signed multi-architecture image on
+  GHCR mirrored by digest to Docker Hub, machine discovery through `llms.txt` served by the app,
+  and the in-product activation point, modelled on AgentSafe's release pipeline and NGINX's
+  open-source-plus-subscription distribution.
 - A contract pin for the platform's context fields: `infra/api/samples/` holds response bodies in
   the agreed shape, and `infra/api/DecionisContract.test.ts` drives each through the real HTTP
   client, gateway, and `domain/` schemas. The samples are constructed from the agreed contract, not
