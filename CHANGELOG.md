@@ -10,7 +10,13 @@ you integrate against these types.
 
 ## [Unreleased]
 
-Nothing yet.
+### Security
+
+- `next` 16.3.1 → 16.3.6 (range `^16.3.3`), clearing two critical advisories in the Image Optimization API
+  (GHSA-p293-qw3h-jr36, GHSA-2xp9-vwfh-vxw4). The `sharp` forward pin moves to `^0.35.4`
+  (GHSA-rgj7-g3m4-5g8c, libheif) and the `js-yaml` pin to `^4.3.2` (GHSA-2883-xcg3-v3hh, dev tree
+  only). The audit gate had been red on `master` since 14 September 2026 on the unchanged tree,
+  which is the case the weekly run exists to catch; every open pull request inherited the failure.
 
 ## [0.1.2] — 2026-08-15
 
