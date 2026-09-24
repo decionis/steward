@@ -1,13 +1,19 @@
 # Decionis Steward
 
-**Give your operators a governed surface for reviewing customer and account decisions, without
-moving policy authority into the interface.**
+**Put customer and account decisions in front of your operators with the evidence attached: where
+each data point came from, how fresh it is, whether the sources behind it are healthy, and which
+information led to the recommendation. They review; Decionis decides, records and executes.**
 
-`decionis/steward` is the control center your customer-operations, risk and revenue teams use to
-act on account evidence: a queue of evidence-backed recommendations, account detail an approver can
-trust, and a review flow that records rather than executes. Every accept, hold or reject is
-forwarded to the [Decionis](https://decionis.com) platform with the operator's own credential, and
-nothing downstream changes until the platform decides. The caption on every control says so.
+The question an operator has to answer before acting on a recommendation is whether they can see
+where each data point came from, whether it is fresh and complete, and which information led to
+it. `decionis/steward` is the control center that answers it. Every signal carries its source,
+its record and its freshness; the account page says how fresh the context is at the moment of
+review and which of its sources are degraded; every recommendation names the evidence it rests
+on and, when the platform supplies it, why it got its disposition: what governed, what was
+overruled, what was suppressed. A decision to do nothing appears as a decision, with its
+evidence. Every accept, hold or reject is forwarded to the [Decionis](https://decionis.com)
+platform with the operator's own credential, and nothing downstream changes until the platform
+decides. The caption on every control says so.
 
 What stays in the platform: policy evaluation, connector credentials, execution grants, Decision
 Dossiers, the audit ledger. The container holds none of them, checks no license, and sends nothing

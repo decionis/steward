@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Decionis Steward",
   description:
-    "Signal capture and decisioning for enterprise customer operations, powered by the Decionis execution control plane.",
+    "Customer and account decisions with their evidence in view: where each data point came from, how fresh it is, and what led to the recommendation. Operators review; Decionis decides.",
   robots: { index: false, follow: false },
 };
 

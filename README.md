@@ -9,16 +9,17 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/decionis/steward/badge)](https://scorecard.dev/viewer/?uri=github.com/decionis/steward)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 
-**Signal capture and decisioning for enterprise customer operations.**
+**Customer and account decisions with the evidence in front of the people who make them.**
 
 **[Try the live demo →](https://decionis-steward.vercel.app)** — the whole operator workflow on
 deterministic fixtures. No account, no credentials, nothing to install.
 
-Steward is the operational control center for Adaptive Customer Decision Intelligence. It gives customer
-operations, risk, and revenue teams a single reviewable surface over their account portfolio: it
-correlates account evidence, surfaces friction and expansion opportunities, and forwards every
-operator review to the Decionis execution control plane — where the authoritative decision is made,
-recorded, and executed.
+Steward is the control center where customer-operations, risk and revenue teams review account
+decisions. Every recommendation arrives with its evidence attached: where each data point came
+from, how fresh it is, whether the sources behind it are healthy, which signals led to the
+recommendation and which were overruled, and what a decision to do nothing rested on. Operators
+review with all of that in view. The Decionis platform makes, records and executes the
+authoritative decision, so a review can never quietly become a change.
 
 The problem it solves: in regulated fintech, the people closest to the customer can see that an
 account is ready for a higher processing limit or is about to churn, but they cannot act on it

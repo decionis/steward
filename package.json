@@ -2,7 +2,7 @@
   "name": "@decionis/steward",
   "version": "0.3.0",
   "private": true,
-  "description": "Signal capture and decisioning for customer operations teams \u2014 correlate usage, support and CRM evidence, surface churn and expansion before the customer calls, and route every operator review through a Decionis policy verdict.",
+  "description": "The operator surface for customer and account decisions: every recommendation with its evidence, where each data point came from, how fresh it is, what led to it and what was overruled. Operators review; Decionis decides, records and executes.",
   "license": "Apache-2.0",
   "author": "Decionis, Inc. (https://decionis.com)",
   "homepage": "https://github.com/decionis/steward#readme",

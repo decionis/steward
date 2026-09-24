@@ -1,19 +1,24 @@
 # Run Steward in Docker
 
-> Give your operators a governed surface for reviewing customer and account decisions, without
-> moving policy authority into the interface.
+> Put customer and account decisions in front of your operators with the evidence attached: where
+> each data point came from, how fresh it is, whether the sources behind it are healthy, and which
+> information led to the recommendation. They review; Decionis decides, records and executes.
 
 ## What your operators get
 
-One container, and the people closest to your customers, in operations, risk and revenue, get a
-place to act that is auditable by construction:
+The question an operator has to answer before acting on a recommendation is whether they can see
+where each data point came from, whether it is fresh and complete, and which information led to
+it. One container, and the people closest to your customers, in operations, risk and revenue, can:
 
-- **A queue of evidence-backed recommendations.** Friction interventions, KYC/KYB escalations,
-  processing-limit reviews and expansion outreach, each with its rationale, its confidence, the
-  evidence it rests on, and, when the platform supplies it, why it got the disposition it did.
-- **Account detail an approver can trust.** Every signal with its source and freshness, the health
-  of the sources behind it, the policy envelope in force, and a one-line statement of how fresh the
-  context is at the moment they review.
+- **See where every data point came from.** Each signal carries its source, its record reference
+  and its confidence, and the health of every source behind the account sits beside it.
+- **See how fresh and how complete the context is, at the moment they act.** Freshness on every
+  signal; a one-line "Context at review" above the controls naming the weakest freshness and any
+  degraded source; a strip showing which kinds of context, from journey to policy, the evidence
+  covers and which it lacks.
+- **See which information led to the recommendation.** Every recommendation names the evidence it
+  rests on and, when the platform supplies it, why it got its disposition: what governed, what was
+  overruled, what was suppressed, under which policy version.
 - **A review flow that records rather than executes.** Accept, hold or reject, and the review is
   forwarded to the Decionis platform with the operator's own credential. Nothing downstream changes
   until the platform decides. The caption on every control says so.

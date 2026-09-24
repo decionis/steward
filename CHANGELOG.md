@@ -12,6 +12,13 @@ you integrate against these types.
 
 ### Changed
 
+- The positioning, on every surface, is written for the operator who acts on a recommendation and
+  built on the question they have to answer first: can they see where each data point came from,
+  how fresh and complete it is, and which information led to the recommendation. The README
+  tagline and opening, the repository description, the HTML metadata, the dashboard header, the
+  discovery summary, the Docker guide, the Docker Hub overview and short description, and the
+  image's OCI description now say that, in the same words, instead of "signal capture and
+  decisioning".
 - The Docker documentation is written for the operator who will run it, and leads with the
   outcome: a governed surface for reviewing customer and account decisions, without moving policy
   authority into the interface. What operators get, five minutes with no account, connecting the
