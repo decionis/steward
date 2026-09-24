@@ -1,0 +1,190 @@
+name: Docker Hub image
+
+# The image is built once, by image.yml, and pushed to GHCR with its digest
+# attested. Docker Hub carries the same manifest list, copied by digest from
+# GHCR after the release: no second build, no second SBOM, one digest on both
+# registries. image.yml calls this when the DOCKERHUB_PUBLISH_ENABLED variable
+# is true; a maintainer dispatches it by hand to publish a release that
+# predates the variable, or to finish a release whose Docker Hub step failed.
+# The repository's overview on Docker Hub is packaging/dockerhub/README.md,
+# published by the same run, so the page and the image change together.
+#
+# Adapted from decionis/agent-safe-pipeline, which publishes decionis/agentsafe
+# the same way.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version already published to GHCR (without the v prefix)
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version already published to GHCR (without the v prefix)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Copy the release manifest to Docker Hub
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: dockerhub-${{ inputs.version }}
+      cancel-in-progress: false
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve the attested GHCR image
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GHCR_ACTOR: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/steward
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_WORKFLOW: ${{ github.repository }}/.github/workflows/image.yml
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
+            echo "The version must be a semantic version without the v prefix, not '$RELEASE_VERSION'." >&2
+            exit 1
+          }
+          image="$(printf '%s' "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
+          digest="$(docker buildx imagetools inspect "$image:$RELEASE_VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          # Only a manifest the image workflow attested is copied: the
+          # attestation is verified against that workflow's identity, so a
+          # tag pushed by anything else is refused here.
+          gh attestation verify "oci://$image@$digest" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$RELEASE_WORKFLOW"
+          {
+            echo "image=$image"
+            echo "digest=$digest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Copy the manifest to Docker Hub
+        id: hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          HUB_IMAGE_NAME: docker.io/${{ github.repository_owner }}/steward
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_DIGEST: ${{ steps.source.outputs.digest }}
+          SOURCE_IMAGE: ${{ steps.source.outputs.image }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$DOCKERHUB_USERNAME" || -z "$DOCKERHUB_TOKEN" ]]; then
+            echo "Docker Hub publication needs the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets; set them, or unset the DOCKERHUB_PUBLISH_ENABLED variable." >&2
+            exit 1
+          fi
+          hub="$(printf '%s' "$HUB_IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login docker.io -u "$DOCKERHUB_USERNAME" --password-stdin
+          major="${RELEASE_VERSION%%.*}"
+          minor="${RELEASE_VERSION%.*}"
+          # The same tags GHCR carries: the exact version always; for a stable
+          # release also the minor, the major and latest. One source and no
+          # annotations means imagetools writes the index bytes it read, so
+          # the digest is the release's, and the check below is what makes
+          # that a fact rather than an expectation.
+          tags=(-t "$hub:$RELEASE_VERSION")
+          if [[ "$RELEASE_VERSION" != *-* ]]; then
+            tags+=(-t "$hub:$minor" -t "$hub:$major" -t "$hub:latest")
+          fi
+          docker buildx imagetools create "${tags[@]}" "$SOURCE_IMAGE@$SOURCE_DIGEST"
+          digest="$(docker buildx imagetools inspect "$hub:$RELEASE_VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [[ "$digest" != "$SOURCE_DIGEST" ]]; then
+            echo "Docker Hub holds $digest for $hub:$RELEASE_VERSION; the attested release manifest is $SOURCE_DIGEST." >&2
+            exit 1
+          fi
+          {
+            echo "name=$hub"
+            echo "digest=$digest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Attest the Docker Hub image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.hub.outputs.name }}
+          subject-digest: ${{ steps.hub.outputs.digest }}
+          push-to-registry: true
+
+      - name: Verify the published image attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_REFERENCE: ${{ steps.hub.outputs.name }}@${{ steps.hub.outputs.digest }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SIGNER_WORKFLOW: ${{ github.repository }}/.github/workflows/dockerhub.yml
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh attestation verify "oci://$IMAGE_REFERENCE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$SIGNER_WORKFLOW"
+          {
+            echo "## Docker Hub"
+            echo
+            echo "\`${IMAGE_REFERENCE%@*}:$RELEASE_VERSION\` at \`${IMAGE_REFERENCE#*@}\`, the release's manifest, attested by this workflow."
+            echo
+            echo '```sh'
+            echo "gh attestation verify oci://$IMAGE_REFERENCE --repo $GITHUB_REPOSITORY"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish the repository overview
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          HUB_IMAGE_NAME: ${{ steps.hub.outputs.name }}
+          OVERVIEW_FILE: packaging/dockerhub/README.md
+          # Docker Hub shows this line under the repository's title; it takes
+          # at most 100 characters.
+          SHORT_DESCRIPTION: "The operator tier for governed customer decisions: evidence in, a review out, Decionis decides."
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository="${HUB_IMAGE_NAME#docker.io/}"
+          # The overview is the file in the repository, so the page says what
+          # this commit says. Docker Hub's API takes a session token issued
+          # for the account's credentials; the token is kept in a file only
+          # the runner's user can read, and only for the one request.
+          session="$(node -e 'process.stdout.write(JSON.stringify({ username: process.env.DOCKERHUB_USERNAME, password: process.env.DOCKERHUB_TOKEN }));' \
+            | curl --fail-with-body --silent --show-error --location \
+                --request POST https://hub.docker.com/v2/users/login \
+                --header 'Content-Type: application/json' --data-binary @- \
+            | node -e 'let body = ""; process.stdin.on("data", (d) => (body += d)).on("end", () => { let token; try { token = JSON.parse(body).token; } catch {} if (!token) { console.error("Docker Hub login failed: " + body); process.exit(1); } process.stdout.write(token); });')"
+          header="$RUNNER_TEMP/dockerhub-session"
+          (umask 077; printf 'Authorization: JWT %s\n' "$session" > "$header")
+          node -e 'const fs = require("node:fs"); const full = fs.readFileSync(process.env.OVERVIEW_FILE, "utf8"); const short = process.env.SHORT_DESCRIPTION; if (short.length > 100) throw new Error("The short description exceeds 100 characters."); if (full.length > 25000) throw new Error("The overview exceeds 25000 characters."); process.stdout.write(JSON.stringify({ description: short, full_description: full }));' \
+            | curl --fail-with-body --silent --show-error --location \
+                --request PATCH "https://hub.docker.com/v2/repositories/$repository/" \
+                --header @"$header" --header 'Content-Type: application/json' --data-binary @- \
+            | node -e 'let body = ""; process.stdin.on("data", (d) => (body += d)).on("end", () => { let r; try { r = JSON.parse(body); } catch {} if (!r || !r.full_description) { console.error("Docker Hub refused the overview: " + body); process.exit(1); } console.log("Overview published for " + r.namespace + "/" + r.name + ": " + r.full_description.length + " characters; description: " + r.description); });'
+          rm -f "$header"

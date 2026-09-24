@@ -59,6 +59,21 @@ updates:
           - minor
           - patch
 
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      # Monthly. The base image is pinned by digest, so an unapplied update is a
+      # stale pin rather than an exposure; advisory-driven updates ignore this.
+      interval: monthly
+      time: "05:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 1
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore
+      include: scope
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

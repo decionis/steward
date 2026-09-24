@@ -1,0 +1,240 @@
+name: Image
+
+# Builds the container image once, for linux/amd64 and linux/arm64, with
+# BuildKit's SBOM and provenance attached to the manifest, smoke-tests it on
+# each platform before anything is pushed, publishes it to GHCR, and attests
+# the manifest digest with this workflow's keyless identity. Docker Hub is a
+# copy of the same manifest by digest, made by dockerhub.yml when the
+# DOCKERHUB_PUBLISH_ENABLED variable is true; there is no second build.
+#
+#   A v* tag        publishes <version>, and for a stable release also
+#                   <major>.<minor>, <major> and latest.
+#   A push to master publishes edge, which moves.
+#   A dispatch      builds and smoke-tests; with dry_run false it publishes
+#                   0.0.0-<sha> so the whole path can be exercised.
+#
+# The tarball release in release.yml is unchanged and independent: the two
+# artifacts are built from the same commit by different jobs.
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build, smoke-test and stop; do not push"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/steward
+
+jobs:
+  image:
+    name: Build, smoke-test, publish, attest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # sigstore signing for the attestation
+      attestations: write # record the attestation
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      published: ${{ steps.publish.outputs.published }}
+      digest: ${{ steps.publish.outputs.digest }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        # Never publish an image that would not have passed the PR gate.
+        run: pnpm verify
+
+      - name: Plan the version and the tags
+        id: plan
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$(printf '%s' "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          publish=true
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+            [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
+              echo "::error::tag $GITHUB_REF_NAME is not a semantic version"; exit 1; }
+            tags="$image:$version"
+            if [[ "$version" != *-* ]]; then
+              major="${version%%.*}"; minor="${version%.*}"
+              tags="$tags,$image:$minor,$image:$major,$image:latest"
+            fi
+          elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            version="0.0.0-edge.${GITHUB_SHA:0:7}"
+            tags="$image:edge"
+          else
+            version="0.0.0-${GITHUB_SHA:0:7}"
+            tags="$image:$version"
+            [ "$DRY_RUN" = "false" ] || publish=false
+          fi
+          {
+            echo "image=$image"
+            echo "version=$version"
+            echo "tags=$tags"
+            echo "publish=$publish"
+            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+          echo "version=$version publish=$publish tags=$tags"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Smoke-test the image on each platform
+        # The image is started and asked the questions a deployment would ask
+        # before a byte is pushed: does it answer the health probe, does it
+        # serve the demo portfolio, does every security header arrive, and
+        # does it serve the discovery file when the tree carries one. arm64
+        # runs under QEMU here; slow, but it is the only proof that the
+        # cross-built runtime stage boots on that platform.
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+          CREATED: ${{ steps.plan.outputs.created }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for platform in linux/amd64 linux/arm64; do
+            echo "::group::$platform"
+            docker buildx build --platform "$platform" --load -t steward:smoke \
+              --build-arg "VERSION=$VERSION" --build-arg "REVISION=$GITHUB_SHA" \
+              --build-arg "CREATED=$CREATED" .
+            docker run -d --rm --name steward-smoke -p 3000:3000 --platform "$platform" steward:smoke
+            trap 'docker logs steward-smoke || true; docker stop steward-smoke >/dev/null 2>&1 || true' EXIT
+            curl -sf --retry 60 --retry-delay 2 --retry-all-errors -o /dev/null http://127.0.0.1:3000/api/health
+            data_status="$(curl -sf --retry 5 --retry-delay 1 --retry-all-errors http://127.0.0.1:3000/api/steward/portfolio | node -e 'let b="";process.stdin.on("data",d=>b+=d).on("end",()=>process.stdout.write(JSON.parse(b).dataStatus))')"
+            [ "$data_status" = "DEMO" ] || { echo "::error::portfolio reports $data_status, expected DEMO"; exit 1; }
+            headers="$(curl -sI http://127.0.0.1:3000/)"
+            for h in content-security-policy x-content-type-options x-frame-options referrer-policy permissions-policy cross-origin-opener-policy x-robots-tag; do
+              printf '%s' "$headers" | grep -qi "^$h:" || { echo "::error::missing header $h"; exit 1; }
+            done
+            if [ -f public/llms.txt ]; then
+              first="$(curl -sf http://127.0.0.1:3000/llms.txt | head -1)"
+              [ "$first" = "$(head -1 public/llms.txt)" ] || { echo "::error::/llms.txt does not serve public/llms.txt"; exit 1; }
+            fi
+            docker stop steward-smoke >/dev/null
+            trap - EXIT
+            echo "$platform: health 200, portfolio DEMO, headers present"
+            echo "::endgroup::"
+          done
+
+      - name: Log in to GHCR
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build and push the multi-architecture image
+        id: publish
+        env:
+          PUBLISH: ${{ steps.plan.outputs.publish }}
+          IMAGE: ${{ steps.plan.outputs.image }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          TAGS: ${{ steps.plan.outputs.tags }}
+          CREATED: ${{ steps.plan.outputs.created }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$PUBLISH" != "true" ]; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "Dry run: built and smoke-tested, nothing pushed."
+            exit 0
+          fi
+          args=()
+          IFS=',' read -ra list <<< "$TAGS"
+          for t in "${list[@]}"; do args+=(-t "$t"); done
+          # One build for both platforms, with BuildKit's SBOM and provenance
+          # attestations attached to the manifest list it pushes.
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            --sbom=true --provenance=mode=max \
+            --build-arg "VERSION=$VERSION" --build-arg "REVISION=$GITHUB_SHA" \
+            --build-arg "CREATED=$CREATED" \
+            "${args[@]}" --push .
+          first="${list[0]}"
+          digest="$(docker buildx imagetools inspect "$first" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          {
+            echo "published=true"
+            echo "digest=$digest"
+          } >> "$GITHUB_OUTPUT"
+          echo "pushed $TAGS at $digest"
+
+      - name: Attest the image
+        if: steps.publish.outputs.published == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.plan.outputs.image }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      - name: Verify the attestation as a consumer would
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ steps.plan.outputs.image }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+          TAGS: ${{ steps.plan.outputs.tags }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh attestation verify "oci://$IMAGE@$DIGEST" --repo "$GITHUB_REPOSITORY"
+          {
+            echo "## Image"
+            echo
+            echo "\`$IMAGE@$DIGEST\`, tags: \`${TAGS//,/\`, \`}\`"
+            echo
+            echo '```sh'
+            echo "gh attestation verify oci://$IMAGE@$DIGEST --repo $GITHUB_REPOSITORY"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  dockerhub:
+    name: Docker Hub
+    needs: image
+    # Releases only: Docker Hub carries versions, never edge, and never a
+    # dispatch build. The variable is the switch; the secrets are the means.
+    if: github.ref_type == 'tag' && needs.image.outputs.published == 'true' && vars.DOCKERHUB_PUBLISH_ENABLED == 'true'
+    uses: ./.github/workflows/dockerhub.yml
+    with:
+      version: ${{ needs.image.outputs.version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
