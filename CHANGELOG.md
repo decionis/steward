@@ -56,7 +56,7 @@ you integrate against these types.
   ordered by friction then reviews so the group that needs effort first is at the top. Counts of
   what the platform already said about each account; nothing decided here. P1 of
   `docs/ProactiveSupport.md`.
-- Steward's own database, the embedded one first ([docs/Persistence.md](https://github.com/decionis/steward/pull/94), DB0 and DB1):
+- Steward's own database, the embedded one first ([docs/Persistence.md](./docs/Persistence.md), DB0 and DB1):
   TypeORM with the `better-sqlite3` driver, `STEWARD_DATABASE_URL` whose scheme selects the
   dialect, the embedded file under `STEWARD_DATA_DIR` when nothing is set outside demo mode, the
   portable schema for users, sessions, workspaces, signal sources, collections, decisions, reviews

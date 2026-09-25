@@ -62,7 +62,7 @@ the signal sources it is configured with, the decisions it showed, the reviews i
 recorded and their activities live in a database the operator chooses: the embedded one under
 `STEWARD_DATA_DIR` with nothing configured, or PostgreSQL, MySQL, SQL Server or Oracle Database
 named by `STEWARD_DATABASE_URL`. A signal's content is never written to it. The schema changes
-only through portable migrations, applied at start. [docs/Persistence.md](https://github.com/decionis/steward/pull/94) records the
+only through portable migrations, applied at start. [docs/Persistence.md](docs/Persistence.md) records the
 decision.
 
 [OpenCore.md](./OpenCore.md) states the same boundary as a business model: what is free forever,
