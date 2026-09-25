@@ -195,7 +195,7 @@ live response are parsed by the same schemas.
 OpenCore's seam becomes "the published Protocol"; ThreatModel gains the org API key as an asset;
 README, Architecture, EvidencePack and the discovery files stop naming `/v1/cdi`.
 
-#### C1 — The Protocol client
+#### C1 — The Protocol client ✅ Built (branch `feat/protocol-client`)
 
 `infra/api/DecionisProtocolClient.ts` over `JsonHttpClient`, bearer `DECIONIS_API_KEY`, one method
 per published operation Steward uses, each response parsed by a Zod contract in `domain/protocol/`
