@@ -30,9 +30,11 @@ What stays in the platform, unchanged:
 - Execution grants, Decision Dossiers, the audit ledger.
 - Tenant identity and roles.
 
-The two commitments that survive intact: nothing is persisted in this tier, and there is no
+The two commitments that survived this decision were: nothing is persisted in this tier, and there is no
 telemetry. A collected signal is in memory until it is forwarded, and the only hosts this tier
 talks to are the platform and the sources an operator configured.
+The first of the two was superseded on 25 September 2026 by [docs/Persistence.md](./Persistence.md): Steward
+keeps its own records (users, decisions, activities, sources) and still never stores a signal's content.
 
 ## The flow
 
