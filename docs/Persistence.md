@@ -1,13 +1,14 @@
-# Steward's own database and hosted onboarding
+# Steward's own database and first-run onboarding
 
 **Status: proposed 25 September 2026, subject to approval. A trust-boundary change, recorded as
 one.** Steward persists its own operational records: its users, the decisions its operators
 recorded, their activities, and the signal sources it is configured with, plus the Decionis
 workspace connection when the environment does not supply it. The database is the operator's
 choice: PostgreSQL by default; MySQL, Oracle Database and Microsoft SQL Server supported, so an
-operator runs Steward on the database license they already hold. In a hosted deployment the first
-run either loads Decionis account signup or finds the Decionis credentials already configured, in
-the database or in the environment.
+operator runs Steward on the database license they already hold. Wherever the operator hosts it,
+the first run either loads Decionis account signup or finds the Decionis credentials already
+configured, in the database or in the environment. Decionis does not host Steward: operators
+download it, as they download NGINX from nginx.org, and run it themselves.
 
 ## The decision
 
@@ -27,6 +28,41 @@ customer evidence, collected signals, reviews, or sessions in this tier" in
 checkable: **Steward stores its own records and never the customer's evidence.** A collected
 signal's content is still read, forwarded and discarded; what Steward keeps about a decision is
 the Protocol's identifiers and what the operator did. Telemetry stays at none.
+
+## Frictionless deployment, and why it needs a database
+
+The goal is commercial open source that deploys without friction: pull the image or download the
+release from the Decionis download page (decionis.ai, the way nginx.org serves NGINX), start it
+with the compose file that includes PostgreSQL, open it, and finish in the browser. The first run
+shows a setup page: create the administrator, connect to Decionis by signing up or by pasting the
+credentials of a workspace that already exists, add the first signal source. No environment file,
+no redeploy.
+
+That last step is why Steward needs a database. Without one, a connector and its credential can
+live only in the environment or in a mounted file, so every source an operator adds is a
+configuration change and a restart, and the credentials of internal systems sit in deployment
+manifests. With one, a source is added from the Sources page by an administrator, its credential
+is encrypted at rest under the operator's own key, and collection reads it on the server at the
+moment of use. Frictionless for the operator, and the credential is held in fewer places, not more.
+
+## Is internal access exposed?
+
+No. Persisting connectors changes where a credential rests, not who can reach the system behind
+it:
+
+- **Outbound only.** Steward reaches the operator's internal systems from inside the operator's
+  network, on the host each source names, and reaches Decionis over the published API. Nothing
+  inbound: Decionis never calls into the operator's network, and Steward opens no port to the
+  internet beyond the application itself, behind the operator's TLS termination.
+- **The browser sees fingerprints.** A credential is decrypted on the server for one collection
+  and never serialised into a page, a route response or a log; the Sources page shows the last
+  characters of a fingerprint so an administrator can tell credentials apart.
+- **Administrators only.** Adding, editing or rotating a source or the Decionis connection needs
+  the `ADMIN` role; collection needs `OPERATOR`; every change is an activity with an actor.
+- **The key stays with the operator.** `STEWARD_SECRET_KEY` is theirs, mounted at run time, in no
+  image and in no repository; without it the stored credentials are ciphertext.
+- **What Decionis receives** is the signals Steward forwards, never a source's credential or its
+  address.
 
 ## What is stored, and what is not
 
@@ -96,7 +132,8 @@ name the actor in surface decisions and overrides.
    the names the deployment bundle emits. This is the self-hosted default and needs no database
    row.
 2. **The Steward database.** The `workspaces` row, entered through the setup page or created by
-   signup. This is what a hosted deployment relies on, since a hosted operator sets no environment.
+   signup. This is what an operator who set no environment relies on, on a laptop, a VPS or a
+   cluster alike.
 3. **Neither.** The setup page, administrators only, offers two paths:
    - **Sign up for Decionis**, through the published public onboarding:
      `POST /v1/public/auth/register/start` (owner email and name, organisation name), then
@@ -108,7 +145,8 @@ name the actor in surface decisions and overrides.
      against `GET /v1/health` and one authenticated read before they are saved.
 
 Every step is recorded as an activity, and rotation goes through the same page. The order is the
-same in every deployment; hosted and self-hosted differ only in which step answers.
+same in every deployment, and every deployment is the operator's own; what differs is only which
+step answers.
 
 ## The boundary documents that change
 
@@ -119,7 +157,10 @@ same in every deployment; hosted and self-hosted differ only in which step answe
   content"; Steward's own records are in scope.
 - **OpenCore**: "Can I run this without Decionis?" stays yes, and demo mode still needs no
   database; the commitments keep "no telemetry" and drop "no customer data at rest" for "no customer
-  evidence at rest".
+  evidence at rest"; "hosted Steward" leaves the paid column, since Decionis distributes Steward
+  and operators host it.
+- **Distribution**: the download page on decionis.ai beside the registries and the release
+  tarball, with the compose file that includes PostgreSQL as the first thing an operator runs.
 - **EvidencePack**: the rows for data at rest, secrets, sub-processors and the database the operator
   runs.
 - **README, Architecture, the Docker guide, the discovery files**: the variables, the compose file
@@ -163,34 +204,36 @@ page per dialect in the Docker guide.
 
 ## Sequencing
 
-| Stage           | Work     | Gate                                                                           |
-| --------------- | -------- | ------------------------------------------------------------------------------ |
-| **1. Decide**   | P1–P7    | This document approved                                                         |
-| **2. Layer**    | DB0, DB1 | Migrations and persistence tests green on PostgreSQL in CI; `pnpm verify`      |
-| **3. People**   | DB2      | An administrator created on first run; sign-in, roles and sign-out tested      |
-| **4. Connect**  | DB3      | A hosted deployment reaches live shadow through signup with no environment set |
-| **5. Records**  | DB4, DB5 | A source added, a collection recorded, a review recorded and visible           |
-| **6. Dialects** | DB6      | The nightly matrix green on all four                                           |
+| Stage           | Work     | Gate                                                                      |
+| --------------- | -------- | ------------------------------------------------------------------------- |
+| **1. Decide**   | P1–P7    | This document approved                                                    |
+| **2. Layer**    | DB0, DB1 | Migrations and persistence tests green on PostgreSQL in CI; `pnpm verify` |
+| **3. People**   | DB2      | An administrator created on first run; sign-in, roles and sign-out tested |
+| **4. Connect**  | DB3      | A deployment with no environment set reaches live shadow through signup   |
+| **5. Records**  | DB4, DB5 | A source added, a collection recorded, a review recorded and visible      |
+| **6. Dialects** | DB6      | The nightly matrix green on all four                                      |
 
 ## Decisions needed
 
-| #   | Question                                                             | Recommendation                                                                                      |
-| --- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| P1  | Knex, or an ORM?                                                     | Knex: one query API, portable migrations, all four dialects, MIT, no entity model to fight.         |
-| P2  | Ship all four drivers in the image?                                  | Yes; all four are MIT or Apache-2.0, and the operator's choice must not need a rebuild.             |
-| P3  | Local password accounts, or single sign-on only?                     | Both: local accounts with argon2id, the Decionis handoff as SSO.                                    |
-| P4  | Where does the encryption key come from?                             | A mounted 32-byte secret, `STEWARD_SECRET_KEY`, with a key id per row; a KMS provider later.        |
-| P5  | Migrations at container start, or run by the operator?               | At start by default, failing closed; `off` for operators who run them themselves.                   |
-| P6  | Store the org API key in the database when the environment lacks it? | Yes, encrypted; the hosted case has no other place, and the environment wins when both are present. |
-| P7  | Offer the provisional no-account workspace as the signup shortcut?   | Yes, marked provisional, with its caps stated on the page.                                          |
+| #   | Question                                                             | Recommendation                                                                                                                                                                                                    |
+| --- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | Knex, or an ORM?                                                     | Knex: one query API, portable migrations, all four dialects, MIT, no entity model to fight.                                                                                                                       |
+| P2  | Ship all four drivers in the image?                                  | Yes; all four are MIT or Apache-2.0, and the operator's choice must not need a rebuild.                                                                                                                           |
+| P3  | Local password accounts, or single sign-on only?                     | Both: local accounts with argon2id, the Decionis handoff as SSO.                                                                                                                                                  |
+| P4  | Where does the encryption key come from?                             | A mounted 32-byte secret, `STEWARD_SECRET_KEY`, with a key id per row; a KMS provider later.                                                                                                                      |
+| P5  | Migrations at container start, or run by the operator?               | At start by default, failing closed; `off` for operators who run them themselves.                                                                                                                                 |
+| P6  | Store the org API key in the database when the environment lacks it? | Yes, encrypted; the hosted case has no other place, and the environment wins when both are present.                                                                                                               |
+| P7  | Offer the provisional no-account workspace as the signup shortcut?   | Yes, marked provisional, with its caps stated on the page.                                                                                                                                                        |
+| P8  | An embedded database for a single-node trial?                        | Yes: SQLite through Knex (`better-sqlite3`, MIT) when no `STEWARD_DATABASE_URL` is set outside demo, in a volume, so `docker run` alone reaches the setup page; PostgreSQL stays the default for anything shared. |
 
 ## Decisions recorded
 
-| Question                                     | Decision                                                                                        |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Does Steward persist anything?               | Its own records: users, sessions, workspace connection, sources, decisions, reviews, activities |
-| Is customer evidence stored?                 | No. Content is read, forwarded and discarded; identifiers and references are kept               |
-| Which database?                              | The operator's: PostgreSQL by default; MySQL, Oracle Database, SQL Server supported             |
-| Does demo mode need a database?              | No                                                                                              |
-| How does a hosted deployment reach Decionis? | Environment, then the database, then signup or pasted credentials on the setup page             |
-| Telemetry                                    | Still none                                                                                      |
+| Question                              | Decision                                                                                           |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Does Steward persist anything?        | Its own records: users, sessions, workspace connection, sources, decisions, reviews, activities    |
+| Is customer evidence stored?          | No. Content is read, forwarded and discarded; identifiers and references are kept                  |
+| Which database?                       | The operator's: PostgreSQL by default; MySQL, Oracle Database, SQL Server supported                |
+| Does demo mode need a database?       | No                                                                                                 |
+| How does a deployment reach Decionis? | Environment, then the database, then signup or pasted credentials on the setup page                |
+| Who hosts Steward?                    | The operator, always; Decionis distributes it (registries, tarball, the decionis.ai download page) |
+| Telemetry                             | Still none                                                                                         |
