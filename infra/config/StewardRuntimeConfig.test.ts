@@ -107,3 +107,100 @@ describe("StewardRuntimeConfig — the signal ingress", () => {
     ).toThrow("DECIONIS_WEBHOOK_URL or DECIONIS_API_BASE_URL");
   });
 });
+
+describe("StewardRuntimeConfig — persistence", () => {
+  const live = {
+    NODE_ENV: "production",
+    STEWARD_DATA_MODE: "live",
+    DECIONIS_API_BASE_URL: "https://api.decionis.com",
+  } as const;
+
+  it("persists nothing in demo mode, whatever the environment says", () => {
+    const config = StewardRuntimeConfig.fromEnvironment({
+      NODE_ENV: "development",
+      STEWARD_DATABASE_URL: "postgres://steward@db/steward",
+    });
+    expect(config.persistence).toBeNull();
+  });
+
+  it("uses the embedded database under the data directory when live mode names no database", () => {
+    expect(StewardRuntimeConfig.fromEnvironment(live).persistence).toEqual({
+      dialect: "sqlite",
+      url: null,
+      file: "./data/steward.sqlite",
+      migrate: "on-start",
+    });
+    expect(
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATA_DIR: "/app/data/",
+      }).persistence?.file,
+    ).toBe("/app/data/steward.sqlite");
+  });
+
+  it("reads an explicit embedded file or an in-memory database", () => {
+    expect(
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_URL: "sqlite:///var/lib/steward/steward.sqlite",
+      }).persistence?.file,
+    ).toBe("/var/lib/steward/steward.sqlite");
+    expect(
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_URL: "sqlite::memory:",
+      }).persistence?.file,
+    ).toBe(":memory:");
+  });
+
+  it("records the dialect of a server database from the URL scheme", () => {
+    for (const [url, dialect] of [
+      ["postgres://steward:secret@db:5432/steward", "postgres"],
+      ["postgresql://steward@db/steward", "postgres"],
+      ["mysql://steward@db:3306/steward", "mysql"],
+      ["mssql://steward@db:1433/steward?encrypt=true", "mssql"],
+      ["oracle://steward@db:1521/FREEPDB1", "oracle"],
+    ] as const) {
+      const config = StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_URL: url,
+      });
+      expect(config.persistence).toEqual({
+        dialect,
+        url,
+        file: null,
+        migrate: "on-start",
+      });
+    }
+  });
+
+  it("refuses a scheme it does not know and an unparseable URL", () => {
+    expect(() =>
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_URL: "mongodb://x/y",
+      }),
+    ).toThrow(/unsupported scheme/);
+    expect(() =>
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_URL: "postgres:no-host",
+      }),
+    ).toThrow(/scheme:\/\/user:password@host:port\/database/);
+    expect(() =>
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_URL: "sqlite:",
+      }),
+    ).toThrow(/needs a file path/);
+  });
+
+  it("lets the operator take migrations into their own hands", () => {
+    expect(
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        STEWARD_DATABASE_MIGRATE: "off",
+      }).persistence?.migrate,
+    ).toBe("off");
+  });
+});

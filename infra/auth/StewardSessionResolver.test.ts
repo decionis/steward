@@ -24,6 +24,7 @@ function config(
     signInUrl: "https://decionis.com/sign-in",
     timeoutMs: 8_000,
     signalIngress: null,
+    persistence: null,
   });
 }
 

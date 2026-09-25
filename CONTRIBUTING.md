@@ -13,8 +13,11 @@ That boundary is the product. Changes that move decision authority into this rep
 declined regardless of how well they are implemented:
 
 - Evaluating policy locally instead of forwarding to the platform.
-- Persisting customer evidence, collected signals, reviews, or sessions in this tier — there is deliberately no
-  database, and adding one changes this repository's risk profile entirely.
+- Persisting the content of customer evidence or of a collected signal. Steward keeps its own
+  records (users, sessions, the workspace connection, sources, decisions, reviews, activities) in
+  the operator's database through portable migrations under `infra/persistence/migrations/`; a
+  signal's title, detail or values never go into a table, and a migration that only one dialect
+  can run will be declined.
 - Falling back to demo fixtures when a live API call fails. Showing an operator fabricated data
   during a regulated decision is a defect, not resilience.
 - Treating Steward's own role check as the security control. It is a UX affordance; the platform

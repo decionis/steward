@@ -16,3 +16,10 @@ test
 .env.local
 **/*.test.ts
 **/*.test.tsx
+
+# Steward's embedded database and anything else the operator's data directory holds
+/data
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

@@ -51,8 +51,17 @@ their organisation and roles, and see their portfolio.
 docker run --rm -p 3000:3000 \
   -e STEWARD_DATA_MODE=live \
   -e DECIONIS_API_BASE_URL=https://api.decionis.com \
+  -v steward-data:/app/data \
   ghcr.io/decionis/steward:0.3.0
 ```
+
+The volume holds Steward's own records: its users and sessions, the workspace connection, the
+signal sources you configure, the decisions it showed and the reviews your operators recorded. A
+signal's content is never written there. With no `STEWARD_DATABASE_URL` the records live in an
+embedded database in that volume, which is enough for one node; for anything shared, name your
+database (`postgres://`, `mysql://`, `mssql://` or `oracle://`; PostgreSQL first, the others as
+issues #95 to #98 land). Migrations run at start; set `STEWARD_DATABASE_MIGRATE=off` to run them
+yourself, and the process refuses to serve a schema that is behind.
 
 What changes for operators: the accounts are theirs, the evidence is current, the recommendations
 are the platform's, and their reviews reach the platform's ledger. What does not change: the
@@ -70,9 +79,12 @@ services:
     environment:
       STEWARD_DATA_MODE: live
       DECIONIS_API_BASE_URL: https://api.decionis.com
+    volumes: ["steward-data:/app/data"]
     read_only: true
     tmpfs: ["/tmp"]
     cap_drop: ["ALL"]
+volumes:
+  steward-data:
 ```
 
 To let operators collect signals and forward them, add the two values your Decionis deployment
@@ -125,19 +137,20 @@ cannot take a rollout down with it; Docker Hub rate-limits anonymous pulls.
 
 ## Reference
 
-| Item                 | Value                                                                                         |
-| -------------------- | --------------------------------------------------------------------------------------------- |
-| Port                 | `3000`                                                                                        |
-| User                 | `node`, unprivileged                                                                          |
-| Health               | `GET /api/health`, no session needed; the image's `HEALTHCHECK` and your load balancer use it |
-| Discovery            | `GET /llms.txt`, no session needed; what this deployment is, for an agent evaluating it       |
-| Demo mode            | The default; `STEWARD_DATA_MODE=demo`                                                         |
-| Live mode            | `STEWARD_DATA_MODE=live` and `DECIONIS_API_BASE_URL`                                          |
-| Signal forwarding    | `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET`, from the Decionis deployment bundle    |
-| Logs                 | Standard output                                                                               |
-| Shutdown             | `docker stop`; nothing is persisted, so nothing is lost                                       |
-| Platforms            | `linux/amd64`, `linux/arm64`                                                                  |
-| What the image holds | The built server, its static assets, `public/`                                                |
-| What it never holds  | A policy, a baked-in credential, a database, customer data, a license check                   |
+| Item                 | Value                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| Port                 | `3000`                                                                                          |
+| User                 | `node`, unprivileged                                                                            |
+| Health               | `GET /api/health`, no session needed; the image's `HEALTHCHECK` and your load balancer use it   |
+| Discovery            | `GET /llms.txt`, no session needed; what this deployment is, for an agent evaluating it         |
+| Demo mode            | The default; `STEWARD_DATA_MODE=demo`                                                           |
+| Live mode            | `STEWARD_DATA_MODE=live` and `DECIONIS_API_BASE_URL`                                            |
+| Signal forwarding    | `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET`, from the Decionis deployment bundle      |
+| Records              | The embedded database in `/app/data` (mount a volume), or `STEWARD_DATABASE_URL`                |
+| Logs                 | Standard output                                                                                 |
+| Shutdown             | `docker stop`; Steward's records are in the data volume or the database you named               |
+| Platforms            | `linux/amd64`, `linux/arm64`                                                                    |
+| What the image holds | The built server, its static assets, `public/`                                                  |
+| What it never holds  | A policy, a baked-in credential, customer evidence, a license check; the database is outside it |
 
 The [threat model](../ThreatModel.md) says what a compromise of this tier can and cannot reach.

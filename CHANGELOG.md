@@ -64,6 +64,15 @@ you integrate against these types.
   surface decisions and overrides, accounts from Steward's own connectors. The private `/v1/cdi`
   contract leaves; the upstream requests in the earlier plans are withdrawn; seven decisions and
   seven workstreams.
+- Steward's own database, the embedded one first ([docs/Persistence.md](./docs/Persistence.md), DB0 and DB1):
+  TypeORM with the `better-sqlite3` driver, `STEWARD_DATABASE_URL` whose scheme selects the
+  dialect, the embedded file under `STEWARD_DATA_DIR` when nothing is set outside demo mode, the
+  portable schema for users, sessions, workspaces, signal sources, collections, decisions, reviews
+  and activities under `infra/persistence/`, migrations applied at start by `instrumentation.ts`
+  and refused when behind with `STEWARD_DATABASE_MIGRATE=off`, the health probe reporting the
+  database, a data volume in the image. PostgreSQL, MySQL, SQL Server and Oracle are tracked as
+  issues #95 to #98. A trust-boundary change: the boundary documents now say Steward keeps its own
+  records and never a signal's content.
 
 ### Changed
 

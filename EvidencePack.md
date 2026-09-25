@@ -16,8 +16,8 @@ Everything here is public in this repository. None of it requires a call, an NDA
 Decionis Steward is the operator-facing tier of the Decionis platform. It collects signals from the operator's own
 systems, renders customer evidence and forwards operator reviews; it does **not** own identity
 resolution, the weighing of signals, policy evaluation, execution grants, Decision Dossiers, or the
-audit ledger. It has no database, no session store, and no
-customer data at rest. Because the tier is non-authoritative by construction, its source is public
+audit ledger. It keeps its own records in the operator's
+database and holds no customer evidence at rest. Because the tier is non-authoritative by construction, its source is public
 under Apache-2.0 — a reviewer can verify the trust boundary rather than take our word for it.
 
 ## Answering the questionnaire
@@ -112,22 +112,22 @@ control is captioned "Records a review only; no downstream limit is changed."
 
 ## Fast answers to common questionnaire rows
 
-| Row                                     | Answer                                                                                                                                                                                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Customer data at rest in this component | **None.** No database, no cache, no session store.                                                                                                                                                               |
-| Telemetry or analytics                  | **None.** No third-party scripts; no outbound request except the Decionis API and the signal sources the deployment configures.                                                                                  |
-| Cookies set by this component           | **None.** Session cookies come from the Decionis identity handoff; Steward reads them.                                                                                                                           |
-| PII in URLs                             | **No.** Account identifiers are opaque references.                                                                                                                                                               |
-| Secrets in this repository              | **None.** No credential or key is in the tree; signal-source credentials are mounted at run time, per deployment.                                                                                                |
-| Systems this tier reaches               | The configured Decionis platform, and each signal source the deployment configures; connectors under `infra/connectors/` parse, forward and discard. See [docs/SignalConnectors.md](./docs/SignalConnectors.md). |
-| Sub-processors introduced by this tier  | **None.**                                                                                                                                                                                                        |
-| Security headers                        | Seven set globally — tabulated in [ThreatModel.md](./ThreatModel.md).                                                                                                                                            |
-| Content-Security-Policy                 | **Yes**, nonce-based, per request, no `unsafe-inline`/`unsafe-eval` on scripts.                                                                                                                                  |
-| Penetration test report                 | **Not yet commissioned.**                                                                                                                                                                                        |
-| SOC 2 / ISO 27001                       | Certifications belong to the Decionis platform, not to this repository.                                                                                                                                          |
-| Rate limiting in this tier              | **None.** Expected at the edge or upstream.                                                                                                                                                                      |
-| Container image                         | `ghcr.io/decionis/steward`, two architectures, non-root, attested; Docker Hub by digest                                                                                                                          |
-| License checks or usage reporting       | **None.** The image is the same bytes for a free tenant and a paying one; see [OpenCore.md](./OpenCore.md).                                                                                                      |
+| Row                                    | Answer                                                                                                                                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Customer evidence at rest              | **None.** Steward's own records (users, sessions, sources, decisions, reviews, activities) live in the operator's database; a signal's content is never written.                                                 |
+| Telemetry or analytics                 | **None.** No third-party scripts; no outbound request except the Decionis API and the signal sources the deployment configures.                                                                                  |
+| Cookies set by this component          | **None.** Session cookies come from the Decionis identity handoff; Steward reads them.                                                                                                                           |
+| PII in URLs                            | **No.** Account identifiers are opaque references.                                                                                                                                                               |
+| Secrets in this repository             | **None.** No credential or key is in the tree; signal-source credentials are mounted at run time, per deployment.                                                                                                |
+| Systems this tier reaches              | The configured Decionis platform, and each signal source the deployment configures; connectors under `infra/connectors/` parse, forward and discard. See [docs/SignalConnectors.md](./docs/SignalConnectors.md). |
+| Sub-processors introduced by this tier | **None.**                                                                                                                                                                                                        |
+| Security headers                       | Seven set globally — tabulated in [ThreatModel.md](./ThreatModel.md).                                                                                                                                            |
+| Content-Security-Policy                | **Yes**, nonce-based, per request, no `unsafe-inline`/`unsafe-eval` on scripts.                                                                                                                                  |
+| Penetration test report                | **Not yet commissioned.**                                                                                                                                                                                        |
+| SOC 2 / ISO 27001                      | Certifications belong to the Decionis platform, not to this repository.                                                                                                                                          |
+| Rate limiting in this tier             | **None.** Expected at the edge or upstream.                                                                                                                                                                      |
+| Container image                        | `ghcr.io/decionis/steward`, two architectures, non-root, attested; Docker Hub by digest                                                                                                                          |
+| License checks or usage reporting      | **None.** The image is the same bytes for a free tenant and a paying one; see [OpenCore.md](./OpenCore.md).                                                                                                      |
 
 The last three are deliberately in this table. A reviewer finds gaps faster than we can hide them,
 and a vendor that states its own weak spots is easier to trust on the rest.
