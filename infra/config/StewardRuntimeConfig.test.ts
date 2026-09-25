@@ -204,3 +204,60 @@ describe("StewardRuntimeConfig — persistence", () => {
     ).toBe("off");
   });
 });
+
+describe("StewardRuntimeConfig — the Decionis workspace", () => {
+  const live = {
+    NODE_ENV: "production",
+    STEWARD_DATA_MODE: "live",
+    DECIONIS_API_BASE_URL: "https://api.decionis.com",
+  } as const;
+  const ORG = "0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01";
+
+  it("is absent until the deployment bundle's values are set, and always in demo mode", () => {
+    expect(
+      StewardRuntimeConfig.fromEnvironment(live).decionisWorkspace,
+    ).toBeNull();
+    expect(
+      StewardRuntimeConfig.fromEnvironment({
+        NODE_ENV: "development",
+        DECIONIS_API_KEY: "dcy_org_test",
+        DECIONIS_ORG_ID: ORG,
+      }).decionisWorkspace,
+    ).toBeNull();
+  });
+
+  it("reads the key, the org id and the workspace name, against the configured origin", () => {
+    const config = StewardRuntimeConfig.fromEnvironment({
+      ...live,
+      DECIONIS_API_KEY: "dcy_org_test",
+      DECIONIS_ORG_ID: ORG,
+      DECIONIS_WORKSPACE_NAME: "Zulu Financial",
+    });
+
+    expect(config.decionisWorkspace).toEqual({
+      baseUrl: "https://api.decionis.com",
+      apiKey: "dcy_org_test",
+      orgId: ORG,
+      workspaceName: "Zulu Financial",
+    });
+  });
+
+  it("refuses a key without its org id, the reverse, and an org id that is not a UUID", () => {
+    expect(() =>
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        DECIONIS_API_KEY: "dcy_org_test",
+      }),
+    ).toThrow("set both or neither");
+    expect(() =>
+      StewardRuntimeConfig.fromEnvironment({ ...live, DECIONIS_ORG_ID: ORG }),
+    ).toThrow("set both or neither");
+    expect(() =>
+      StewardRuntimeConfig.fromEnvironment({
+        ...live,
+        DECIONIS_API_KEY: "dcy_org_test",
+        DECIONIS_ORG_ID: "zulu",
+      }),
+    ).toThrow("a UUID");
+  });
+});

@@ -157,20 +157,23 @@ rather than left to drift out of date.
 All configuration is parsed and validated once, at startup, by `StewardRuntimeConfig.fromEnvironment()`.
 Invalid or missing required values fail fast rather than degrading at request time.
 
-| Variable                           | Required         | Default                                 | Purpose                                                                                               |
-| ---------------------------------- | ---------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `STEWARD_DATA_MODE`                | no               | `live` in production, else `demo`       | Selects `DemoStewardRepository` or `DecionisStewardRepository`.                                       |
-| `DECIONIS_API_BASE_URL`            | **in live mode** | —                                       | Decionis API origin. Startup throws in live mode if unset.                                            |
-| `DECIONIS_STEWARD_SERVICE_TOKEN`   | no               | —                                       | Server-to-server fallback credential. Prefer a user session.                                          |
-| `STEWARD_ACCESS_TOKEN_COOKIE`      | no               | `decionis_access_token`                 | Cookie carrying the Decionis access token.                                                            |
-| `STEWARD_ORG_ID_COOKIE`            | no               | `decionis_org_id`                       | Cookie carrying the organization scope.                                                               |
-| `NEXT_PUBLIC_DECIONIS_SIGN_IN_URL` | no               | `https://decionis.com/sign-in`          | External identity handoff target used by `/sign-in`.                                                  |
-| `DECIONIS_CONNECTOR_ID`            | to forward       | —                                       | The signal connector issued by the Decionis deployment bundle.                                        |
-| `DECIONIS_WEBHOOK_SECRET`          | to forward       | —                                       | Its webhook secret; sent in a header, never in a URL or a log.                                        |
-| `DECIONIS_WEBHOOK_URL`             | no               | `<API origin>/v1/signals/webhooks/<id>` | The ingress URL from the bundle, if it differs.                                                       |
-| `STEWARD_DATABASE_URL`             | no               | the embedded database                   | `postgres://`, `mysql://`, `mssql://`, `oracle://` or `sqlite:` selects where Steward's records live. |
-| `STEWARD_DATA_DIR`                 | no               | `./data`                                | Where the embedded database file lives when no URL is set; a volume in the container.                 |
-| `STEWARD_DATABASE_MIGRATE`         | no               | `on-start`                              | `off` refuses to serve a schema that is behind instead of migrating it.                               |
+| Variable                           | Required          | Default                                 | Purpose                                                                                                                   |
+| ---------------------------------- | ----------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `STEWARD_DATA_MODE`                | no                | `live` in production, else `demo`       | Selects `DemoStewardRepository` or `DecionisStewardRepository`.                                                           |
+| `DECIONIS_API_BASE_URL`            | **in live mode**  | —                                       | Decionis API origin. Startup throws in live mode if unset.                                                                |
+| `DECIONIS_STEWARD_SERVICE_TOKEN`   | no                | —                                       | Server-to-server fallback credential. Prefer a user session.                                                              |
+| `STEWARD_ACCESS_TOKEN_COOKIE`      | no                | `decionis_access_token`                 | Cookie carrying the Decionis access token.                                                                                |
+| `STEWARD_ORG_ID_COOKIE`            | no                | `decionis_org_id`                       | Cookie carrying the organization scope.                                                                                   |
+| `NEXT_PUBLIC_DECIONIS_SIGN_IN_URL` | no                | `https://decionis.com/sign-in`          | External identity handoff target used by `/sign-in`.                                                                      |
+| `DECIONIS_API_KEY`                 | with the next two | —                                       | The organisation's API key for the published Protocol, from the deployment bundle; a bearer header, never a URL or a log. |
+| `DECIONIS_ORG_ID`                  | with the key      | —                                       | The organisation's id (a UUID) every Protocol call is scoped to.                                                          |
+| `DECIONIS_WORKSPACE_NAME`          | no                | —                                       | The workspace's name, shown to operators.                                                                                 |
+| `DECIONIS_CONNECTOR_ID`            | to forward        | —                                       | The signal connector issued by the Decionis deployment bundle.                                                            |
+| `DECIONIS_WEBHOOK_SECRET`          | to forward        | —                                       | Its webhook secret; sent in a header, never in a URL or a log.                                                            |
+| `DECIONIS_WEBHOOK_URL`             | no                | `<API origin>/v1/signals/webhooks/<id>` | The ingress URL from the bundle, if it differs.                                                                           |
+| `STEWARD_DATABASE_URL`             | no                | the embedded database                   | `postgres://`, `mysql://`, `mssql://`, `oracle://` or `sqlite:` selects where Steward's records live.                     |
+| `STEWARD_DATA_DIR`                 | no                | `./data`                                | Where the embedded database file lives when no URL is set; a volume in the container.                                     |
+| `STEWARD_DATABASE_MIGRATE`         | no                | `on-start`                              | `off` refuses to serve a schema that is behind instead of migrating it.                                                   |
 
 Two further cookies are read opportunistically in live mode and are **not** required:
 `decionis_display_name` (URL-encoded, for the app shell) and `decionis_roles` (a comma-separated
@@ -215,6 +218,13 @@ feature.
 | `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                       |
 
 ### Upstream endpoints it expects
+
+Steward is moving onto the operations the Decionis Protocol publishes at
+[docs.decionis.com](https://docs.decionis.com/), workstream by workstream
+([docs/ProtocolContracts.md](docs/ProtocolContracts.md)). The client for them,
+`infra/api/DecionisProtocolClient.ts`, covers decision evaluation, dossiers, decision chains,
+shadow reports, signal envelopes and surface decisions, each parsed through `domain/protocol/`.
+Until the screens move onto it, live mode still reads these:
 
 - `GET /v1/cdi/portfolio`
 - `GET /v1/cdi/accounts/:accountId`

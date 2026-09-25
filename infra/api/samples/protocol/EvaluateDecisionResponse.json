@@ -1,0 +1,90 @@
+{
+  "protocol_version": "1.1",
+  "outcome": "ESCALATE",
+  "verdict": "ESCALATE",
+  "authority_classification": "OBSERVATIONAL",
+  "execution_eligible": false,
+  "policy_reference": {
+    "policy_id": "customer_ops",
+    "revision_id": "rev-0004",
+    "version": "customer_ops.v4",
+    "digest": "sha256:5b541bd6f5d12fbfdb87a088cf4bb3f5b697d938089260ae3eb11d070d6c96ed"
+  },
+  "evaluation_semantics": {
+    "protocol_version": "1.1",
+    "evaluator_version": "evaluator-2026.09",
+    "policy_schema_version": "policy-schema-3",
+    "canonicalization": "RFC8785/JCS",
+    "digest_algorithm": "SHA-256",
+    "signal_normalization_version": "signals-2"
+  },
+  "input_snapshot_digest": "sha256:c6c4803be6c36af45faf0b51952456017509945d591c630502a62d8962b2c332",
+  "execution_binding_digest": null,
+  "confidence": 0.91,
+  "policy_version": "customer_ops.v4",
+  "objective_profile": "risk_conservative",
+  "dossier_id": "7c1d2e3f-4a5b-4c6d-9e8f-0a1b2c3d4e50",
+  "dossier_sha256": "8ccd8aeb4b8b66884a641f90d8016e12351d70118eea7bbb9a5c117d67d517b8",
+  "evaluation_id": "3b8f1e2a-6c4d-4e7f-8a9b-1c2d3e4f5a60",
+  "decision_resolution_id": "1f2a3b4c-5d6e-4f7a-8b9c-0d1e2f3a4bb5",
+  "ledger_entry_id": "4c5d6e7f-8a9b-4c0d-8e1f-2a3b4c5d6ea4",
+  "ledger_entry_hash": "df1ba4200997a1ce4deb60e10910d66326b18d8b0a0c95820bc45adc1be8672e",
+  "mode": "SHADOW",
+  "fallback_to_legacy": false,
+  "fallback_reason": null,
+  "enforcement_effect": {
+    "effective_mode": "SHADOW",
+    "verdict_effect": "OBSERVED",
+    "reason": "shadow_mode_observes_only"
+  },
+  "policy_bundle_resolution": {
+    "requested_policy_version": null,
+    "resolved_policy_version": "customer_ops.v4",
+    "status": "newest_active"
+  },
+  "governance_metrics": {
+    "override_drift_rate": 0.0,
+    "governance_tension_index": 0.12,
+    "boundary_volatility_score": 0.08,
+    "decision_volume_under_governance": 1
+  },
+  "decision_chain": {
+    "chain_id": "2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c93",
+    "workflow_id": "account-review-kilo",
+    "step_id": "processing_limit_review",
+    "sequence": 1,
+    "root_evaluation_id": "3b8f1e2a-6c4d-4e7f-8a9b-1c2d3e4f5a60",
+    "parent_evaluation_ids": [],
+    "parent_dossier_ids": [],
+    "lineage_depth": 0,
+    "integrity_hash": "380df4603e8bd43a7380d6a0f945eebeced62e9c4218e80af2cc050559746b15",
+    "chain_api_path": "/v1/protocol/decision-chains/2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c93?org_id=0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01",
+    "authority_classification": "OBSERVATIONAL",
+    "verdict": "ESCALATE",
+    "execution_binding_digest": null
+  },
+  "policy_snapshot": {
+    "policy_version": "customer_ops.v4",
+    "policy_bundle_id": "aaaaaaaa-aaaa-4aaa-8aaa-000000000004",
+    "rules_sha256": "87dab549fb643a75833813e733aa9331192304802b2ac213b4c94452e680b2f4",
+    "parameters_sha256": "8deb8d1435bc4e3ad327b37c6b2bea105f4a85d54d0e9a0e0d572f1be5a414a0",
+    "effective_from": "2026-09-01T00:00:00.000Z",
+    "effective_to": null,
+    "evaluated_at": "2026-09-25T09:14:00.000Z",
+    "source": "org_policy_bundle"
+  },
+  "idempotent_replay": false,
+  "reason_codes": [
+    "PROTOCOL_OUTCOME_ESCALATE",
+    "POLICY_MATCHED",
+    "POLICY_ACTION_REQUIRE_REVIEW"
+  ],
+  "decision_domain": "PROCESSING_LIMIT_REVIEW",
+  "vertical_pack": {
+    "key": "customer_ops",
+    "source": "workflow_key",
+    "workflow_key": "customer_ops"
+  },
+  "reconciliation_required": false,
+  "reconciliation_status": "NOT_REQUIRED"
+}

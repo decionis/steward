@@ -19,10 +19,30 @@ const RuntimeEnvironmentSchema = z.object({
   DECIONIS_CONNECTOR_ID: z.string().min(1).optional(),
   DECIONIS_WEBHOOK_SECRET: z.string().min(1).optional(),
   DECIONIS_WEBHOOK_URL: z.string().url().optional(),
+  DECIONIS_API_KEY: z.string().min(1).optional(),
+  DECIONIS_ORG_ID: z.string().min(1).optional(),
+  DECIONIS_WORKSPACE_NAME: z.string().min(1).optional(),
   STEWARD_DATABASE_URL: z.string().min(1).optional(),
   STEWARD_DATA_DIR: z.string().min(1).default("./data"),
   STEWARD_DATABASE_MIGRATE: z.enum(["on-start", "off"]).default("on-start"),
 });
+
+/**
+ * The Decionis workspace Steward acts for on the published Protocol
+ * (docs/ProtocolContracts.md, decision D3): the organisation's API key, its
+ * org id and the workspace name, under the names the deployment bundle emits.
+ * Read from the environment here; the database is the other source, and the
+ * environment wins when both are present.
+ */
+export interface DecionisWorkspaceConfig {
+  /** The published API origin; https://api.decionis.com unless overridden. */
+  baseUrl: string;
+  apiKey: string;
+  orgId: string;
+  workspaceName: string | null;
+}
+
+export const DEFAULT_PROTOCOL_BASE_URL = "https://api.decionis.com";
 
 /**
  * Steward's own records live in a database the operator chooses
@@ -73,6 +93,7 @@ export interface StewardRuntimeValues {
   timeoutMs: number;
   signalIngress: SignalIngressConfig | null;
   persistence: PersistenceConfig | null;
+  decionisWorkspace: DecionisWorkspaceConfig | null;
 }
 
 export class StewardRuntimeConfig {
@@ -85,6 +106,7 @@ export class StewardRuntimeConfig {
   readonly timeoutMs: number;
   readonly signalIngress: SignalIngressConfig | null;
   readonly persistence: PersistenceConfig | null;
+  readonly decionisWorkspace: DecionisWorkspaceConfig | null;
 
   constructor(values: StewardRuntimeValues) {
     this.dataMode = values.dataMode;
@@ -96,6 +118,7 @@ export class StewardRuntimeConfig {
     this.timeoutMs = values.timeoutMs;
     this.signalIngress = values.signalIngress;
     this.persistence = values.persistence;
+    this.decionisWorkspace = values.decionisWorkspace;
   }
 
   static fromEnvironment(
@@ -125,7 +148,39 @@ export class StewardRuntimeConfig {
       timeoutMs: 8_000,
       signalIngress: StewardRuntimeConfig.readSignalIngress(parsed, apiBaseUrl),
       persistence: StewardRuntimeConfig.readPersistence(parsed, dataMode),
+      decionisWorkspace: StewardRuntimeConfig.readDecionisWorkspace(
+        parsed,
+        dataMode,
+        apiBaseUrl,
+      ),
     });
+  }
+
+  private static readDecionisWorkspace(
+    parsed: z.infer<typeof RuntimeEnvironmentSchema>,
+    dataMode: StewardDataMode,
+    apiBaseUrl: string | null,
+  ): DecionisWorkspaceConfig | null {
+    if (dataMode === "demo") return null;
+    const apiKey = parsed.DECIONIS_API_KEY;
+    const orgId = parsed.DECIONIS_ORG_ID;
+    if (!apiKey && !orgId) return null;
+    if (!apiKey || !orgId) {
+      throw new Error(
+        "DECIONIS_API_KEY and DECIONIS_ORG_ID are issued together by the Decionis deployment bundle; set both or neither",
+      );
+    }
+    if (!z.guid().safeParse(orgId).success) {
+      throw new Error(
+        "DECIONIS_ORG_ID must be the organisation's id as the deployment bundle issues it, a UUID",
+      );
+    }
+    return {
+      baseUrl: apiBaseUrl ?? DEFAULT_PROTOCOL_BASE_URL,
+      apiKey,
+      orgId,
+      workspaceName: parsed.DECIONIS_WORKSPACE_NAME ?? null,
+    };
   }
 
   private static readPersistence(

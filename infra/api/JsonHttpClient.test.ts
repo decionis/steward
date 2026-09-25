@@ -223,4 +223,45 @@ describe("JsonHttpClient", () => {
       vi.useRealTimers();
     }
   });
+
+  it("adds per-request headers without letting them replace the credential", async () => {
+    const { client, calls } = clientWith(() => jsonResponse({ ok: true }));
+
+    await client.post("/v1/x", {}, PayloadSchema, {
+      "Idempotency-Key": "key-1",
+      authorization: "Bearer attacker",
+    });
+
+    const headers = calls[0]!.init.headers as Record<string, string>;
+    expect(headers["Idempotency-Key"]).toBe("key-1");
+    expect(headers.authorization).toBe("Bearer secret-token");
+  });
+
+  it("omits the org header when the client is scoped by body and query instead", async () => {
+    const calls: RecordedCall[] = [];
+    const client = new JsonHttpClient({
+      baseUrl: "https://api.decionis.com",
+      bearerToken: "secret-token",
+      timeoutMs: 8_000,
+      fetchClient: (input, init = {}) => {
+        calls.push({ url: String(input), init });
+        return Promise.resolve(jsonResponse({ ok: true }));
+      },
+    });
+
+    await client.get("/v1/health", PayloadSchema);
+
+    const headers = calls[0]!.init.headers as Record<string, string>;
+    expect(headers).not.toHaveProperty("x-decionis-org-id");
+  });
+
+  it("reads the Protocol's error code when its error body has no message", async () => {
+    const { client } = clientWith(() =>
+      jsonResponse({ error: "invalid_credentials", status: 401 }, 401),
+    );
+
+    await expect(client.get("/v1/x", PayloadSchema)).rejects.toThrow(
+      "invalid_credentials",
+    );
+  });
 });
