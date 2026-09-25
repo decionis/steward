@@ -1,6 +1,6 @@
 # Proactive customer support: the plan
 
-**Status: direction set 24 September 2026, implementation begun.** Each workstream lands as its
+**Status: direction set 24 September 2026, implementation begun.** The contract additions P2 to P5 asked of the platform are withdrawn: [docs/ProtocolContracts.md](./ProtocolContracts.md) maps each onto the published Protocol and Steward's own connectors. Each workstream lands as its
 own pull request off `master`; P1 ships with this plan. The commercial boundary in
 [OpenCore.md](../OpenCore.md) does not move: Steward plans, triages and renders; Decionis decides,
 records and executes.
