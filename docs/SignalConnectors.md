@@ -1,6 +1,6 @@
 # Signal connectors: Steward collects the context
 
-**Status: decided 24 September 2026; S1 shipped; live forwarding speaks the Protocol's published ingress.** This is a trust-boundary change and
+**Status: decided 24 September 2026; S1 shipped; live forwarding speaks the Protocol's published ingress.** Whether forwarding moves to the Protocol's signal envelopes, which the OpenAPI document publishes, is decision D2 in [docs/ProtocolContracts.md](./ProtocolContracts.md). This is a trust-boundary change and
 is recorded as one. Steward collects signals from the operator's own systems and forwards them upstream, over the Decionis Protocol, as context for the decisioning engine. What it does with them stops there: no weighting, no
 policy, no decision, no execution, no record of authority. Those stay upstream.
 

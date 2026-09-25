@@ -12,6 +12,14 @@ you integrate against these types.
 
 ### Added
 
+- [docs/ProtocolContracts.md](./docs/ProtocolContracts.md): the plan, subject to approval, that
+  puts Steward's live mode on the API contracts published at docs.decionis.com. Steward is a
+  third-party application built on the Decionis Protocol: decisions through
+  `POST /v1/protocol/evaluate-decision` in shadow or enforcement mode, the record through
+  dossiers, decision chains and shadow reports, signals as protocol signal envelopes, reviews as
+  surface decisions and overrides, accounts from Steward's own connectors. The private `/v1/cdi`
+  contract leaves; the upstream requests in the earlier plans are withdrawn; seven decisions and
+  seven workstreams.
 - Live forwarding over the Decionis Protocol's published signal ingress,
   `POST /v1/signals/webhooks/:connectorId`. Steward is a third-party application built on the
   Protocol and reuses the operation it publishes: `DecionisSignalIngressClient` sends each batch as
