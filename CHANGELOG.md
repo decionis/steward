@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- [docs/Persistence.md](./docs/Persistence.md): the plan, subject to approval, for Steward's own
+  database: users, sessions, the Decionis workspace connection, signal sources, decisions,
+  reviews and activities, never a signal's content. Database-agnostic through Knex: PostgreSQL by
+  default, MySQL, Oracle Database and SQL Server by the operator's own license, selected by the
+  scheme of `STEWARD_DATABASE_URL`; migrations at start; secrets encrypted at rest under an
+  operator-held key; local accounts beside the Decionis handoff; and the resolution order a hosted
+  deployment follows to reach Decionis: the environment, then the database, then signup or pasted
+  credentials on a setup page. A trust-boundary change, recorded as one, with seven decisions and
+  seven workstreams.
 - Live forwarding over the Decionis Protocol's published signal ingress,
   `POST /v1/signals/webhooks/:connectorId`. Steward is a third-party application built on the
   Protocol and reuses the operation it publishes: `DecionisSignalIngressClient` sends each batch as
