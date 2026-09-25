@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- Steward's own database, the embedded one first ([docs/Persistence.md](https://github.com/decionis/steward/pull/94), DB0 and DB1):
+  TypeORM with the `better-sqlite3` driver, `STEWARD_DATABASE_URL` whose scheme selects the
+  dialect, the embedded file under `STEWARD_DATA_DIR` when nothing is set outside demo mode, the
+  portable schema for users, sessions, workspaces, signal sources, collections, decisions, reviews
+  and activities under `infra/persistence/`, migrations applied at start by `instrumentation.ts`
+  and refused when behind with `STEWARD_DATABASE_MIGRATE=off`, the health probe reporting the
+  database, a data volume in the image. PostgreSQL, MySQL, SQL Server and Oracle are tracked as
+  issues #95 to #98. A trust-boundary change: the boundary documents now say Steward keeps its own
+  records and never a signal's content.
 - Live forwarding over the Decionis Protocol's published signal ingress,
   `POST /v1/signals/webhooks/:connectorId`. Steward is a third-party application built on the
   Protocol and reuses the operation it publishes: `DecionisSignalIngressClient` sends each batch as

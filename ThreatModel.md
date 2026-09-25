@@ -13,19 +13,22 @@ entry in the audit ledger, because Steward holds none of those.
 
 ## Assets
 
-| Asset                                                       | Where it lives                                               | Exposure if Steward is compromised                                                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Operator access token                                       | Cookie, server memory during a request                       | High — grants the operator's own rights                                                                             |
-| Organization scope (`orgId`)                                | Cookie or request header                                     | High — the tenant boundary                                                                                          |
-| Customer account evidence                                   | Fetched per request, not persisted                           | Medium — read exposure, no durable store                                                                            |
-| Review decisions                                            | Forwarded upstream, not stored here                          | Medium — an unauthorized forward                                                                                    |
-| Signal-source credentials                                   | Mounted secret or environment, read by a connector at start  | High — read access to the operator's own systems, within the credential's scope                                     |
-| Decionis ingress secret                                     | `DECIONIS_WEBHOOK_SECRET` in the server environment          | High — write access to this organisation's signal intake; rotate it from the Decionis workspace                     |
-| Collected signals                                           | In memory for the request that forwards them, then discarded | Medium — read exposure of what a source returned; a wrong signal upstream, which the platform weighs and can reject |
-| Policy logic, identity resolution, grants, dossiers, ledger | **Decionis platform only**                                   | **None — not present in this tier**                                                                                 |
+| Asset                                                       | Where it lives                                                                                                  | Exposure if Steward is compromised                                                                                  |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Operator access token                                       | Cookie, server memory during a request                                                                          | High — grants the operator's own rights                                                                             |
+| Organization scope (`orgId`)                                | Cookie or request header                                                                                        | High — the tenant boundary                                                                                          |
+| Customer account evidence                                   | Fetched per request, not persisted                                                                              | Medium — read exposure, no durable store                                                                            |
+| Review decisions                                            | Forwarded upstream, not stored here                                                                             | Medium — an unauthorized forward                                                                                    |
+| Signal-source credentials                                   | Mounted secret or environment, read by a connector at start                                                     | High — read access to the operator's own systems, within the credential's scope                                     |
+| Decionis ingress secret                                     | `DECIONIS_WEBHOOK_SECRET` in the server environment                                                             | High — write access to this organisation's signal intake; rotate it from the Decionis workspace                     |
+| Collected signals                                           | In memory for the request that forwards them, then discarded                                                    | Medium — read exposure of what a source returned; a wrong signal upstream, which the platform weighs and can reject |
+| Steward's own records                                       | The operator's database: the embedded file under `STEWARD_DATA_DIR`, or the server `STEWARD_DATABASE_URL` names | High for users, sessions and encrypted credentials; none for customer evidence, which is never written              |
+| Policy logic, identity resolution, grants, dossiers, ledger | **Decionis platform only**                                                                                      | **None — not present in this tier**                                                                                 |
 
-Steward has no database, no session store, and no durable customer data; a collected batch lives for
-the request that forwards it. There is nothing here to exfiltrate at rest. That is a design property, not an accident, and it is the single largest
+Steward keeps its own records in the operator's database: users, sessions, the workspace connection,
+sources, decisions, reviews and activities, never a signal's content. A collected batch lives for the
+request that forwards it. What is at rest here is Steward's operational record and ciphertext, not
+customer evidence. That is a design property, not an accident, and it is the single largest
 reduction in this tier's blast radius.
 
 ## Trust boundaries
@@ -181,13 +184,29 @@ asserts the fixtures satisfy the schema and name no host, URL, address or phone 
 `CapturedSignal.test.ts` asserts the payload refuses an empty account reference and an out-of-range
 confidence.
 
+### T9 — Steward's own records at rest
+
+**Mitigated.** The database holds Steward's own records and never a signal's content, so a copy of
+it exposes who used Steward and what they did, not what a customer did. The schema changes only
+through portable migrations under `infra/persistence/migrations/`, reviewed like code and applied at
+start; with `STEWARD_DATABASE_MIGRATE=off` a schema that is behind refuses to serve rather than
+serving against it. The embedded database is a file under `STEWARD_DATA_DIR`, a mounted volume owned
+by the unprivileged `node` user, never inside the image. Credentials stored there are ciphertext under
+the operator's key (docs/Persistence.md, the workstream that adds them), and the browser receives none
+of it.
+
+_Verify:_ `Persistence.test.ts` asserts the migration creates every table from empty and re-applies as
+a no-op, that every record type round-trips through its table, that a schema behind with migrations
+off refuses to serve, and that a dialect this build does not wire names the issue tracking it.
+
 ## The container
 
 `ghcr.io/decionis/steward` is the same server as the release tarball, built by
 [`image.yml`](.github/workflows/image.yml) for two architectures and smoke-tested on each before
 it is pushed. It holds the built server, its static assets and `public/`. It does not hold a
-policy, a baked-in credential, a database, customer data, or a license check (signal-source
-credentials are mounted at run time), and it makes no outbound request to any host but the configured
+policy, a baked-in credential, customer data, or a license check (signal-source credentials are
+mounted at run time, and the embedded database lives in the mounted data directory, never in the
+image), and it makes no outbound request to any host but the configured
 `DECIONIS_API_BASE_URL` and the signal sources the deployment configures. It runs as the
 unprivileged `node` user; the base image is pinned by digest and moved only by a Dependabot pull
 request; the manifest digest is attested with the workflow's keyless identity, so a consumer can
@@ -278,8 +297,10 @@ Stated plainly, because a threat model that lists only mitigations is marketing.
   browser calls only this
   application's own same-origin BFF routes under `/api/steward/`; it never contacts Decionis or any third
   party directly.
-- **No customer data at rest.** No database, no cache, no session store, no log of evidence content;
-  a collected batch is held in memory for the request that forwards it and then discarded.
+- **No customer evidence at rest.** Steward's own records live in the operator's database, embedded
+  under `STEWARD_DATA_DIR` or the server `STEWARD_DATABASE_URL` names; a signal's content is never
+  written, there is no cache and no log of evidence content, and a collected batch is held in memory
+  for the request that forwards it and then discarded.
 - **No cookies set by this application.** Session cookies originate from the Decionis identity
   handoff; Steward only reads them.
 - **No PII in URLs.** Account identifiers are opaque references, not customer identity.

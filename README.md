@@ -57,6 +57,14 @@ weighed. Steward stores none of it. [docs/SignalConnectors.md](docs/SignalConnec
 decision and the workstreams; the first, the connector framework and the Signal sources page, is in
 the tree.
 
+Steward also keeps its own records. Its users and sessions, the Decionis workspace connection,
+the signal sources it is configured with, the decisions it showed, the reviews its operators
+recorded and their activities live in a database the operator chooses: the embedded one under
+`STEWARD_DATA_DIR` with nothing configured, or PostgreSQL, MySQL, SQL Server or Oracle Database
+named by `STEWARD_DATABASE_URL`. A signal's content is never written to it. The schema changes
+only through portable migrations, applied at start. [docs/Persistence.md](https://github.com/decionis/steward/pull/94) records the
+decision.
+
 [OpenCore.md](./OpenCore.md) states the same boundary as a business model: what is free forever,
 what Decionis operates, and the one point where commerce enters the flow.
 [docs/Distribution.md](docs/Distribution.md) is the plan for shipping Steward as a container and
@@ -149,17 +157,20 @@ rather than left to drift out of date.
 All configuration is parsed and validated once, at startup, by `StewardRuntimeConfig.fromEnvironment()`.
 Invalid or missing required values fail fast rather than degrading at request time.
 
-| Variable                           | Required         | Default                                 | Purpose                                                         |
-| ---------------------------------- | ---------------- | --------------------------------------- | --------------------------------------------------------------- |
-| `STEWARD_DATA_MODE`                | no               | `live` in production, else `demo`       | Selects `DemoStewardRepository` or `DecionisStewardRepository`. |
-| `DECIONIS_API_BASE_URL`            | **in live mode** | —                                       | Decionis API origin. Startup throws in live mode if unset.      |
-| `DECIONIS_STEWARD_SERVICE_TOKEN`   | no               | —                                       | Server-to-server fallback credential. Prefer a user session.    |
-| `STEWARD_ACCESS_TOKEN_COOKIE`      | no               | `decionis_access_token`                 | Cookie carrying the Decionis access token.                      |
-| `STEWARD_ORG_ID_COOKIE`            | no               | `decionis_org_id`                       | Cookie carrying the organization scope.                         |
-| `NEXT_PUBLIC_DECIONIS_SIGN_IN_URL` | no               | `https://decionis.com/sign-in`          | External identity handoff target used by `/sign-in`.            |
-| `DECIONIS_CONNECTOR_ID`            | to forward       | —                                       | The signal connector issued by the Decionis deployment bundle.  |
-| `DECIONIS_WEBHOOK_SECRET`          | to forward       | —                                       | Its webhook secret; sent in a header, never in a URL or a log.  |
-| `DECIONIS_WEBHOOK_URL`             | no               | `<API origin>/v1/signals/webhooks/<id>` | The ingress URL from the bundle, if it differs.                 |
+| Variable                           | Required         | Default                                 | Purpose                                                                                               |
+| ---------------------------------- | ---------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `STEWARD_DATA_MODE`                | no               | `live` in production, else `demo`       | Selects `DemoStewardRepository` or `DecionisStewardRepository`.                                       |
+| `DECIONIS_API_BASE_URL`            | **in live mode** | —                                       | Decionis API origin. Startup throws in live mode if unset.                                            |
+| `DECIONIS_STEWARD_SERVICE_TOKEN`   | no               | —                                       | Server-to-server fallback credential. Prefer a user session.                                          |
+| `STEWARD_ACCESS_TOKEN_COOKIE`      | no               | `decionis_access_token`                 | Cookie carrying the Decionis access token.                                                            |
+| `STEWARD_ORG_ID_COOKIE`            | no               | `decionis_org_id`                       | Cookie carrying the organization scope.                                                               |
+| `NEXT_PUBLIC_DECIONIS_SIGN_IN_URL` | no               | `https://decionis.com/sign-in`          | External identity handoff target used by `/sign-in`.                                                  |
+| `DECIONIS_CONNECTOR_ID`            | to forward       | —                                       | The signal connector issued by the Decionis deployment bundle.                                        |
+| `DECIONIS_WEBHOOK_SECRET`          | to forward       | —                                       | Its webhook secret; sent in a header, never in a URL or a log.                                        |
+| `DECIONIS_WEBHOOK_URL`             | no               | `<API origin>/v1/signals/webhooks/<id>` | The ingress URL from the bundle, if it differs.                                                       |
+| `STEWARD_DATABASE_URL`             | no               | the embedded database                   | `postgres://`, `mysql://`, `mssql://`, `oracle://` or `sqlite:` selects where Steward's records live. |
+| `STEWARD_DATA_DIR`                 | no               | `./data`                                | Where the embedded database file lives when no URL is set; a volume in the container.                 |
+| `STEWARD_DATABASE_MIGRATE`         | no               | `on-start`                              | `off` refuses to serve a schema that is behind instead of migrating it.                               |
 
 Two further cookies are read opportunistically in live mode and are **not** required:
 `decionis_display_name` (URL-encoded, for the app shell) and `decionis_roles` (a comma-separated
@@ -200,7 +211,7 @@ feature.
 | `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                     |
 | `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                         |
 | `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until forwarding is configured. |
-| `/api/health`                               | GET    | Unauthenticated liveness probe.                                                 |
+| `/api/health`                               | GET    | Unauthenticated liveness probe; reports the database opened at start.           |
 | `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                       |
 
 ### Upstream endpoints it expects
@@ -333,13 +344,16 @@ the upstream `next` range resolves past it on its own.
 5. A connector reaches only the host its configured source names, and nothing it collects is stored
    here. Collection is gated in `application/` like reviews; the platform resolves and weighs what it
    receives.
+6. Steward's database holds Steward's own records and never a signal's content, and its schema
+   changes only through a portable migration under `infra/persistence/migrations/`, reviewed like
+   code and applied at start.
 
 ## Security
 
 This repository holds no secrets and no policy logic, which is what makes it safe to develop against
 in the open.
 
-The trust boundary is enforced in five files, and each is covered by tests you can run:
+The trust boundary is enforced in six files, and each is covered by tests you can run:
 
 | Enforcement                                             | Code                                                                     | Tests                            |
 | ------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------- |
@@ -348,6 +362,7 @@ The trust boundary is enforced in five files, and each is covered by tests you c
 | Credential handling and boundary schema validation      | [JsonHttpClient.ts](infra/api/JsonHttpClient.ts)                         | `JsonHttpClient.test.ts`         |
 | Role-gated review forwarding                            | [OpportunityService.ts](application/opportunities/OpportunityService.ts) | `OpportunityService.test.ts`     |
 | Role-gated signal collection and forwarding             | [SignalService.ts](application/signals/SignalService.ts)                 | `SignalService.test.ts`          |
+| Migrations at start, failing closed when behind         | [Migrator.ts](infra/persistence/Migrator.ts)                             | `Persistence.test.ts`            |
 
 Four properties the tests assert directly: the access token never appears in a request URL, only in
 the `Authorization` header; no client component ever receives the session, so the token is never

@@ -1,6 +1,6 @@
 # Decionis Steward
 
-> Steward is the open-source (Apache-2.0) customer support decisioning platform: the console where customer operations, risk and revenue teams see what is happening across their accounts as it happens, triage one queue of processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations with the evidence behind each, and act before the customer asks. Reviews are recorded and forwarded; Decionis, the authority behind Steward, makes, records and executes the authoritative decision. Steward collects the signals that become context from the operator's own systems (CRM, ERP, MCP servers, uploaded documents, file servers) and forwards them; it owns no policy and no customer data at rest, holds only the mounted credentials of the sources it is configured to collect from, checks no license, and reports nothing.
+> Steward is the open-source (Apache-2.0) customer support decisioning platform: the console where customer operations, risk and revenue teams see what is happening across their accounts as it happens, triage one queue of processing-limit reviews, expansion outreach, friction interventions and KYC/KYB escalations with the evidence behind each, and act before the customer asks. Reviews are recorded and forwarded; Decionis, the authority behind Steward, makes, records and executes the authoritative decision. Steward collects the signals that become context from the operator's own systems (CRM, ERP, MCP servers, uploaded documents, file servers) and forwards them; it owns no policy and keeps no customer evidence at rest (its own records, never a signal's content, live in the operator's database), holds only the mounted credentials of the sources it is configured to collect from, checks no license, and reports nothing.
 
 What it is for: in regulated fintech, the people closest to a customer can see that an account is ready for a higher processing limit or is about to churn, but cannot act without an auditable, policy-bound path. Steward is that path. Every review an operator submits becomes an attributable event in the Decionis ledger, never an ad-hoc change made in a spreadsheet.
 
@@ -10,7 +10,7 @@ How it runs: demo mode (the default, STEWARD_DATA_MODE=demo) serves deterministi
 
 ## Documentation
 
-- [README](https://github.com/decionis/steward#readme): the trust boundary, quickstart, configuration, routes, deployment, conventions, the five non-negotiable rules.
+- [README](https://github.com/decionis/steward#readme): the trust boundary, quickstart, configuration, routes, deployment, conventions, the six non-negotiable rules.
 - [Architecture](https://github.com/decionis/steward/blob/master/Architecture.md): four layers with one direction of dependency, the two runtime modes, and the decision loop the account timeline records as SIGNAL, DECISION, ACTION, OUTCOME.
 - [Open-core boundary](https://github.com/decionis/steward/blob/master/OpenCore.md): what is Apache-2.0 here (all of Steward), what Decionis operates, the seam (one interface, four operations), what is free and what is paid, the activation point, five commitments.
 - [Threat model](https://github.com/decionis/steward/blob/master/ThreatModel.md): assets, trust boundaries, eight threats with the code and tests behind each mitigation, the security headers, and the gaps accepted rather than fixed.
@@ -70,6 +70,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - STEWARD_DATA_MODE: demo or live. Defaults to live in production, demo elsewhere.
 - DECIONIS_API_BASE_URL: required in live mode; startup throws without it.
 - DECIONIS_STEWARD_SERVICE_TOKEN: optional server-to-server credential; prefer a user session.
+- STEWARD_DATABASE_URL: where Steward's own records live; the scheme selects the dialect (postgres, mysql, mssql, oracle, sqlite). Unset outside demo mode, the embedded database under STEWARD_DATA_DIR (default ./data, /app/data in the container) is used. STEWARD_DATABASE_MIGRATE=off makes a schema that is behind refuse to serve instead of migrating at start.
 - DECIONIS_CONNECTOR_ID and DECIONIS_WEBHOOK_SECRET: the signal connector and its webhook secret, issued together by a Decionis deployment bundle; where collected signals are forwarded. Set both or neither; startup refuses one without the other. DECIONIS_WEBHOOK_URL overrides the derived ingress URL.
 - STEWARD_ACCESS_TOKEN_COOKIE (decionis_access_token), STEWARD_ORG_ID_COOKIE (decionis_org_id): the cookies the Decionis sign-in handoff sets and Steward reads.
 - NEXT_PUBLIC_DECIONIS_SIGN_IN_URL: the external identity handoff target used by /sign-in.
@@ -83,7 +84,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - POST /api/steward/opportunities/:id/review: body {"decision": "APPROVE" | "REJECT" | "HOLD", "note"?: string}; requires the APPROVER or ADMIN role, else 403; forwarded to the platform, never applied here.
 - GET /api/steward/signals/sources: the signal sources this deployment is configured to collect from, each with kind, categories, health, last collection and count.
 - POST /api/steward/signals/sources/:id/collect: collect from one source and forward the batch; requires OPERATOR, APPROVER or ADMIN, else 403; 503 when the source is not configured or forwarding is not configured; nothing is stored.
-- GET /api/health: unauthenticated liveness probe.
+- GET /api/health: unauthenticated liveness probe; reports the database opened at start (dialect, file, migration state), null in demo mode.
 - GET /llms.txt, GET /llms-full.txt: these files, served in every data mode without a session and without the noindex header the rest of the application carries.
 - Pages: / (control center), /accounts/:id (account detail), /signals (signal sources), /sign-in (the Decionis identity handoff).
 
@@ -112,7 +113,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - An unhandled error maps to a generic 500 that leaks no internal detail (StewardApiErrorMapper.test.ts).
 - A live API failure never falls back to fixtures (StewardRepositoryFactory.test.ts, DemoStewardRepository.test.ts).
 - Seven security headers on every response and a nonce-based Content-Security-Policy per request with no unsafe-inline or unsafe-eval on scripts in production (middleware.test.ts).
-- No telemetry, no analytics, no third-party scripts, no outbound request except to the configured platform and the signal sources the deployment configures, no cookies set by this application, no PII in URLs, no customer data at rest.
+- No telemetry, no analytics, no third-party scripts, no outbound request except to the configured platform and the signal sources the deployment configures, no cookies set by this application, no PII in URLs, no customer evidence at rest; Steward's own records live in the operator's database through portable migrations applied at start (Persistence.test.ts).
 
 ## Demo fixtures
 
@@ -122,4 +123,4 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 
 ## The commercial boundary, in one paragraph
 
-All of Steward is free, forever, including demo mode and live mode against a Decionis workspace in shadow, where real evidence and recommendations are shown and reviews are recorded. What Decionis sells is operating the platform: policy evaluation, execution grants, Decision Dossier retention, the audit ledger, signal ingestion, identity, Presence, support, and hosted Steward for tenants who do not want to run the container. Commerce enters at the first review that is meant to execute rather than only be recorded. Nothing in this repository moves that line; the platform does, per tenant.
+All of Steward is free, forever, including demo mode and live mode against a Decionis workspace in shadow, where real evidence and recommendations are shown and reviews are recorded. What Decionis sells is operating the platform: policy evaluation, execution grants, Decision Dossier retention, the audit ledger, signal ingestion, identity, Presence, and support. Commerce enters at the first review that is meant to execute rather than only be recorded. Nothing in this repository moves that line; the platform does, per tenant.

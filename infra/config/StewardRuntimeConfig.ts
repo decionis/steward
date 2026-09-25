@@ -19,7 +19,34 @@ const RuntimeEnvironmentSchema = z.object({
   DECIONIS_CONNECTOR_ID: z.string().min(1).optional(),
   DECIONIS_WEBHOOK_SECRET: z.string().min(1).optional(),
   DECIONIS_WEBHOOK_URL: z.string().url().optional(),
+  STEWARD_DATABASE_URL: z.string().min(1).optional(),
+  STEWARD_DATA_DIR: z.string().min(1).default("./data"),
+  STEWARD_DATABASE_MIGRATE: z.enum(["on-start", "off"]).default("on-start"),
 });
+
+/**
+ * Steward's own records live in a database the operator chooses
+ * (docs/Persistence.md). The scheme of STEWARD_DATABASE_URL selects the
+ * dialect; with no URL outside demo mode the embedded database is used, a
+ * file under STEWARD_DATA_DIR. Demo mode persists nothing and ignores both.
+ */
+export const DATABASE_DIALECTS = [
+  "sqlite",
+  "postgres",
+  "mysql",
+  "mssql",
+  "oracle",
+] as const;
+export type DatabaseDialect = (typeof DATABASE_DIALECTS)[number];
+
+export interface PersistenceConfig {
+  dialect: DatabaseDialect;
+  /** The connection URL for a server database; null for the embedded one. */
+  url: string | null;
+  /** The embedded database file, or ":memory:"; null for a server database. */
+  file: string | null;
+  migrate: "on-start" | "off";
+}
 
 /**
  * Where collected signals are forwarded: the Decionis Protocol's published
@@ -45,6 +72,7 @@ export interface StewardRuntimeValues {
   signInUrl: string;
   timeoutMs: number;
   signalIngress: SignalIngressConfig | null;
+  persistence: PersistenceConfig | null;
 }
 
 export class StewardRuntimeConfig {
@@ -56,6 +84,7 @@ export class StewardRuntimeConfig {
   readonly signInUrl: string;
   readonly timeoutMs: number;
   readonly signalIngress: SignalIngressConfig | null;
+  readonly persistence: PersistenceConfig | null;
 
   constructor(values: StewardRuntimeValues) {
     this.dataMode = values.dataMode;
@@ -66,6 +95,7 @@ export class StewardRuntimeConfig {
     this.signInUrl = values.signInUrl;
     this.timeoutMs = values.timeoutMs;
     this.signalIngress = values.signalIngress;
+    this.persistence = values.persistence;
   }
 
   static fromEnvironment(
@@ -94,7 +124,63 @@ export class StewardRuntimeConfig {
       signInUrl: parsed.NEXT_PUBLIC_DECIONIS_SIGN_IN_URL,
       timeoutMs: 8_000,
       signalIngress: StewardRuntimeConfig.readSignalIngress(parsed, apiBaseUrl),
+      persistence: StewardRuntimeConfig.readPersistence(parsed, dataMode),
     });
+  }
+
+  private static readPersistence(
+    parsed: z.infer<typeof RuntimeEnvironmentSchema>,
+    dataMode: StewardDataMode,
+  ): PersistenceConfig | null {
+    if (dataMode === "demo") return null;
+    const migrate = parsed.STEWARD_DATABASE_MIGRATE;
+    const url = parsed.STEWARD_DATABASE_URL;
+    if (!url) {
+      const directory = parsed.STEWARD_DATA_DIR.replace(/\/+$/, "");
+      return {
+        dialect: "sqlite",
+        url: null,
+        file: `${directory}/steward.sqlite`,
+        migrate,
+      };
+    }
+    if (url.startsWith("sqlite:")) {
+      const target = url.slice("sqlite:".length).replace(/^\/\//, "");
+      if (!target) {
+        throw new Error(
+          "STEWARD_DATABASE_URL: sqlite needs a file path (sqlite:///path/steward.sqlite) or :memory:",
+        );
+      }
+      return { dialect: "sqlite", url: null, file: target, migrate };
+    }
+    const scheme = url.split(":", 1)[0]?.toLowerCase() ?? "";
+    const dialect = (
+      {
+        postgres: "postgres",
+        postgresql: "postgres",
+        mysql: "mysql",
+        mssql: "mssql",
+        sqlserver: "mssql",
+        oracle: "oracle",
+      } as Record<string, DatabaseDialect | undefined>
+    )[scheme];
+    if (!dialect) {
+      throw new Error(
+        `STEWARD_DATABASE_URL: unsupported scheme "${scheme}"; use sqlite, postgres, mysql, mssql or oracle`,
+      );
+    }
+    let parsedUrl: URL | null = null;
+    try {
+      parsedUrl = /^[a-z]+:\/\//i.test(url) ? new URL(url) : null;
+    } catch {
+      parsedUrl = null;
+    }
+    if (!parsedUrl?.hostname) {
+      throw new Error(
+        "STEWARD_DATABASE_URL must be of the form scheme://user:password@host:port/database",
+      );
+    }
+    return { dialect, url, file: null, migrate };
   }
 
   private static readSignalIngress(

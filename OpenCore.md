@@ -89,7 +89,7 @@ implementation against another backend is a first-class citizen.
 | Demo mode: deterministic fixtures, no account, no credential, nothing persisted                                      | Execution grants: the review that actually changes a limit                               |
 | Live mode against a Decionis workspace in shadow: real evidence and recommendations, reviews recorded, dossiers read | Decision Dossier retention, the audit ledger, export                                     |
 | The signal connectors, the image on GHCR and Docker Hub, the release tarball, the source                             | Signal ingestion at scale, identity resolution, SSO and SCIM, Presence-verified approval |
-| Documentation, the threat model, the evidence pack, machine discovery                                                | Support, SLAs, and hosted Steward for tenants who do not want to run the container       |
+| Documentation, the threat model, the evidence pack, machine discovery                                                | Support and SLAs                                                                         |
 
 ## Where commerce enters the flow
 
@@ -124,7 +124,8 @@ the same bytes for everyone.
 trust-boundary change and goes through a public pull request with code-owner approval:
 
 1. Steward stays Apache-2.0. No source-available, delayed-open, or dual license.
-2. Demo mode stays complete: every screen and the review flow work with no account.
+2. Demo mode stays complete: every screen and the review flow work with no account and no
+   database.
 3. No license check, plan check, entitlement read, or telemetry, in any mode; no outbound request
    to any host but the configured platform and the signal sources the operator configures, each
    named in that deployment's configuration.

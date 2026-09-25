@@ -18,6 +18,14 @@ const discoveryHeaders = [{ key: "X-Robots-Tag", value: "all" }];
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // The database layer is loaded at run time, not bundled: TypeORM resolves
+  // its drivers dynamically and the embedded driver is a native module.
+  serverExternalPackages: ["typeorm", "better-sqlite3"],
+  // The embedded driver's native binary is built for the platform the image
+  // runs on, in the Dockerfile; never carry the build machine's copy.
+  outputFileTracingExcludes: {
+    "*": ["./node_modules/.pnpm/better-sqlite3@*/**"],
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
