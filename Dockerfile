@@ -81,6 +81,29 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 
+# The embedded database driver is a native module. It is installed here, for
+# the platform this image runs on, rather than traced from the build stage,
+# which may have run on another architecture and whose tracing does not
+# follow the driver's dynamic load. NODE_PATH lets the server's require find
+# it beside the traced output without touching that output. The prebuilt
+# binary is downloaded for this platform; the build tools are only a fallback
+# and leave the image again.
+COPY --from=build /app/package.json /tmp/steward-package.json
+RUN mkdir -p /opt/steward/native && cd /opt/steward/native \
+  && apk add --no-cache --virtual .native-build python3 make g++ \
+  && npm install --no-audit --no-fund --omit=dev --loglevel=error \
+     "better-sqlite3@$(node -p "require('/tmp/steward-package.json').dependencies['better-sqlite3']")" \
+  && apk del .native-build \
+  && rm -rf /root/.npm /tmp/steward-package.json /opt/steward/native/package-lock.json \
+  && node -e "require('/opt/steward/native/node_modules/better-sqlite3')"
+ENV NODE_PATH=/opt/steward/native/node_modules
+
+# Steward's own records: the embedded database lives here unless STEWARD_DATABASE_URL
+# names a server. Mount a volume; the image never contains a database.
+RUN mkdir -p /app/data && chown node:node /app/data
+ENV STEWARD_DATA_DIR=/app/data
+VOLUME ["/app/data"]
+
 USER node
 EXPOSE 3000
 

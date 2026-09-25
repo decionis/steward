@@ -51,6 +51,7 @@ infra/                        External systems and implementation details
   config/
   connectors/
   demo/
+  persistence/                Steward's own records: data source, entities, portable migrations
   errors/
   repositories/
 presentation/                 Formatting and presentation policies
@@ -69,6 +70,15 @@ result and do not persist or execute a downstream action.
 `DecionisStewardRepository` uses the server-only `DecionisStewardGateway`. Responses are parsed through Zod
 contracts before entering the application layer. Authentication and organization scope are forwarded
 server-side.
+
+## Persistence
+
+Steward keeps its own records, never a signal's content, in a database the operator chooses. The
+scheme of `STEWARD_DATABASE_URL` selects the dialect; with none set outside demo mode the embedded
+database under `STEWARD_DATA_DIR` is used. `instrumentation.ts` opens it once at start and applies
+the migrations under `infra/persistence/migrations/`, or refuses to serve when the operator runs
+migrations by hand and the schema is behind. Demo mode persists nothing. The plan and the tables are
+in docs/Persistence.md.
 
 ## Decision safety
 
