@@ -1,7 +1,7 @@
 # Steward's own database and first-run onboarding
 
-**Status: proposed 25 September 2026, subject to approval. A trust-boundary change, recorded as
-one.** Steward persists its own operational records: its users, the decisions its operators
+**Status: decided 25 September 2026; the decisions below are taken; implementation begins with DB0 and DB1. A
+trust-boundary change, recorded as one.** Steward persists its own operational records: its users, the decisions its operators
 recorded, their activities, and the signal sources it is configured with, plus the Decionis
 workspace connection when the environment does not supply it. The database is the operator's
 choice: PostgreSQL by default; MySQL, Oracle Database and Microsoft SQL Server supported, so an
@@ -84,22 +84,24 @@ systems already use.
 
 ## The database layer
 
-- **One API over four databases.** [Knex](https://knexjs.org/) (MIT) as the query builder and
-  migration runner, with the drivers `pg` (MIT), `mysql2` (MIT), `tedious` (MIT) for SQL Server,
-  and `oracledb` (Apache-2.0 or UPL-1.0; its thin mode needs no Oracle client libraries). All
-  within the license policy in `scripts/CheckLicensePolicy.mjs`. Considered and not chosen: Prisma
-  and Drizzle, which do not support Oracle; TypeORM and Sequelize, which support all four but bring
-  an entity model this tier does not need. The choice is decision P1 below.
+- **One model over four databases.** [TypeORM](https://typeorm.io/) (MIT) as the ORM and
+  migration runner, entities declared as `EntitySchema` so no decorator metadata is needed under
+  the Next.js compiler, with the drivers `pg` (MIT), `mysql2` (MIT), `mssql` (MIT) for SQL Server,
+  and `oracledb` (Apache-2.0 or UPL-1.0; its thin mode needs no Oracle client libraries), plus
+  `better-sqlite3` (MIT) for the embedded trial database. All within the license policy in
+  `scripts/CheckLicensePolicy.mjs`. Considered and not chosen: Prisma and Drizzle, which do not
+  support Oracle; Knex, a query builder without a model; Sequelize, which supports all four. The
+  owner chose an ORM (P1).
 - **Configuration.** `STEWARD_DATABASE_URL`, whose scheme selects the dialect: `postgres://`
   (default), `mysql://`, `mssql://`, `oracle://`. Pool size and TLS as URL parameters. Live and
   hosted modes require it; demo mode ignores it.
-- **Migrations.** Portable Knex migrations under `infra/persistence/migrations/`, run by
+- **Migrations.** Portable TypeORM migrations under `infra/persistence/migrations/`, run by
   `pnpm db:migrate` and by the container at start (`STEWARD_DATABASE_MIGRATE=on-start`, the
   default), failing closed if the schema is behind rather than serving against it.
 - **Portability rules.** No dialect-specific SQL outside the dialect adapters; identifiers as
   36-character strings; timestamps in UTC; JSON as text where a dialect lacks a JSON type; no
   database enums, check constraints instead; no stored procedures or triggers.
-- **Placement.** `infra/persistence/` holds Knex, the migrations and the repositories that
+- **Placement.** `infra/persistence/` holds the data source, the migrations and the repositories that
   implement interfaces declared in `application/`. Nothing in `app/` or `components/` touches the
   database. Demo mode gets in-memory implementations of the same interfaces, so demo stays complete
   with no account and no database, as [OpenCore.md](../OpenCore.md) promises.
@@ -172,7 +174,7 @@ step answers.
 
 #### DB1 — The persistence layer
 
-Knex and the four drivers, `STEWARD_DATABASE_URL`, the migrations and their runner, the health
+TypeORM and the drivers, `STEWARD_DATABASE_URL`, the migrations and their runner, the health
 probe reporting the database, PostgreSQL in CI, the repository interfaces in `application/` with
 in-memory implementations for demo mode.
 
@@ -206,25 +208,27 @@ page per dialect in the Docker guide.
 
 | Stage           | Work     | Gate                                                                      |
 | --------------- | -------- | ------------------------------------------------------------------------- |
-| **1. Decide**   | P1–P7    | This document approved                                                    |
+| **1. Decide**   | P1–P8    | Taken, 25 September 2026                                                  |
 | **2. Layer**    | DB0, DB1 | Migrations and persistence tests green on PostgreSQL in CI; `pnpm verify` |
 | **3. People**   | DB2      | An administrator created on first run; sign-in, roles and sign-out tested |
 | **4. Connect**  | DB3      | A deployment with no environment set reaches live shadow through signup   |
 | **5. Records**  | DB4, DB5 | A source added, a collection recorded, a review recorded and visible      |
 | **6. Dialects** | DB6      | The nightly matrix green on all four                                      |
 
-## Decisions needed
+## Decisions taken
 
-| #   | Question                                                             | Recommendation                                                                                                                                                                                                    |
-| --- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1  | Knex, or an ORM?                                                     | Knex: one query API, portable migrations, all four dialects, MIT, no entity model to fight.                                                                                                                       |
-| P2  | Ship all four drivers in the image?                                  | Yes; all four are MIT or Apache-2.0, and the operator's choice must not need a rebuild.                                                                                                                           |
-| P3  | Local password accounts, or single sign-on only?                     | Both: local accounts with argon2id, the Decionis handoff as SSO.                                                                                                                                                  |
-| P4  | Where does the encryption key come from?                             | A mounted 32-byte secret, `STEWARD_SECRET_KEY`, with a key id per row; a KMS provider later.                                                                                                                      |
-| P5  | Migrations at container start, or run by the operator?               | At start by default, failing closed; `off` for operators who run them themselves.                                                                                                                                 |
-| P6  | Store the org API key in the database when the environment lacks it? | Yes, encrypted; the hosted case has no other place, and the environment wins when both are present.                                                                                                               |
-| P7  | Offer the provisional no-account workspace as the signup shortcut?   | Yes, marked provisional, with its caps stated on the page.                                                                                                                                                        |
-| P8  | An embedded database for a single-node trial?                        | Yes: SQLite through Knex (`better-sqlite3`, MIT) when no `STEWARD_DATABASE_URL` is set outside demo, in a volume, so `docker run` alone reaches the setup page; PostgreSQL stays the default for anything shared. |
+Answered by the owner on 25 September 2026.
+
+| #   | Question                                                             | Decision                                                                                                                                                                                     |
+| --- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | Knex, or an ORM?                                                     | An ORM. TypeORM (MIT): one model over PostgreSQL, MySQL, SQL Server and Oracle, with migrations; entities declared as `EntitySchema`, no decorators.                                         |
+| P2  | Ship all four drivers in the image?                                  | Yes. `pg`, `mysql2` and `mssql` are MIT; `oracledb` is Apache-2.0 (or UPL-1.0); all inside the license policy, no rebuild to change database.                                                |
+| P3  | Local password accounts, or single sign-on only?                     | Both. The organisation decides which sign-in methods are enabled: local accounts, the Decionis handoff, or both.                                                                             |
+| P4  | Where does the encryption key come from?                             | A mounted 32-byte secret, `STEWARD_SECRET_KEY`, with a key id per row; a KMS provider later. (Recommendation, not objected to.)                                                              |
+| P5  | Migrations at container start, or run by the operator?               | At start, failing closed; `STEWARD_DATABASE_MIGRATE=off` for operators who run them themselves.                                                                                              |
+| P6  | Store the org API key in the database when the environment lacks it? | Yes, encrypted; the environment wins when both are present.                                                                                                                                  |
+| P7  | Offer the provisional no-account workspace as the signup shortcut?   | Yes, marked provisional, with its caps stated on the page.                                                                                                                                   |
+| P8  | An embedded database for a single-node trial?                        | Yes: SQLite through the same ORM (`better-sqlite3`, MIT) when no `STEWARD_DATABASE_URL` is set outside demo, in a volume; PostgreSQL for anything shared. (Recommendation, not objected to.) |
 
 ## Decisions recorded
 

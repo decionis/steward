@@ -12,9 +12,9 @@ you integrate against these types.
 
 ### Added
 
-- [docs/Persistence.md](./docs/Persistence.md): the plan, subject to approval, for Steward's own
+- [docs/Persistence.md](./docs/Persistence.md): the plan, decided, for Steward's own
   database: users, sessions, the Decionis workspace connection, signal sources, decisions,
-  reviews and activities, never a signal's content. Database-agnostic through Knex: PostgreSQL by
+  reviews and activities, never a signal's content. Database-agnostic through TypeORM: PostgreSQL by
   default, MySQL, Oracle Database and SQL Server by the operator's own license, selected by the
   scheme of `STEWARD_DATABASE_URL`; migrations at start; secrets encrypted at rest under an
   operator-held key; local accounts beside the Decionis handoff; why persisting connectors makes
