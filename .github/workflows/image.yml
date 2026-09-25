@@ -147,7 +147,10 @@ jobs:
               printf '%s' "$headers" | grep -qi "^$h:" || { echo "::error::missing header $h"; exit 1; }
             done
             if [ -f public/llms.txt ]; then
-              first="$(curl -sf http://127.0.0.1:3000/llms.txt | head -1)"
+              # sed reads the whole body; head -1 would close the pipe after the
+              # first line and, once the file exceeds one write, fail curl with
+              # exit 23 under pipefail.
+              first="$(curl -sf http://127.0.0.1:3000/llms.txt | sed -n '1p')"
               [ "$first" = "$(head -1 public/llms.txt)" ] || { echo "::error::/llms.txt does not serve public/llms.txt"; exit 1; }
             fi
             docker stop steward-smoke >/dev/null
