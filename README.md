@@ -372,7 +372,7 @@ than to an empty role set; and an unhandled error maps to a generic 500 that lea
 **Evaluating Steward as a vendor?** [EvidencePack.md](./EvidencePack.md) maps the usual security-review
 questions to the artifact that answers each one, and states the gaps as plainly as the strengths.
 
-[ThreatModel.md](./ThreatModel.md) sets out the assets, trust boundaries, eight named threats with the
+[ThreatModel.md](./ThreatModel.md) sets out the assets, trust boundaries, nine named threats with the
 code and test backing each mitigation, the security headers this app sets — and, deliberately, the
 gaps we have accepted rather than fixed.
 

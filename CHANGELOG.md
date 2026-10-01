@@ -12,6 +12,10 @@ you integrate against these types.
 
 ### Added
 
+- [SUPPORT.md](./SUPPORT.md): where each kind of question goes — a vulnerability privately, a bug
+  or feature request as an issue, a question in Discussions, the Decionis platform to
+  decionis.com/contact — what to include, and that there is no response-time commitment outside
+  the security targets.
 - [docs/Persistence.md](./docs/Persistence.md): the plan, decided, for Steward's own
   database: users, sessions, the Decionis workspace connection, signal sources, decisions,
   reviews and activities, never a signal's content. Database-agnostic through TypeORM: PostgreSQL by
@@ -89,6 +93,11 @@ you integrate against these types.
   authority into the interface. What operators get, five minutes with no account, connecting the
   platform, where paying starts, trusting the image, then the reference. The Docker Hub overview,
   its short description and the image's OCI description say the same thing in the same words.
+
+### Fixed
+
+- The README and the llms files said the threat model names eight threats; it names nine (T1 to
+  T9, T9 being Steward's own records at rest).
 
 ## [0.3.0] — 2026-09-24
 
