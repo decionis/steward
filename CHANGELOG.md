@@ -56,14 +56,17 @@ you integrate against these types.
   ordered by friction then reviews so the group that needs effort first is at the top. Counts of
   what the platform already said about each account; nothing decided here. P1 of
   `docs/ProactiveSupport.md`.
-- [docs/ProtocolContracts.md](./docs/ProtocolContracts.md): the plan, subject to approval, that
+- [docs/ProtocolContracts.md](./docs/ProtocolContracts.md): the plan, decided, that
   puts Steward's live mode on the API contracts published at docs.decionis.com. Steward is a
   third-party application built on the Decionis Protocol: decisions through
   `POST /v1/protocol/evaluate-decision` in shadow or enforcement mode, the record through
   dossiers, decision chains and shadow reports, signals as protocol signal envelopes, reviews as
   surface decisions and overrides, accounts from Steward's own connectors. The private `/v1/cdi`
   contract leaves; the upstream requests in the earlier plans are withdrawn; seven decisions and
-  seven workstreams.
+  seven workstreams. Decided: the organisation's account comes from the account
+  surface at accounts.decionis.com; first boot with the owner's email and the organisation's name
+  creates the account and workspace through the Decionis API; the organisation edits its rules
+  from Steward and every edit is a new version; two contract items are named for publication.
 - Steward's own database, the embedded one first ([docs/Persistence.md](./docs/Persistence.md), DB0 and DB1):
   TypeORM with the `better-sqlite3` driver, `STEWARD_DATABASE_URL` whose scheme selects the
   dialect, the embedded file under `STEWARD_DATA_DIR` when nothing is set outside demo mode, the

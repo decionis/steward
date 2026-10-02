@@ -1,6 +1,6 @@
 # Steward on the published Protocol
 
-**Status: proposed 25 September 2026, subject to approval.** Steward is a third-party application
+**Status: decided 25 September 2026; the owner's decisions are recorded below, and the work begins with C1.** Steward is a third-party application
 built on the Decionis Protocol. For policy evaluations and for signals it uses the API contracts
 published at [docs.decionis.com](https://docs.decionis.com/), whose machine-readable form is the
 OpenAPI document at `https://decionis.com/.well-known/openapi.json` ("Decionis Policy Evaluation
@@ -49,28 +49,41 @@ surface's business and Steward does not call it.
 
 ## Where the accounts come from
 
-The Protocol publishes no customer-account resource: no roster, no segment, no region, no
-processing limit. Those facts are the operator's, held in the CRM, the ERP and the ledger, and
-[docs/SignalConnectors.md](./SignalConnectors.md) already decided that Steward collects from those
-systems. So in live mode:
+There are two kinds of account here, and they come from different places.
 
-- **The roster** (name, external reference, segment, region, corridors, owner, current and
-  proposed limit) comes from the CRM connector (S4), read per request and not stored.
+**The organisation's account** is the Protocol's. The Decionis organisation, its workspace and its
+people live on the account surface at `accounts.decionis.com` (the `account-api` service). Steward
+creates that account at first boot (C7), signs people in through it when the organisation chooses
+the Decionis handoff, and asks it who the caller is (`GET /v1/me`). Steward does not keep a second
+copy of it: its own `users` table holds the local accounts the organisation chose to allow and the
+subject that links a person to their Decionis account.
+
+**The organisation's customers**, the roster an operator reviews (name, reference, segment,
+region, corridors, owner, limit), are not served by the account surface or the Protocol. They are
+held in the operator's CRM, ERP and ledger, which [docs/SignalConnectors.md](./SignalConnectors.md)
+already decided Steward collects from. So in live mode:
+
+- **The roster** comes from the CRM connector (S4, issue #101), read per request and not stored.
 - **The evidence** on an account page is what Steward's connectors collected, shaped as
   `EvidenceSignal` with freshness from `observedAt`, and, once forwarded, carrying the artifact id
   the Protocol returned, so the panel can say "accepted by the platform" per signal.
 - **The decisions** come from the Protocol: each account event Steward considers material is
   evaluated with `decision_type` naming the kind Steward already knows
   (`PROCESSING_LIMIT_REVIEW`, `EXPANSION_OUTREACH`, `FRICTION_INTERVENTION`,
-  `KYC_KYB_ESCALATION`, `HOLD_FOR_MORE_EVIDENCE`, `NO_ACTION`), the account reference as
-  `context.identifier`, and the collected signals as `context`. The operator's policy pack, encoded
-  in the platform, decides.
+  `KYC_KYB_ESCALATION`, `HOLD_FOR_MORE_EVIDENCE`, `NO_ACTION`, and `PROACTIVE_SUPPORT`), the
+  account reference as `context.identifier`, and the collected signals as `context`. The
+  organisation's rules, owned and versioned by the platform, decide.
 - **The account state** (`HEALTHY`, `FRICTION`, `REVIEW_REQUIRED`, `EXPANSION_READY`) follows
   from the latest decision on the account, not from Steward weighing anything.
 
-Until S4 lands, live mode lists the accounts that have decisions: the distinct `context.identifier`
-values in the shadow reports, named from the CRM reference. That is a smaller roster, not a
-fabricated one, and the page says so.
+Until the CRM connector lands, live mode lists the accounts that have decisions: the distinct
+`context.identifier` values in the shadow reports, named from the CRM reference. That is a
+smaller roster, not a fabricated one, and the page says so.
+
+**Contract status.** The account surface is not yet on docs.decionis.com or in the OpenAPI
+document. Its health route and `GET /v1/me` answer, and nothing more is discoverable without a
+credential. Under the rule above, Steward's client for it is written against the contract once it
+is published there; the section "Contract items to publish" lists what Steward needs from it.
 
 ## The mapping, contract by contract
 
@@ -133,13 +146,68 @@ which is the evidence id the dossier later cites.
 
 ## Credentials
 
-The published API authenticates org-scoped calls with the org API key as a bearer token, issued by
-the deployment bundle as `DECIONIS_API_KEY`. Steward therefore holds that key on the server, under
-the bundle's name, the way it already holds the webhook secret: mounted, never in the tree, never in
-the browser, never in a URL or a log. The operator's own session still gates every page and route,
-and the operator's identity travels in the surface decision and the override as the actor. This is
-a change to the threat model's assets and to `StewardRuntimeConfig`, recorded in C0 below. The
-public verify route and the health probe need no credential.
+The published API authenticates org-scoped calls with the org API key as a bearer token. Steward
+holds it on the server, from the environment or, encrypted, from its own database, the environment
+winning when both are present (decision D3). Either way it is never in the tree, never in the
+browser, never in a URL or a log. The environment names are the ones the deployment bundle emits:
+`DECIONIS_API_KEY`, `DECIONIS_ORG_ID` and `DECIONIS_WORKSPACE_NAME`. The operator's own session
+still gates every page and route, and the operator's identity travels in the surface decision and
+the override as the actor. The public verify route and the health probe need no credential.
+
+## First boot
+
+An operator who has no Decionis account yet does not need to leave Steward to get one. Steward
+boots with two parameters, the owner's email and the organisation's name, and creates the account
+and its workspace through the Decionis API:
+
+```bash
+docker run -p 3000:3000 -v steward-data:/app/data ghcr.io/decionis/steward:<version> \
+  --email ops@zulu.example --org "Zulu Financial"
+```
+
+`STEWARD_OWNER_EMAIL` and `STEWARD_ORG_NAME` do the same where a platform cannot pass arguments.
+The resolution order is the one in [docs/Persistence.md](./Persistence.md), with the boot
+parameters as its third step:
+
+1. **The environment** holds the credentials: use them.
+2. **The Steward database** holds a workspace: use it.
+3. **Boot parameters** are given: start the published public onboarding.
+   `POST /v1/public/auth/register/start` with the owner email, a display name taken from it, and
+   the organisation name; Decionis emails the owner a six-digit code, and the log and the first
+   page say where to enter it. The code is entered on the setup page, never on the command line,
+   and goes to `POST /v1/public/auth/register/verify`, which returns the onboarding grant and the
+   org id. A signal-mapping session and its deployment bundle then issue the org API key, the
+   connector id and the policy version, which Steward stores encrypted in `workspaces` under the
+   organisation's name, and the owner becomes Steward's first administrator. Booting again with
+   the same parameters once the workspace exists changes nothing.
+4. **None of these**: the setup page offers the same signup, the provisional no-account
+   workspace (D7), or pasting the credentials of a workspace that already exists.
+
+The setup page answers without a sign-in only until the first administrator exists, and only for
+these steps; after that it is an administrator's page like any other.
+
+## Rules the organisation edits
+
+The platform owns the rules and evaluates them; the organisation edits them, and every edit is a
+new version (decision D6). Steward is where an administrator does the editing, and it never
+evaluates a rule itself:
+
+- **See** the version in force for each decision type: the `policy_snapshot` every evaluation
+  returns (version, bundle id, digests, effective window), and the decision graph.
+- **Draft** a change in Steward, or have the platform draft one from documents and live sources
+  with `POST /v1/orgs/{org_id}/policies/packs/draft`, whose clauses that cannot become rules come
+  back as review items rather than broken rules.
+- **Validate** with `POST /v1/policies/validate`, which answers valid, errors and warnings.
+- **Submit** with `POST /v1/protocol/policies/bundles`: a new `version`, an `effective_from`, the
+  rules, and `metadata.author` naming the administrator; the platform answers with the artifact id
+  and the version takes effect when it says so.
+- **Record** each submission as an activity with its version and artifact id, so the history of
+  who changed which rule is readable in Steward as well as in the platform's ledger.
+
+Editing needs the `ADMIN` role. Reading the current rules of a bundle is the one piece the
+published API does not yet offer: it returns versions and digests everywhere, and the decision
+chain page says rules are deliberately not exposed to applications. The editor therefore needs a
+read operation for the organisation's own bundle, which is the second contract item below.
 
 ## The free tier, literally
 
@@ -159,8 +227,8 @@ not move; it gets a shorter path.
   marked superseded: `contextClass` is Steward's own field on a collected signal, and `arbitration`
   is assembled from the dossier and the policy snapshot.
 - The "Protocol request" sections of the other plans, already withdrawn.
-- If D2 chooses envelopes: `DecionisSignalIngressClient`, the webhook mapper and the three
-  `DECIONIS_WEBHOOK_*` variables.
+- `DecionisSignalIngressClient`, the webhook mapper and the three `DECIONIS_WEBHOOK_*` variables,
+  since D2 chose envelopes.
 
 Demo mode does not change. The fixtures stay, and the demo repository keeps returning them; what
 changes is that the shapes they return are now built from published contracts, so a fixture and a
@@ -168,25 +236,39 @@ live response are parsed by the same schemas.
 
 ## What the proactive-support plan becomes
 
-| Workstream                    | Under the published Protocol                                                                                                  |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| P2 value tiers and clusters   | Fields on the roster the CRM connector returns; grouping is presentation. No contract addition.                               |
-| P3 events around the customer | Signals from a connector to a regulatory or news feed, forwarded as categorical envelopes with an `ENVIRONMENTAL` dimension.  |
-| P4 proactive support plays    | A `decision_type` of `PROACTIVE_SUPPORT` with the group as `context`; the operator's policy pack decides. No Protocol change. |
-| P5 the minimum viable payload | Steward's own map from `decision_type` to the context classes it sends; coverage is computed from what was accepted.          |
-| P6 the loop measured          | Unchanged, now over `created_at`, chain timestamps and `evidence_lineage.occurred_at`.                                        |
+| Workstream                    | Under the published Protocol                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2 value tiers and clusters   | Fields on the roster the CRM connector returns; grouping is presentation. No contract addition.                                             |
+| P3 events around the customer | Signals from a connector to a regulatory or news feed, forwarded as categorical envelopes with an `ENVIRONMENTAL` dimension.                |
+| P4 proactive support plays    | A `decision_type` of `PROACTIVE_SUPPORT` with the group as `context`; the organisation's rules for it are edited in C8. No Protocol change. |
+| P5 the minimum viable payload | Steward's own map from `decision_type` to the context classes it sends; coverage is computed from what was accepted.                        |
+| P6 the loop measured          | Unchanged, now over `created_at`, chain timestamps and `evidence_lineage.occurred_at`.                                                      |
 
-## Decisions needed
+## Decisions taken
 
-| #   | Question                                                                          | Recommendation                                                                                                                                                        |
-| --- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Do accounts and evidence come from Steward's connectors rather than the platform? | Yes. The Protocol has no account resource; the roster is the operator's. Interim: the identifiers seen in decisions.                                                  |
-| D2  | Signal envelopes, or the webhook ingress built in #91?                            | Envelopes. They are in the OpenAPI, need only the org API key, answer per signal with an artifact id, and model Steward as CUSTOMER_INFRA. Retire the webhook client. |
-| D3  | Does Steward hold the org API key on the server?                                  | Yes, as `DECIONIS_API_KEY` from the bundle, mounted; the operator session still gates the UI and names the actor.                                                     |
-| D4  | How is a review recorded?                                                         | Surface federation for APPROVE and REJECT; federation plus an override for HOLD; appeals as overrides.                                                                |
-| D5  | What happens to `healthScore` and the limit-specific policy fields?               | Retire `healthScore`; state follows the latest decision. Show only the policy parameters the decision graph exposes.                                                  |
-| D6  | Are Steward's six opportunity kinds the `decision_type` vocabulary?               | Yes, plus `PROACTIVE_SUPPORT`; the operator's policy pack encodes rules per type. Steward documents the vocabulary; the platform owns the rules.                      |
-| D7  | Does "Connect your platform" provision a provisional workspace?                   | Yes, as the zero-account path beside the sign-in handoff, clearly marked provisional.                                                                                 |
+Answered by the owner on 25 September 2026.
+
+| #   | Question                                                            | Decision                                                                                                                                                                                |
+| --- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Where do accounts come from?                                        | The organisation's account is the Protocol's, on the account surface at accounts.decionis.com. The customer roster, which that surface does not serve, comes from Steward's connectors. |
+| D2  | Signal envelopes, or the webhook ingress built in #91?              | Envelopes; the webhook client is retired.                                                                                                                                               |
+| D3  | Does Steward hold the org API key on the server?                    | Yes, from the database or the environment. Steward can boot with the owner's email and the organisation's name and create the account and workspace through the Decionis API.           |
+| D4  | How is a review recorded?                                           | Surface federation for APPROVE and REJECT; federation plus an override for HOLD; appeals as overrides.                                                                                  |
+| D5  | What happens to `healthScore` and the limit-specific policy fields? | `healthScore` is retired; state follows the latest decision; only the policy parameters the decision graph exposes are shown.                                                           |
+| D6  | Are Steward's opportunity kinds the `decision_type` vocabulary?     | Yes, plus `PROACTIVE_SUPPORT`. The platform owns the rules, the organisation can edit them, and every edit becomes a new version.                                                       |
+| D7  | Does "Connect your platform" offer a provisional workspace?         | Yes, as the no-account path on the setup page, clearly marked provisional.                                                                                                              |
+
+## Contract items to publish
+
+Two things Steward needs are not yet on docs.decionis.com, and under the rule this document
+starts from, Steward waits for them there rather than coding against an unpublished shape:
+
+| Item                                        | What Steward needs                                                                                                  | Used by     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------- |
+| The account surface (accounts.decionis.com) | `GET /v1/me` (who is signed in, their organisation, workspace and roles), and how a first-boot signup relates to it | C7, sign-in |
+| Reading the organisation's rules            | The rules of the bundle in force for a decision type, for the organisation that owns them                           | C8          |
+
+Every other operation in this document is published already.
 
 ## Workstreams
 
@@ -226,20 +308,32 @@ Depends on S4 in the signal-connectors plan. Until then, the interim roster from
 
 The gateway, its samples and tests, the superseded request document, and every mention.
 
-#### C7 — Connect without an account
+#### C7 — First boot and the setup page
 
-The provisional workspace path on the "Connect your platform" link, with its caps stated.
+`--email` and `--org` (and `STEWARD_OWNER_EMAIL`, `STEWARD_ORG_NAME`) on the server's launcher;
+the published public onboarding through to the deployment bundle; the credentials stored
+encrypted; the owner made the first administrator; the setup page with the signup, the
+provisional workspace, and pasted credentials. Depends on DB2 and DB3 in
+[docs/Persistence.md](./Persistence.md).
+
+#### C8 — Rules the organisation edits
+
+The Rules page: the version in force per decision type, drafting, validation, submission as a new
+version, the platform's draft from documents, and every submission recorded as an activity. Needs
+the rules-read contract item.
 
 ## Sequencing
 
 | Stage            | Work   | Gate                                                                          |
 | ---------------- | ------ | ----------------------------------------------------------------------------- |
-| **1. Decide**    | D1–D7  | This document approved                                                        |
-| **2. Client**    | C0, C1 | Contract test green on the OpenAPI samples; `pnpm verify`                     |
+| **1. Decide**    | D1–D7  | Taken, 25 September 2026                                                      |
+| **2. Client**    | C0, C1 | Contract test green on the published schemas; `pnpm verify`                   |
 | **3. Signals**   | C2     | A live envelope accepted by a shadow workspace, artifact id shown             |
 | **4. Decisions** | C3, C4 | A live shadow decision in the queue, reviewed, recorded, verified by its link |
-| **5. Cut over**  | C6, C7 | No `/v1/cdi` reference in the tree; discovery and boundary documents agree    |
-| **6. Roster**    | C5     | After S4                                                                      |
+| **5. Boot**      | C7     | `--email` and `--org` reach live shadow on an empty volume                    |
+| **6. Cut over**  | C6     | No `/v1/cdi` reference in the tree; discovery and boundary documents agree    |
+| **7. Roster**    | C5     | After the CRM connector (#101)                                                |
+| **8. Rules**     | C8     | After the rules-read contract item is published                               |
 
 ## Decisions recorded
 
