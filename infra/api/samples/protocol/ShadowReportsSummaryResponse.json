@@ -1,0 +1,46 @@
+{
+  "service": "decionis-protocol",
+  "protocol_version": "1.1",
+  "generated_at": "2026-09-25T09:30:00.000Z",
+  "org_id": "0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01",
+  "mode": "SHADOW",
+  "since": "2026-09-18T00:00:00.000Z",
+  "summary": {
+    "total_evaluations": 3,
+    "would_approve_count": 1,
+    "would_block_count": 0,
+    "would_escalate_count": 1,
+    "review_required_count": 1,
+    "non_approve_count": 2,
+    "non_approve_rate": 0.6667,
+    "policy_mismatch_count": 0,
+    "policy_mismatch_rate": 0.0,
+    "near_miss_count": 1,
+    "near_miss_rate": 0.3333,
+    "outcome_counts": {
+      "APPROVE": 1,
+      "ESCALATE": 1,
+      "REVIEW": 1
+    },
+    "top_decision_types": [
+      {
+        "decision_type": "PROCESSING_LIMIT_REVIEW",
+        "count": 1
+      },
+      {
+        "decision_type": "FRICTION_INTERVENTION",
+        "count": 1
+      },
+      {
+        "decision_type": "NO_ACTION",
+        "count": 1
+      }
+    ],
+    "top_reason_patterns": [
+      {
+        "reason": "POLICY_ACTION_REQUIRE_REVIEW",
+        "count": 2
+      }
+    ]
+  }
+}

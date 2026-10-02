@@ -12,6 +12,16 @@ you integrate against these types.
 
 ### Added
 
+- The client for the published Decionis Protocol, workstream C1 of
+  [docs/ProtocolContracts.md](./docs/ProtocolContracts.md): `DecionisProtocolClient` over the
+  operations documented at docs.decionis.com and in the OpenAPI document (health, decision
+  evaluation, dossiers, decision chains by id and by evaluation, shadow reports and their summary,
+  signal envelopes, surface decisions), with Zod contracts in `domain/protocol/`, requests parsed
+  before they leave and responses before they enter, the organisation scope always the configured
+  one, an idempotency key on every write that declares one, and the Protocol's structured error
+  surfaced. Samples in `infra/api/samples/protocol/`, constructed from the published schemas and
+  driven through the client by `ProtocolContract.test.ts`. Configured by `DECIONIS_API_KEY`,
+  `DECIONIS_ORG_ID` and `DECIONIS_WORKSPACE_NAME`; the screens move onto it in C2 to C4.
 - [docs/Persistence.md](./docs/Persistence.md): the plan, decided, for Steward's own
   database: users, sessions, the Decionis workspace connection, signal sources, decisions,
   reviews and activities, never a signal's content. Database-agnostic through TypeORM: PostgreSQL by

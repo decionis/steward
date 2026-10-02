@@ -1,0 +1,112 @@
+{
+  "service": "decionis-protocol",
+  "protocol_version": "1.1",
+  "generated_at": "2026-09-25T09:30:00.000Z",
+  "org_id": "0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01",
+  "mode": "SHADOW",
+  "since": "2026-09-18T00:00:00.000Z",
+  "summary": {
+    "total_evaluations": 3,
+    "would_approve_count": 1,
+    "would_block_count": 0,
+    "would_escalate_count": 1,
+    "review_required_count": 1,
+    "non_approve_count": 2,
+    "non_approve_rate": 0.6667,
+    "policy_mismatch_count": 0,
+    "policy_mismatch_rate": 0.0,
+    "near_miss_count": 1,
+    "near_miss_rate": 0.3333,
+    "outcome_counts": {
+      "APPROVE": 1,
+      "ESCALATE": 1,
+      "REVIEW": 1
+    },
+    "top_decision_types": [
+      {
+        "decision_type": "PROCESSING_LIMIT_REVIEW",
+        "count": 1
+      },
+      {
+        "decision_type": "FRICTION_INTERVENTION",
+        "count": 1
+      },
+      {
+        "decision_type": "NO_ACTION",
+        "count": 1
+      }
+    ],
+    "top_reason_patterns": [
+      {
+        "reason": "POLICY_ACTION_REQUIRE_REVIEW",
+        "count": 2
+      }
+    ]
+  },
+  "count": 3,
+  "reports": [
+    {
+      "evaluation_id": "3b8f1e2a-6c4d-4e7f-8a9b-1c2d3e4f5a60",
+      "dossier_id": "7c1d2e3f-4a5b-4c6d-9e8f-0a1b2c3d4e50",
+      "created_at": "2026-09-25T09:14:00.000Z",
+      "decision_type": "PROCESSING_LIMIT_REVIEW",
+      "decision_domain": "PROCESSING_LIMIT_REVIEW",
+      "amount": 250000,
+      "risk_score": 0.21,
+      "channel": "CRM-DEMO-0001",
+      "policy_version": "customer_ops.v4",
+      "mode": "SHADOW",
+      "outcome": "ESCALATE",
+      "confidence": 0.91,
+      "would_execute": false,
+      "execution_action": "HAND_OFF",
+      "reason": "Utilisation above 80 percent for 30 days with an expansion milestone; above the automatic increase band.",
+      "policy_guard_reason": null,
+      "policy_evaluation_resolution": "rule_matched",
+      "selected_rule_id": "limit-review-over-80pct",
+      "dossier_api_path": "/v1/protocol/dossiers/7c1d2e3f-4a5b-4c6d-9e8f-0a1b2c3d4e50?org_id=0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01"
+    },
+    {
+      "evaluation_id": "5d2e3f4a-7b8c-4d9e-8f0a-2b3c4d5e6f71",
+      "dossier_id": "8d2e3f4a-5b6c-4d7e-9f8a-1b2c3d4e5f61",
+      "created_at": "2026-09-24T16:40:00.000Z",
+      "decision_type": "FRICTION_INTERVENTION",
+      "decision_domain": "FRICTION_INTERVENTION",
+      "amount": null,
+      "risk_score": 0.46,
+      "channel": "CRM-DEMO-0002",
+      "policy_version": "customer_ops.v4",
+      "mode": "SHADOW",
+      "outcome": "REVIEW",
+      "confidence": 0.88,
+      "would_execute": false,
+      "execution_action": "REVIEW",
+      "reason": "Support contacts up 3.4x on one corridor while completion fell; outreach needs a person.",
+      "policy_guard_reason": null,
+      "policy_evaluation_resolution": "rule_matched",
+      "selected_rule_id": "friction-contacts-spike",
+      "dossier_api_path": "/v1/protocol/dossiers/8d2e3f4a-5b6c-4d7e-9f8a-1b2c3d4e5f61?org_id=0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01"
+    },
+    {
+      "evaluation_id": "6e3f4a5b-8c9d-4e0f-9a1b-3c4d5e6f7a82",
+      "dossier_id": "9e3f4a5b-6c7d-4e8f-8a9b-2c3d4e5f6a72",
+      "created_at": "2026-09-23T08:05:00.000Z",
+      "decision_type": "NO_ACTION",
+      "decision_domain": "NO_ACTION",
+      "amount": null,
+      "risk_score": 0.05,
+      "channel": "CRM-DEMO-0004",
+      "policy_version": "customer_ops.v4",
+      "mode": "SHADOW",
+      "outcome": "APPROVE",
+      "confidence": 0.95,
+      "would_execute": true,
+      "execution_action": "CONTINUE",
+      "reason": "Healthy on every class; no change recommended.",
+      "policy_guard_reason": null,
+      "policy_evaluation_resolution": "rule_matched",
+      "selected_rule_id": "no-action-healthy",
+      "dossier_api_path": "/v1/protocol/dossiers/9e3f4a5b-6c7d-4e8f-8a9b-2c3d4e5f6a72?org_id=0f5c7a2e-4b1d-4c3e-9a8f-2d6e1b7c9a01"
+    }
+  ]
+}
