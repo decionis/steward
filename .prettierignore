@@ -3,3 +3,4 @@ coverage
 node_modules
 pnpm-lock.yaml
 coding.rule.md
+examples/ruian-preview
