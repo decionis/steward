@@ -46,9 +46,15 @@ jobs:
         with:
           node-version: "22"
           cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            examples/ruian-preview/pnpm-lock.yaml
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Next.js lint scanner compatibility
+        run: node --test test/automation/NextLintGlob.test.mjs
 
       - name: Known vulnerabilities (production tree)
         # What ships. Any severity fails: a vulnerable package in the deployed
@@ -67,6 +73,26 @@ jobs:
 
       - name: License policy
         run: pnpm licenses:check
+
+      - name: Install Ruian preview
+        working-directory: examples/ruian-preview
+        run: pnpm install --frozen-lockfile
+
+      - name: Ruian preview lint scanner compatibility
+        working-directory: examples/ruian-preview
+        run: node --test ../../test/automation/NextLintGlob.test.mjs
+
+      - name: Ruian preview vulnerabilities (production tree)
+        working-directory: examples/ruian-preview
+        run: pnpm audit --prod
+
+      - name: Ruian preview vulnerabilities (build toolchain)
+        working-directory: examples/ruian-preview
+        run: pnpm audit --audit-level high
+
+      - name: Ruian preview license policy
+        working-directory: examples/ruian-preview
+        run: node ../../scripts/CheckLicensePolicy.mjs
 
   report:
     name: report
