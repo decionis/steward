@@ -824,8 +824,13 @@
   width: 100%;
   border-radius: 7px;
 }
-.graphicCard > .secondaryButton {
+.downloadForm {
+  margin: 0;
+}
+.graphicCard > .downloadForm {
   margin-top: 16px;
+}
+.graphicCard > .downloadForm > button {
   width: 100%;
 }
 .graphicPlaceholder {

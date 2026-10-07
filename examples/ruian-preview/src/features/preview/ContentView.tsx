@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { Check, Copy, Download, Palette, Sparkles } from "lucide-react";
+import { Check, Copy, Palette, Sparkles } from "lucide-react";
 import { PreviewCatalog, type MerchantId } from "@/domain/PreviewCatalog";
 import { PreviewExport } from "@/domain/PreviewExport";
 import { useAgent } from "./UseAgent";
 import { AgentStatus } from "./AgentPanel";
 import { MerchantSelector } from "./MerchantSelector";
+import { ContentDownload } from "./ContentDownload";
 import styles from "./Preview.module.css";
 
 export function ContentView({ available }: { available: boolean }) {
@@ -141,14 +142,11 @@ export function ContentView({ available }: { available: boolean }) {
             </div>
           )}
           {agent.result && (
-            <a
-              className={styles.secondaryButton}
-              href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(graphic!)}`}
-              download={`${merchantId}-${portrait ? "portrait" : "square"}-concept.svg`}
-            >
-              <Download size={15} />
-              Download graphic
-            </a>
+            <ContentDownload
+              merchantId={merchantId}
+              result={agent.result}
+              format={portrait ? "portrait" : "square"}
+            />
           )}
         </section>
       </div>
@@ -208,14 +206,11 @@ export function ContentView({ available }: { available: boolean }) {
               <Check size={16} />
               {approved ? "Approved in this preview" : "Approve in preview"}
             </button>
-            <a
-              className={styles.secondaryButton}
-              href={`data:text/plain;charset=utf-8,${encodeURIComponent(PreviewExport.contentPack(agent.result!, merchant))}`}
-              download={`${merchantId}-content-pack.txt`}
-            >
-              <Download size={15} />
-              Download copy & script
-            </a>
+            <ContentDownload
+              merchantId={merchantId}
+              result={agent.result}
+              format="text"
+            />
             <small>
               {approved
                 ? "Only marked approved in this browser. Nothing was published."
