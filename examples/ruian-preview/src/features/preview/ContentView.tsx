@@ -19,14 +19,6 @@ export function ContentView({ available }: { available: boolean }) {
   const [copied, setCopied] = useState("");
   const agent = useAgent();
   const merchant = PreviewCatalog.merchant(merchantId);
-  function download(name: string, type: string, data: string) {
-    const url = URL.createObjectURL(new Blob([data], { type }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
   async function generate() {
     setApproved(false);
     setCopied("");
@@ -149,19 +141,14 @@ export function ContentView({ available }: { available: boolean }) {
             </div>
           )}
           {agent.result && (
-            <button
+            <a
               className={styles.secondaryButton}
-              onClick={() =>
-                download(
-                  `${merchantId}-${portrait ? "portrait" : "square"}-concept.svg`,
-                  "image/svg+xml",
-                  graphic!,
-                )
-              }
+              href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(graphic!)}`}
+              download={`${merchantId}-${portrait ? "portrait" : "square"}-concept.svg`}
             >
               <Download size={15} />
               Download graphic
-            </button>
+            </a>
           )}
         </section>
       </div>
@@ -221,19 +208,14 @@ export function ContentView({ available }: { available: boolean }) {
               <Check size={16} />
               {approved ? "Approved in this preview" : "Approve in preview"}
             </button>
-            <button
+            <a
               className={styles.secondaryButton}
-              onClick={() =>
-                download(
-                  `${merchantId}-content-pack.txt`,
-                  "text/plain",
-                  PreviewExport.contentPack(agent.result!, merchant),
-                )
-              }
+              href={`data:text/plain;charset=utf-8,${encodeURIComponent(PreviewExport.contentPack(agent.result!, merchant))}`}
+              download={`${merchantId}-content-pack.txt`}
             >
               <Download size={15} />
               Download copy & script
-            </button>
+            </a>
             <small>
               {approved
                 ? "Only marked approved in this browser. Nothing was published."

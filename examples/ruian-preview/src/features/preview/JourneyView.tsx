@@ -42,6 +42,7 @@ export function JourneyView({ available }: { available: boolean }) {
             value={merchantId}
             onChange={(value) => {
               setMerchant(value);
+              setConsent(false);
               agent.reset();
               setApproved(false);
             }}
