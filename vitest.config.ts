@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   esbuild: {
@@ -15,6 +15,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./TestSetup.ts"],
     include: ["**/*.test.ts", "**/*.test.tsx"],
+    exclude: [...configDefaults.exclude, "examples/ruian-preview/**"],
     coverage: {
       provider: "v8",
       reporter: ["text-summary", "lcov", "json-summary"],

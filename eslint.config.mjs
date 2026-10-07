@@ -7,7 +7,13 @@ const compat = new FlatCompat({ baseDirectory: currentDirectory });
 
 const config = [
   {
-    ignores: [".next/**", "coverage/**", "next-env.d.ts", "node_modules/**"],
+    ignores: [
+      ".next/**",
+      "coverage/**",
+      "next-env.d.ts",
+      "node_modules/**",
+      "examples/ruian-preview/**",
+    ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];

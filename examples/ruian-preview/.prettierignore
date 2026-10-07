@@ -1,0 +1,7 @@
+node_modules
+.next
+.vercel
+pnpm-lock.yaml
+next-env.d.ts
+AGENTS.md
+CLAUDE.md
