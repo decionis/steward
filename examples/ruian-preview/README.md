@@ -1,6 +1,6 @@
 # Steward · Ruian experience preview
 
-[Open the hosted experience](https://steward-ruian-preview.vercel.app) · [Read the proposal](docs/Proposal.md)
+[Open the hosted experience](https://steward.decionis.com) · [Read the proposal](docs/Proposal.md)
 
 A standalone demonstration for the Ruian Offices merchant growth brief. Two fictional merchants and six sample products let a reviewer try four focused experiences without sharing company or customer data.
 
@@ -40,7 +40,7 @@ Root TypeScript, Vitest, ESLint and Prettier exclude this standalone package. Th
 
 ## Hosting and request limits
 
-Deploy this directory to the separate Vercel project `steward-ruian-preview`. Do not change the existing `steward-demo` project binding.
+Deploy this directory to the separate Vercel project `steward-ruian-preview`. Its public domain is **steward.decionis.com**, mapped to this project in the Decionis Vercel team. Azure DNS hosts the `decionis.com` zone in `decionis-rg`; its `steward` A record points to Vercel’s recommended address, `76.76.21.21`. DNS was configured on 7 October 2026. Publish updates with `vercel deploy --prod --scope decionis` and keep the custom domain assigned to Production. Do not change the existing `steward-demo` project binding.
 
 Before enabling production generation, publish one **SDK rate-limit rule** with API ID `ruian-preview-ip`, fixed window **20 requests / 600 seconds**. `PreviewLimits` checks that same rule twice: once with the platform IP key, then with the constant custom key `ruian-preview-all`. This creates a per-visitor allowance and a shared allowance across visitors and instances. A missing, blocked or unavailable rule fails closed. Confirm the rule is live before setting `PREVIEW_RATE_LIMITS_READY=1`.
 

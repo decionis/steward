@@ -18,7 +18,7 @@ A separate, working Steward preview now demonstrates all four directions with a 
 
 ## Try the live preview
 
-**[Open the Steward experience](https://steward-ruian-preview.vercel.app)** — no account required.
+**[Open the Steward experience](https://steward.decionis.com)** — no account required.
 
 1. **Discover:** Try “Lunch in 20 minutes, under ¥60.” The agent checks the sample merchant guide, explains suitable options and lets you save an item.
 2. **Customer journeys:** Confirm the fictional customer's opt-in, draft a three-step return journey and mark it approved in the preview.
