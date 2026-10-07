@@ -1,8 +1,11 @@
 # Decionis Steward: Merchant Growth & Customer Experience
 
-**Cooperation proposal prepared for Ruian Offices**  
-**Prepared by:** Decionis, Inc. | Festus .B. Jejelowo  
-**Date:** 7 October 2026  
+**Cooperation proposal prepared for Ruian Offices**
+
+**Prepared by:** Decionis, Inc. | Festus .B. Jejelowo
+
+**Date:** 7 October 2026
+
 **Status:** Live concept preview available; proposed merchant pilot and commercial terms to be agreed.
 
 ## Make every visit count
@@ -154,9 +157,12 @@ The pilot proposal includes configuration and scoped new development. A statemen
 
 Hold a 60-minute scoping workshop with Ruian, two merchant representatives and Decionis. Review one real catalogue, one customer journey and a sample consented event export. Agree the pilot language, location, channels, data responsibilities, budget owner and success criteria; then issue a priced statement of work.
 
-**Decionis, Inc.**  
-**Festus .B. Jejelowo**  
-[decionis.com/contact](https://decionis.com/contact#contact-form)  
+**Decionis, Inc.**
+
+**Festus .B. Jejelowo**
+
+[decionis.com/contact](https://decionis.com/contact#contact-form)
+
 [Decionis Steward](https://github.com/decionis/steward)
 
 This proposal responds to the brief supplied by the requester. It does not assume an existing Ruian partnership or a live retail deployment. Capability assessment date: 7 October 2026.
