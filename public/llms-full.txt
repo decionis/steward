@@ -72,6 +72,7 @@ This file embeds llms.txt verbatim above and adds the detail an agent needs to r
 - STEWARD_DATA_MODE: demo or live. Defaults to live in production, demo elsewhere.
 - DECIONIS_API_BASE_URL: required in live mode; startup throws without it.
 - DECIONIS_STEWARD_SERVICE_TOKEN: optional server-to-server credential; prefer a user session.
+- DECIONIS_API_KEY, DECIONIS_ORG_ID, DECIONIS_WORKSPACE_NAME: the Decionis workspace Steward acts for on the published Protocol (docs.decionis.com), as the deployment bundle issues them; the key and the org id together or neither; the key travels only as a bearer header. Live mode only.
 - STEWARD_DATABASE_URL: where Steward's own records live; the scheme selects the dialect (postgres, mysql, mssql, oracle, sqlite). Unset outside demo mode, the embedded database under STEWARD_DATA_DIR (default ./data, /app/data in the container) is used. STEWARD_DATABASE_MIGRATE=off makes a schema that is behind refuse to serve instead of migrating at start.
 - DECIONIS_CONNECTOR_ID and DECIONIS_WEBHOOK_SECRET: the signal connector and its webhook secret, issued together by a Decionis deployment bundle; where collected signals are forwarded. Set both or neither; startup refuses one without the other. DECIONIS_WEBHOOK_URL overrides the derived ingress URL.
 - STEWARD_ACCESS_TOKEN_COOKIE (decionis_access_token), STEWARD_ORG_ID_COOKIE (decionis_org_id): the cookies the Decionis sign-in handoff sets and Steward reads.
