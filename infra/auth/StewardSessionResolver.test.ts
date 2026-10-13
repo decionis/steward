@@ -25,6 +25,7 @@ function config(
     timeoutMs: 8_000,
     signalIngress: null,
     persistence: null,
+    decionisWorkspace: null,
   });
 }
 

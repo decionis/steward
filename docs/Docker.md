@@ -137,20 +137,21 @@ cannot take a rollout down with it; Docker Hub rate-limits anonymous pulls.
 
 ## Reference
 
-| Item                 | Value                                                                                           |
-| -------------------- | ----------------------------------------------------------------------------------------------- |
-| Port                 | `3000`                                                                                          |
-| User                 | `node`, unprivileged                                                                            |
-| Health               | `GET /api/health`, no session needed; the image's `HEALTHCHECK` and your load balancer use it   |
-| Discovery            | `GET /llms.txt`, no session needed; what this deployment is, for an agent evaluating it         |
-| Demo mode            | The default; `STEWARD_DATA_MODE=demo`                                                           |
-| Live mode            | `STEWARD_DATA_MODE=live` and `DECIONIS_API_BASE_URL`                                            |
-| Signal forwarding    | `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET`, from the Decionis deployment bundle      |
-| Records              | The embedded database in `/app/data` (mount a volume), or `STEWARD_DATABASE_URL`                |
-| Logs                 | Standard output                                                                                 |
-| Shutdown             | `docker stop`; Steward's records are in the data volume or the database you named               |
-| Platforms            | `linux/amd64`, `linux/arm64`                                                                    |
-| What the image holds | The built server, its static assets, `public/`                                                  |
-| What it never holds  | A policy, a baked-in credential, customer evidence, a license check; the database is outside it |
+| Item                 | Value                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| Port                 | `3000`                                                                                               |
+| User                 | `node`, unprivileged                                                                                 |
+| Health               | `GET /api/health`, no session needed; the image's `HEALTHCHECK` and your load balancer use it        |
+| Discovery            | `GET /llms.txt`, no session needed; what this deployment is, for an agent evaluating it              |
+| Demo mode            | The default; `STEWARD_DATA_MODE=demo`                                                                |
+| Live mode            | `STEWARD_DATA_MODE=live` and `DECIONIS_API_BASE_URL`                                                 |
+| Signal forwarding    | `DECIONIS_CONNECTOR_ID` and `DECIONIS_WEBHOOK_SECRET`, from the Decionis deployment bundle           |
+| Decionis workspace   | `DECIONIS_API_KEY` and `DECIONIS_ORG_ID`, with `DECIONIS_WORKSPACE_NAME`, from the deployment bundle |
+| Records              | The embedded database in `/app/data` (mount a volume), or `STEWARD_DATABASE_URL`                     |
+| Logs                 | Standard output                                                                                      |
+| Shutdown             | `docker stop`; Steward's records are in the data volume or the database you named                    |
+| Platforms            | `linux/amd64`, `linux/arm64`                                                                         |
+| What the image holds | The built server, its static assets, `public/`                                                       |
+| What it never holds  | A policy, a baked-in credential, customer evidence, a license check; the database is outside it      |
 
 The [threat model](../ThreatModel.md) says what a compromise of this tier can and cannot reach.
