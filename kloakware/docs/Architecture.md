@@ -5,7 +5,7 @@ map onto kloakware's `steward` realm, how to decide between one realm and many w
 organisation operates in several markets, and what the Quarkus distribution's build step changes
 about how an image is made and promoted. It ends with the interview questions it answers, Q1, Q11
 and Q12 of the plan, each with the file in this repository that proves the answer. The code it
-describes is the first workstream, K1: [`server/Dockerfile`](../server/Dockerfile),
+describes is the first workstream, K1: [`Dockerfile`](../Dockerfile),
 [`config/realms/steward.json`](../config/realms/steward.json),
 [`deploy/compose/compose.yaml`](../deploy/compose/compose.yaml) and the smoke test under
 [`smoke/`](../smoke/).
@@ -173,16 +173,17 @@ Three more things the distribution decided for you, each a question in its own r
   on the first start of an empty database; the next step is a permanent admin, then deleting the
   temporary one. The old `KEYCLOAK_ADMIN` variables are gone.
 
-Providers, the Java extensions of K5 onward, go into `/opt/keycloak/providers/` _before_
-`kc.sh build`, because the build wires them. A JAR dropped into a running container does nothing.
+Providers, the Java extensions under `extensions/`, go into `/opt/keycloak/providers/` _before_
+`kc.sh build`, because the build wires them; the Dockerfile's first stage compiles them from source
+and the second copies them in. A JAR dropped into a running container does nothing.
 
 ## How kloakware is laid out, and why
 
 ```text
 kloakware/
   pom.xml                   one Keycloak version for the Java API; the license gate; Java 17 target, Java 21 in CI
-  server/Dockerfile         the image: build stage with the build-time options, runtime stage started --optimized
-  server/providers/         extension JARs, compiled in at build
+  Dockerfile                the image: a Maven stage for the extensions, a build stage with the build-time options, a runtime stage started --optimized
+  extensions/               the Java extensions, compiled in at build
   config/realms/            the realm, environment-neutral: $(env:...) where an environment differs
   config/realms/dev/        the overlay a laptop and CI apply after it: seeded users, the smoke client
   deploy/compose/           the stack on a laptop, the same pins as the test
@@ -280,6 +281,6 @@ or a token lifetime changes, and a new image has to be built, scanned, pushed an
 one image, pinned by digest, promoted unchanged, with realm configuration applied to it from Git by
 a tool that converges the running realm to the file.
 
-_Evidence in this repository:_ [`server/Dockerfile`](../server/Dockerfile), one image, build-time
+_Evidence in this repository:_ [`Dockerfile`](../Dockerfile), one image, build-time
 options in the build stage, `start --optimized` in the runtime stage; the same image under the
 compose file and the smoke test; the runtime options as environment in both.

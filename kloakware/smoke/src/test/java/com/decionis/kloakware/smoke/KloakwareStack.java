@@ -56,6 +56,7 @@ final class KloakwareStack implements AutoCloseable {
   private final String databasePassword = secret();
   final String adminPassword = secret();
   final String clientSecret = secret();
+  final String stewardApiSecret = secret();
   final String devUserPassword = secret();
 
   KloakwareStack(Path root) {
@@ -82,8 +83,10 @@ final class KloakwareStack implements AutoCloseable {
 
     server =
         new GenericContainer<>(
+                // The Dockerfile at the project root, its .dockerignore honoured:
+                // the extensions are compiled into the image here, as everywhere.
                 new ImageFromDockerfile("kloakware/server:smoke", false)
-                    .withDockerfile(this.root.resolve("server/Dockerfile")))
+                    .withDockerfile(this.root.resolve("Dockerfile")))
             .withNetwork(network)
             .withNetworkAliases("kloakware")
             .withEnv(runtime)
@@ -147,6 +150,7 @@ final class KloakwareStack implements AutoCloseable {
     environment.put("IMPORT_CACHE_ENABLED", "false");
     environment.put("STEWARD_URL", STEWARD_URL);
     environment.put("KLOAKWARE_STEWARD_CLIENT_SECRET", clientSecret);
+    environment.put("KLOAKWARE_STEWARD_API_SECRET", stewardApiSecret);
     environment.put("KLOAKWARE_DEV_USER_PASSWORD", devUserPassword);
     environment.putAll(overrides);
 

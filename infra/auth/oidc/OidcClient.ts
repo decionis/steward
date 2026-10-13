@@ -6,6 +6,7 @@ import {
   type FetchLike,
   type IdTokenClaims,
   type LogoutTokenClaims,
+  type UserInfoClaims,
 } from "./OidcProvider";
 
 /** What the browser is sent away with, and what must come back unchanged. */
@@ -19,6 +20,8 @@ export interface AuthorizationFlow {
 
 export interface SignInTokens {
   idToken: string;
+  /** Kept only for the userinfo request that may follow; never stored. */
+  accessToken: string;
   claims: IdTokenClaims;
 }
 
@@ -30,6 +33,7 @@ export interface SignInTokens {
  */
 export class OidcClient {
   readonly provider: OidcProvider;
+  private readonly fetchImpl: FetchLike;
 
   constructor(
     readonly config: OidcConfig,
@@ -40,8 +44,6 @@ export class OidcClient {
     this.provider = new OidcProvider(config.issuerUrl, fetchImpl, clock);
     this.fetchImpl = fetchImpl;
   }
-
-  private readonly fetchImpl: FetchLike;
 
   async beginSignIn(input: {
     redirectUri: string;
@@ -91,10 +93,15 @@ export class OidcClient {
     });
     const payload = (await response.json().catch(() => null)) as {
       id_token?: unknown;
+      access_token?: unknown;
       error?: unknown;
       error_description?: unknown;
     } | null;
-    if (!response.ok || typeof payload?.id_token !== "string") {
+    if (
+      !response.ok ||
+      typeof payload?.id_token !== "string" ||
+      typeof payload.access_token !== "string"
+    ) {
       throw new OidcError(
         `The issuer refused the code: ${String(payload?.error ?? response.status)}${
           payload?.error_description
@@ -107,7 +114,35 @@ export class OidcClient {
       clientId: this.config.clientId,
       nonce: input.flow.nonce,
     });
-    return { idToken: payload.id_token, claims };
+    return {
+      idToken: payload.id_token,
+      accessToken: payload.access_token,
+      claims,
+    };
+  }
+
+  /**
+   * The profile from the userinfo endpoint, for an access token that carries
+   * none: a lightweight access token says who, not what they are called. Null
+   * when the issuer has no userinfo endpoint.
+   */
+  async userInfo(accessToken: string): Promise<UserInfoClaims | null> {
+    const { userinfo_endpoint } = await this.provider.metadata();
+    if (!userinfo_endpoint) return null;
+    const response = await this.fetchImpl(userinfo_endpoint, {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        accept: "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new OidcError(`The userinfo endpoint answered ${response.status}`);
+    }
+    const claims = (await response.json()) as UserInfoClaims;
+    if (typeof claims.sub !== "string") {
+      throw new OidcError("The userinfo endpoint named no subject");
+    }
+    return claims;
   }
 
   verifyLogoutToken(logoutToken: string): Promise<LogoutTokenClaims> {

@@ -22,6 +22,13 @@ interface IssuerKey {
  */
 export class FakeIssuer {
   readonly tokenRequests: URLSearchParams[] = [];
+  /** How often userinfo was read, and what it answers for the access token this issuer hands out. */
+  userInfoRequests = 0;
+  userInfo: Record<string, unknown> = {
+    sub: "user-1",
+    name: "From Userinfo",
+    email: "userinfo@example.test",
+  };
   readonly fetch: FetchLike;
   private readonly keys: IssuerKey[] = [];
   private readonly codes = new Map<
@@ -52,6 +59,7 @@ export class FakeIssuer {
       authorization_endpoint: `${this.issuerUrl}/protocol/openid-connect/auth`,
       token_endpoint: `${this.issuerUrl}/protocol/openid-connect/token`,
       jwks_uri: `${this.issuerUrl}/protocol/openid-connect/certs`,
+      userinfo_endpoint: `${this.issuerUrl}/protocol/openid-connect/userinfo`,
       end_session_endpoint: `${this.issuerUrl}/protocol/openid-connect/logout`,
     };
   }
@@ -150,6 +158,13 @@ export class FakeIssuer {
     const method = init?.method ?? "GET";
     if (url === `${this.issuerUrl}/.well-known/openid-configuration`)
       return json(this.metadata);
+    if (url === this.metadata.userinfo_endpoint) {
+      this.userInfoRequests += 1;
+      const authorization = new Headers(init?.headers).get("authorization");
+      if (authorization !== "Bearer access-token")
+        return json({ error: "invalid_token" }, 401);
+      return json(this.userInfo);
+    }
     if (url === this.metadata.jwks_uri) {
       return json({
         keys: this.keys.filter((k) => k.published).map((k) => k.publicJwk),

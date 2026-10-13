@@ -7,7 +7,8 @@ name: Kloakware promote
 # supplies as variables and secrets:
 #
 #   vars:    KLOAKWARE_URL, STEWARD_URL
-#   secrets: KLOAKWARE_ADMIN_USER, KLOAKWARE_ADMIN_PASSWORD, KLOAKWARE_STEWARD_CLIENT_SECRET
+#   secrets: KLOAKWARE_ADMIN_USER, KLOAKWARE_ADMIN_PASSWORD, KLOAKWARE_STEWARD_CLIENT_SECRET,
+#            KLOAKWARE_STEWARD_API_SECRET
 #
 # An environment with no KLOAKWARE_URL is skipped with a notice, so the
 # pipeline exists before the deployments do (K8). The market realms under
@@ -45,6 +46,7 @@ jobs:
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+          KLOAKWARE_STEWARD_API_SECRET: ${{ secrets.KLOAKWARE_STEWARD_API_SECRET }}
         run: kloakware/config/promote/ApplyRealm.sh
 
   qa:
@@ -65,6 +67,7 @@ jobs:
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+          KLOAKWARE_STEWARD_API_SECRET: ${{ secrets.KLOAKWARE_STEWARD_API_SECRET }}
         run: kloakware/config/promote/ApplyRealm.sh
 
   staging:
@@ -85,6 +88,7 @@ jobs:
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+          KLOAKWARE_STEWARD_API_SECRET: ${{ secrets.KLOAKWARE_STEWARD_API_SECRET }}
         run: kloakware/config/promote/ApplyRealm.sh
 
   prod:
@@ -105,4 +109,5 @@ jobs:
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+          KLOAKWARE_STEWARD_API_SECRET: ${{ secrets.KLOAKWARE_STEWARD_API_SECRET }}
         run: kloakware/config/promote/ApplyRealm.sh

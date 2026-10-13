@@ -12,6 +12,19 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K4, token design and fine-grained authorisation: the first Java extension,
+  `extensions/token-mapper-market`, a ProtocolMapper SPI that writes one compact `steward` claim,
+  the user's Steward roles without their prefix and their markets, into the ID token, the access
+  token (lightweight included), userinfo and introspection; the Dockerfile compiles the extensions
+  in with a Maven stage, so the image is the whole project. The `steward` client runs with full
+  scope off, the `steward` scope and a lightweight access token, so the token carries the subject,
+  the session and the compact claim and nothing it does not need; `TokenShapeTest` measures the fat
+  token against the lean one. A `steward-api` resource server under Keycloak Authorization Services:
+  a review in a market needs the approver role and membership of that market, a view needs the
+  market, decided through the token endpoint's UMA grant and proven by `AuthorizationServicesTest`.
+  Steward reads the compact claim first and the realm roles as the fallback, and the profile from
+  `userinfo` when a lean ID token names nobody. The guide: `kloakware/docs/Tokens.md`, answering
+  Q6 and Q17.
 - Steward signs in through kloakware, K3 of the kloakware plan: a confidential OpenID Connect
   client under `infra/auth/oidc/` (discovery and keys cached with a rate-limited refetch on an
   unknown key, the Authorization Code flow with PKCE S256, the code exchanged on the server, the ID

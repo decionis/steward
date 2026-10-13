@@ -14,6 +14,7 @@ export interface OidcMetadata {
   authorization_endpoint: string;
   token_endpoint: string;
   jwks_uri: string;
+  userinfo_endpoint?: string;
   end_session_endpoint?: string;
 }
 
@@ -27,6 +28,19 @@ export interface IdTokenClaims extends JWTPayload {
   given_name?: string;
   family_name?: string;
   realm_access?: { roles?: string[] };
+  /** The compact claim kloakware's steward claim mapper writes: roles without their prefix, and markets. */
+  steward?: { roles?: string[]; markets?: string[] };
+  market?: string[];
+}
+
+/** What the userinfo endpoint answers: the profile, for an access token that carries none. */
+export interface UserInfoClaims {
+  sub: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  preferred_username?: string;
+  email?: string;
 }
 
 export interface LogoutTokenClaims extends JWTPayload {

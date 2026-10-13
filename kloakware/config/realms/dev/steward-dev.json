@@ -5,7 +5,7 @@
     {
       "clientId": "kloakware-smoke",
       "name": "Smoke test (dev and CI only)",
-      "description": "Dev and CI only: the password grant the smoke test signs in with. Never applied to a deployed realm; a deployment applies steward.json alone.",
+      "description": "Dev and CI only: the password grant the smoke tests sign in with, shaped like the steward client: full scope off, the steward claim, a lightweight access token. Never applied to a deployed realm.",
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": true,
@@ -17,14 +17,43 @@
       "webOrigins": [],
       "defaultClientScopes": [
         "basic",
+        "steward",
+        "profile",
+        "email",
+        "web-origins",
+        "acr"
+      ],
+      "optionalClientScopes": [],
+      "fullScopeAllowed": false,
+      "attributes": {
+        "client.use.lightweight.access.token.enabled": "true"
+      }
+    },
+    {
+      "clientId": "kloakware-fat",
+      "name": "The fat token (dev and CI only)",
+      "description": "Dev and CI only: the shape a token has when nothing is done about it, the before of docs/Tokens.md: full scope on, every built-in scope, no lightweight access token. Never deployed.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "defaultClientScopes": [
+        "basic",
         "profile",
         "email",
         "roles",
         "web-origins",
         "acr",
-        "market"
+        "market",
+        "steward"
       ],
-      "optionalClientScopes": []
+      "optionalClientScopes": [],
+      "redirectUris": [],
+      "webOrigins": []
     }
   ],
   "users": [

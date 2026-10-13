@@ -140,13 +140,52 @@
           }
         }
       ]
+    },
+    {
+      "name": "steward",
+      "description": "What Steward needs and nothing else: the user's Steward roles and markets as one claim, from the steward claim mapper compiled into this server.",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "steward claim",
+          "protocol": "openid-connect",
+          "protocolMapper": "steward-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "steward",
+            "role.prefix": "steward-",
+            "markets.group.path": "/markets",
+            "market.attribute": "market",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "lightweight.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "clients": [
     {
       "clientId": "steward",
       "name": "Steward",
-      "description": "The Steward application. A confidential client: the Authorization Code flow with PKCE from the server, backchannel logout to the server, no browser-side token.",
+      "description": "The Steward application: a confidential client, the code flow with PKCE from the server, backchannel logout, no browser-side token. Full scope off, a lightweight access token: the steward claim and nothing more.",
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
@@ -170,35 +209,262 @@
         "post.logout.redirect.uris": "$(env:STEWARD_URL)/sign-in",
         "use.refresh.tokens": "true",
         "oauth2.device.authorization.grant.enabled": "false",
-        "oidc.ciba.grant.enabled": "false"
+        "oidc.ciba.grant.enabled": "false",
+        "client.use.lightweight.access.token.enabled": "true"
       },
       "defaultClientScopes": [
         "basic",
+        "steward",
         "profile",
         "email",
-        "roles",
         "web-origins",
-        "acr",
-        "market"
+        "acr"
       ],
       "optionalClientScopes": [],
-      "protocolMappers": [
-        {
-          "name": "realm roles in the ID token",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-realm-role-mapper",
-          "consentRequired": false,
-          "config": {
-            "multivalued": "true",
-            "claim.name": "realm_access.roles",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "introspection.token.claim": "true"
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "steward-api",
+      "name": "Steward API",
+      "description": "The resource server under Authorization Services: a review in a market needs the approver role and that market; a view needs the market. Decided through the token endpoint's UMA grant; the platform stays the control.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "$(env:KLOAKWARE_STEWARD_API_SECRET)",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "fullScopeAllowed": false,
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "redirectUris": [],
+      "webOrigins": [],
+      "authorizationSettings": {
+        "allowRemoteResourceManagement": false,
+        "policyEnforcementMode": "ENFORCING",
+        "decisionStrategy": "UNANIMOUS",
+        "scopes": [
+          {
+            "name": "view"
+          },
+          {
+            "name": "review"
           }
-        }
-      ]
+        ],
+        "resources": [
+          {
+            "name": "opportunity:SE",
+            "displayName": "Opportunities in SE",
+            "type": "urn:steward:opportunity",
+            "ownerManagedAccess": false,
+            "attributes": {
+              "market": ["SE"]
+            },
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "review"
+              }
+            ]
+          },
+          {
+            "name": "opportunity:NG",
+            "displayName": "Opportunities in NG",
+            "type": "urn:steward:opportunity",
+            "ownerManagedAccess": false,
+            "attributes": {
+              "market": ["NG"]
+            },
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "review"
+              }
+            ]
+          },
+          {
+            "name": "opportunity:GB",
+            "displayName": "Opportunities in GB",
+            "type": "urn:steward:opportunity",
+            "ownerManagedAccess": false,
+            "attributes": {
+              "market": ["GB"]
+            },
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "review"
+              }
+            ]
+          },
+          {
+            "name": "opportunity:DE",
+            "displayName": "Opportunities in DE",
+            "type": "urn:steward:opportunity",
+            "ownerManagedAccess": false,
+            "attributes": {
+              "market": ["DE"]
+            },
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "review"
+              }
+            ]
+          }
+        ],
+        "policies": [
+          {
+            "name": "approvers",
+            "type": "role",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "roles": "[{\"id\": \"steward-approver\", \"required\": true}]",
+              "fetchRoles": "true"
+            }
+          },
+          {
+            "name": "market SE",
+            "type": "group",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "groups": "[{\"path\": \"/markets/SE\", \"extendChildren\": false}]",
+              "groupsClaim": ""
+            }
+          },
+          {
+            "name": "market NG",
+            "type": "group",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "groups": "[{\"path\": \"/markets/NG\", \"extendChildren\": false}]",
+              "groupsClaim": ""
+            }
+          },
+          {
+            "name": "market GB",
+            "type": "group",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "groups": "[{\"path\": \"/markets/GB\", \"extendChildren\": false}]",
+              "groupsClaim": ""
+            }
+          },
+          {
+            "name": "market DE",
+            "type": "group",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "groups": "[{\"path\": \"/markets/DE\", \"extendChildren\": false}]",
+              "groupsClaim": ""
+            }
+          },
+          {
+            "name": "review in SE",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:SE\"]",
+              "scopes": "[\"review\"]",
+              "applyPolicies": "[\"approvers\", \"market SE\"]"
+            }
+          },
+          {
+            "name": "review in NG",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:NG\"]",
+              "scopes": "[\"review\"]",
+              "applyPolicies": "[\"approvers\", \"market NG\"]"
+            }
+          },
+          {
+            "name": "review in GB",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:GB\"]",
+              "scopes": "[\"review\"]",
+              "applyPolicies": "[\"approvers\", \"market GB\"]"
+            }
+          },
+          {
+            "name": "review in DE",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:DE\"]",
+              "scopes": "[\"review\"]",
+              "applyPolicies": "[\"approvers\", \"market DE\"]"
+            }
+          },
+          {
+            "name": "view in SE",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:SE\"]",
+              "scopes": "[\"view\"]",
+              "applyPolicies": "[\"market SE\"]"
+            }
+          },
+          {
+            "name": "view in NG",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:NG\"]",
+              "scopes": "[\"view\"]",
+              "applyPolicies": "[\"market NG\"]"
+            }
+          },
+          {
+            "name": "view in GB",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:GB\"]",
+              "scopes": "[\"view\"]",
+              "applyPolicies": "[\"market GB\"]"
+            }
+          },
+          {
+            "name": "view in DE",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"opportunity:DE\"]",
+              "scopes": "[\"view\"]",
+              "applyPolicies": "[\"market DE\"]"
+            }
+          }
+        ]
+      }
     }
   ],
   "authenticationFlows": [

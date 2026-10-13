@@ -13,8 +13,8 @@ directory is built one workstream at a time, and each workstream's guide is unde
 ```text
 kloakware/
   pom.xml                   the Maven parent: Java level, Keycloak version, the license gate
-  server/Dockerfile         the image: Keycloak 26.8, pinned by digest, built once, started --optimized
-  server/providers/         the extension JARs compiled into the server (from K5)
+  Dockerfile                the image: the extensions compiled in by a Maven stage, then Keycloak 26.8, pinned by digest, built once, started --optimized
+  extensions/               the Java extensions, one module each: token-mapper-market, the steward claim (K4); K5 adds three more
   config/realms/            the steward realm, as keycloak-config-cli applies it: policies, roles, markets, scopes, flows
   config/realms/dev/        the dev overlay: the seeded operator and the smoke client; laptop and CI only
   config/terraform/         the market realms, one per entry in `markets`, through the Keycloak provider
@@ -67,8 +67,10 @@ proves the next apply puts it back.
 ## The pins
 
 Keycloak has no long-term-support line, only the newest release receives fixes, so the image in
-`server/Dockerfile` is pinned by digest and moved by Dependabot; `keycloak.version` in `pom.xml` is
-the Java API the extensions compile against and moves with it. keycloak-config-cli and PostgreSQL
+`Dockerfile` is pinned by digest and moved by Dependabot; `keycloak.version` in `pom.xml` is the
+Java API the extensions compile against and moves with it. The Dockerfile's first stage compiles the
+extensions from source, so `docker build` here needs nothing but Docker, and nothing is ever dropped
+into a running container. keycloak-config-cli and PostgreSQL
 are pinned by digest in the compose file and in the smoke test, the same digests in both. The
 license gate in `pom.xml` applies the policy `scripts/CheckLicensePolicy.mjs` applies to Steward's
 own dependencies: what ships is permissive, or the build fails.

@@ -1,20 +1,41 @@
-# The kloakware server image: Keycloak, built once with the options that cannot
-# change at run time, started --optimized so a container boots in seconds and
-# never recompiles. One image for every environment; what differs between dev
-# and production is runtime configuration (KC_DB_URL, KC_HOSTNAME, the
-# bootstrap admin) and the realm applied to it, never the bytes.
+# The kloakware server image: Keycloak with Steward's extensions compiled in,
+# built once with the options that cannot change at run time, started
+# --optimized so a container boots in seconds and never recompiles. One image
+# for every environment; what differs between dev and production is runtime
+# configuration (KC_DB_URL, KC_HOSTNAME, the bootstrap admin) and the realm
+# applied to it, never the bytes.
 #
-# The base is pinned by digest. Keycloak has no long-term-support line, only
+# Three stages. The first compiles the extensions under extensions/ from
+# source with Maven, so the image is the whole project and nothing is dropped
+# into a running container. The second runs Keycloak's own build with the
+# extensions in place. The third is the server.
+#
+# The bases are pinned by digest. Keycloak has no long-term-support line, only
 # the newest release receives fixes, so Dependabot's docker ecosystem moves
-# this on purpose, and the Java API in ../pom.xml (keycloak.version) moves with
-# it. An update is rehearsed as a K9 rolling update before it merges.
+# the Keycloak pin on purpose, and keycloak.version in pom.xml moves with it.
+# An update is rehearsed as a K9 rolling update before it merges.
 #
-#   docker build -t kloakware/server .
+#   docker build -t kloakware/server .                     (from this directory)
 #   docker run -p 8080:8080 -p 9000:9000 \
 #     -e KC_DB_URL=jdbc:postgresql://db:5432/kloakware -e KC_DB_USERNAME=... -e KC_DB_PASSWORD=... \
 #     -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=... \
 #     -e KC_HOSTNAME=https://login.example.com kloakware/server
 ARG KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
+ARG MAVEN_IMAGE=public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320
+
+# ---- extensions -------------------------------------------------------------
+# Java 21, the server's own level. Keycloak's artifacts are `provided`: the
+# JARs built here carry only Steward's code.
+FROM ${MAVEN_IMAGE} AS extensions
+WORKDIR /build
+COPY pom.xml ./
+COPY extensions ./extensions
+# Each extension is built from its own POM: the parent is read as a parent, so
+# the context needs no other module of the reactor.
+RUN mvn --batch-mode --no-transfer-progress --file extensions/token-mapper-market/pom.xml \
+      -DskipTests package \
+    && mkdir -p /providers \
+    && cp extensions/*/target/*.jar /providers/
 
 # ---- build ------------------------------------------------------------------
 # Build-time options: the database driver to wire, the features to compile in,
@@ -33,9 +54,8 @@ ENV KC_METRICS_ENABLED=true
 ENV KC_CACHE=ispn
 ENV KC_CACHE_STACK=jdbc-ping
 
-# Extensions arrive with K5 (docs/Kloakware.md). They are copied in before the
-# build so the build compiles them into the server:
-#   COPY providers/*.jar /opt/keycloak/providers/
+# The extensions, compiled in: Keycloak's build wires providers it finds here.
+COPY --from=extensions /providers/ /opt/keycloak/providers/
 
 RUN /opt/keycloak/bin/kc.sh build
 
