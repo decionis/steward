@@ -22,7 +22,9 @@ you integrate against these types.
   and where, discovery (the `kubernetes` stack being deprecated in 26.8, jdbc-ping is the one stack
   on Kubernetes too), persistent user sessions and what they change about restarts, sizing and
   stickiness, the JGroups failure-detection and merge defaults and what a partition costs, the
-  multi-site reference architecture, answering Q2 and Q21.
+  multi-site reference architecture, answering Q2 and Q21. The Maven image the Dockerfile's build
+  stage runs comes from Docker Hub at its unchanged digest, the last pull from ECR Public, whose
+  unauthenticated quota refused it on a runner.
 - Kloakware K6, federation and brokering: `extensions/user-storage-steward`, a UserStorageProvider
   SPI over Steward's own `users` table, read-only, importing each user with Steward's id and roles
   on their first sign-in and verifying their password against Steward's argon2id hash, the copy
