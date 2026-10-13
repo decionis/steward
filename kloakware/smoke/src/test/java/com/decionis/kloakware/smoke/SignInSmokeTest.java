@@ -13,12 +13,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -40,14 +38,8 @@ class SignInSmokeTest {
   private KloakwareStack stack;
 
   @BeforeAll
-  void startTheStack() {
-    stack = new KloakwareStack(Path.of(System.getProperty("kloakware.root", "..")));
-    stack.start();
-  }
-
-  @AfterAll
-  void stopTheStack() {
-    if (stack != null) stack.close();
+  void useTheSharedStack() {
+    stack = SharedStack.get();
   }
 
   @Test
@@ -79,6 +71,11 @@ class SignInSmokeTest {
     // Five minutes: the access token lifespan the realm sets.
     assertEquals(300, claims.get("exp").asLong() - claims.get("iat").asLong());
     assertEquals(300, tokens.get("expires_in").asInt());
+
+    // The market claim: from the markets group the operator belongs to, through
+    // the market scope's aggregating mapper. No per-user attribute was set.
+    assertTrue(has(claims.get("market"), "SE"), "market from /markets/SE");
+    assertEquals(1, claims.get("market").size());
   }
 
   @Test

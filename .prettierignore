@@ -4,3 +4,9 @@ node_modules
 pnpm-lock.yaml
 coding.rule.md
 examples/ruian-preview
+
+# Terraform provider binaries and their docs, downloaded by terraform init
+.terraform
+# Terraform state is local to the drift check and ignored by Git; Prettier reads only this root ignore file
+*.tfstate
+*.tfstate.backup

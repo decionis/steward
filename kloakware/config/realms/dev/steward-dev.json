@@ -1,5 +1,6 @@
 {
   "realm": "steward",
+  "sslRequired": "none",
   "clients": [
     {
       "clientId": "kloakware-smoke",
@@ -13,7 +14,17 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "redirectUris": [],
-      "webOrigins": []
+      "webOrigins": [],
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "roles",
+        "web-origins",
+        "acr",
+        "market"
+      ],
+      "optionalClientScopes": []
     }
   ],
   "users": [
@@ -31,7 +42,8 @@
           "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
           "temporary": false
         }
-      ]
+      ],
+      "groups": ["/markets/SE"]
     }
   ]
 }
