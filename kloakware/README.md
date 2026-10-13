@@ -24,8 +24,9 @@ kloakware/
   config/drift/             the drift check: apply, change by hand, detect, converge
   config/promote/           the realm applied to one environment; the promotion workflow runs it per environment
   deploy/terraform/         the platforms as code (K8): a module per cloud with one output contract, the kloakware module on either, an environment per stage, the bootstrap applied once
-  deploy/compose/           PostgreSQL, the server, config-cli: the stack on a laptop
-  smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser
+  deploy/compose/           PostgreSQL, two kloakware nodes behind HAProxy, config-cli: the stack on a laptop (K7)
+  deploy/compose/haproxy/   the entry on 8080: round-robin over the nodes, no stickiness, health on each node's management port
+  smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser, the cluster of two
   docs/                     one guide per Keycloak concept, each ending in the interview questions it answers
   ../test/e2e/              Steward signing in through this stack, end to end (K3), run by the sign-in job
 ```

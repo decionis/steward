@@ -21,7 +21,7 @@
 #     -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=... \
 #     -e KC_HOSTNAME=https://login.example.com kloakware/server
 ARG KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
-ARG MAVEN_IMAGE=public.ecr.aws/docker/library/maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320
+ARG MAVEN_IMAGE=docker.io/library/maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320
 
 # ---- extensions -------------------------------------------------------------
 # Java 21, the server's own level. Keycloak's artifacts are `provided`: the
