@@ -234,6 +234,7 @@ describe("middleware — Steward's own session", () => {
       "/api/auth/oidc/callback",
       "/api/auth/oidc/backchannel-logout",
       "/api/auth/oidc/sign-out",
+      "/api/activities/kloakware",
     ]) {
       const response = middleware(request(path));
       expect(isPassThrough(response)).toBe(true);

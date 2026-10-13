@@ -188,6 +188,7 @@ Invalid or missing required values fail fast rather than degrading at request ti
 | `STEWARD_OIDC_CLIENT_SECRET`       | with the issuer   | —                                       | Its secret; a mounted value, never in a file. Needs `DECIONIS_API_KEY` and `DECIONIS_ORG_ID`.                             |
 | `STEWARD_PUBLIC_URL`               | behind a proxy    | the request's origin                    | Steward's origin as the browser and the issuer see it; the redirect URI is built from it.                                 |
 | `STEWARD_SESSION_COOKIE`           | no                | `steward_session`                       | The cookie carrying Steward's own session id: opaque, HttpOnly, the only thing the browser holds.                         |
+| `STEWARD_AUDIT_WEBHOOK_SECRET`     | no                | —                                       | The secret kloakware's audit listener signs each record with; unset, `/api/activities/kloakware` answers 404.             |
 
 Two further cookies are read opportunistically in live mode and are **not** required:
 `decionis_display_name` (URL-encoded, for the app shell) and `decionis_roles` (a comma-separated
@@ -222,21 +223,22 @@ feature.
 
 ### Routes this app exposes
 
-| Route                                       | Method | Notes                                                                                      |
-| ------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
-| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                                  |
-| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                                         |
-| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                                         |
-| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                                |
-| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                                    |
-| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until forwarding is configured.            |
-| `/api/auth/oidc/start`                      | GET    | Sends the browser to kloakware with a sealed flow; `returnTo` is a path inside Steward.    |
-| `/api/auth/oidc/callback`                   | GET    | Exchanges the code, verifies the ID token, opens the session; failures land on `/sign-in`. |
-| `/api/auth/oidc/backchannel-logout`         | POST   | The issuer's logout token ends every Steward session that began with that issuer session.  |
-| `/api/auth/oidc/sign-out`                   | POST   | Ends the session and sends the browser to the issuer's end-session endpoint.               |
-| `/api/auth/session`                         | GET    | Who the session is: subject, name, roles, mode, how it signed in. No token in it.          |
-| `/api/health`                               | GET    | Unauthenticated liveness probe; reports the database opened at start.                      |
-| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                                  |
+| Route                                       | Method | Notes                                                                                           |
+| ------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                                       |
+| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                                              |
+| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                                              |
+| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                                     |
+| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                                         |
+| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until forwarding is configured.                 |
+| `/api/auth/oidc/start`                      | GET    | Sends the browser to kloakware with a sealed flow; `returnTo` is a path inside Steward.         |
+| `/api/auth/oidc/callback`                   | GET    | Exchanges the code, verifies the ID token, opens the session; failures land on `/sign-in`.      |
+| `/api/auth/oidc/backchannel-logout`         | POST   | The issuer's logout token ends every Steward session that began with that issuer session.       |
+| `/api/auth/oidc/sign-out`                   | POST   | Ends the session and sends the browser to the issuer's end-session endpoint.                    |
+| `/api/auth/session`                         | GET    | Who the session is: subject, name, roles, mode, how it signed in. No token in it.               |
+| `/api/activities/kloakware`                 | POST   | Kloakware's audit records, HMAC-signed, kept as activities; no session, 401 on a bad signature. |
+| `/api/health`                               | GET    | Unauthenticated liveness probe; reports the database opened at start.                           |
+| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                                       |
 
 ### Upstream endpoints it expects
 

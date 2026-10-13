@@ -72,7 +72,7 @@
           "temporary": false
         }
       ],
-      "groups": ["/markets/SE"]
+      "groups": ["/markets/DE"]
     },
     {
       "username": "ops.example",
@@ -81,7 +81,7 @@
       "lastName": "Example",
       "enabled": true,
       "emailVerified": true,
-      "groups": ["/markets/SE"],
+      "groups": ["/markets/DE"],
       "realmRoles": ["steward-operations"],
       "credentials": [
         {
@@ -98,12 +98,50 @@
       "lastName": "Example",
       "enabled": true,
       "emailVerified": true,
-      "groups": ["/markets/SE"],
+      "groups": ["/markets/DE"],
       "realmRoles": ["steward-audits"],
       "credentials": [
         {
           "type": "password",
           "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "sven.example",
+      "email": "sven@example.test",
+      "firstName": "Sven",
+      "lastName": "Example",
+      "enabled": true,
+      "emailVerified": true,
+      "groups": ["/markets/SE"],
+      "realmRoles": ["steward-operator"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "personalNumber": ["199001011234"]
+      }
+    },
+    {
+      "username": "legacy.example",
+      "email": "legacy@example.test",
+      "firstName": "Lena",
+      "lastName": "Example",
+      "enabled": true,
+      "emailVerified": true,
+      "groups": ["/markets/DE"],
+      "realmRoles": ["steward-viewer"],
+      "credentials": [
+        {
+          "type": "password",
+          "secretData": "{\"value\": \"jUkQs1XsAzqmc3/ORi1GOasXFFsPi5ATah3HARd4Bng=\", \"salt\": \"MDEyMzQ1Njc4OWFiY2RlZg==\"}",
+          "credentialData": "{\"hashIterations\": 1, \"algorithm\": \"legacy-sha256\"}",
           "temporary": false
         }
       ]

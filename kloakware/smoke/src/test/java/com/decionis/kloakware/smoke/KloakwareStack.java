@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -48,16 +49,23 @@ final class KloakwareStack implements AutoCloseable {
   /** The Steward origin the realm's redirect and logout URIs are built from. */
   static final String STEWARD_URL = "http://localhost:3000";
 
+  /** The BankID simulator, the same script the compose file runs, pinned like it. */
+  static final DockerImageName PYTHON =
+      DockerImageName.parse("public.ecr.aws/docker/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f");
+
   private final Path root;
   private final Network network = Network.newNetwork();
   private final PostgreSQLContainer<?> database;
+  private final GenericContainer<?> bankId;
   private final GenericContainer<?> server;
+  private final AuditReceiver auditReceiver = new AuditReceiver();
 
   private final String databasePassword = secret();
   final String adminPassword = secret();
   final String clientSecret = secret();
   final String stewardApiSecret = secret();
   final String devUserPassword = secret();
+  final String auditSecret = secret();
 
   KloakwareStack(Path root) {
     this.root = root.toAbsolutePath().normalize();
@@ -70,8 +78,28 @@ final class KloakwareStack implements AutoCloseable {
             .withUsername("kloakware")
             .withPassword(databasePassword);
 
+    bankId =
+        new GenericContainer<>(PYTHON)
+            .withNetwork(network)
+            .withNetworkAliases("bankid")
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/bankid/Simulator.py")),
+                "/sim/Simulator.py")
+            .withCommand("python3", "-I", "/sim/Simulator.py")
+            .withExposedPorts(8090)
+            .waitingFor(Wait.forLogMessage(".*bankid simulator listening.*\\n", 1));
+
+    // The audit listener posts to Steward; here, to a receiver in this JVM,
+    // reached from the container as host.testcontainers.internal.
+    auditReceiver.start();
+    Testcontainers.exposeHostPorts(auditReceiver.port());
+
     Map<String, String> runtime = new HashMap<>();
     runtime.put("KC_DB_URL", "jdbc:postgresql://db:5432/kloakware");
+    runtime.put(
+        "KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_URL",
+        "http://host.testcontainers.internal:" + auditReceiver.port() + "/api/activities/kloakware");
+    runtime.put("KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_SECRET", auditSecret);
     runtime.put("KC_DB_USERNAME", "kloakware");
     runtime.put("KC_DB_PASSWORD", databasePassword);
     runtime.put("KC_BOOTSTRAP_ADMIN_USERNAME", "admin");
@@ -102,6 +130,7 @@ final class KloakwareStack implements AutoCloseable {
 
   void start() {
     database.start();
+    bankId.start();
     server.start();
     // The realm first, with config-cli's defaults: what it created before and
     // no longer finds in the file, it removes. Then the dev overlay, which
@@ -149,6 +178,7 @@ final class KloakwareStack implements AutoCloseable {
     // re-applying is to undo what was changed by hand.
     environment.put("IMPORT_CACHE_ENABLED", "false");
     environment.put("STEWARD_URL", STEWARD_URL);
+    environment.put("KLOAKWARE_BANKID_URL", "http://bankid:8090");
     environment.put("KLOAKWARE_STEWARD_CLIENT_SECRET", clientSecret);
     environment.put("KLOAKWARE_STEWARD_API_SECRET", stewardApiSecret);
     environment.put("KLOAKWARE_DEV_USER_PASSWORD", devUserPassword);
@@ -205,10 +235,21 @@ final class KloakwareStack implements AutoCloseable {
     return baseUrl() + "/realms/master/protocol/openid-connect/token";
   }
 
+  AuditReceiver auditReceiver() {
+    return auditReceiver;
+  }
+
+  /** What the server wrote so far: the audit listener's standard-output sink is read here. */
+  String serverLogs() {
+    return server.getLogs();
+  }
+
   @Override
   public void close() {
     server.stop();
+    bankId.stop();
     database.stop();
+    auditReceiver.stop();
     network.close();
   }
 

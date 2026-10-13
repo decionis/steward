@@ -36,18 +36,22 @@ export STEWARD_OIDC_CLIENT_ID=steward
 export STEWARD_OIDC_CLIENT_SECRET="$KLOAKWARE_STEWARD_CLIENT_SECRET"
 export STEWARD_PUBLIC_URL="$public_url"
 export STEWARD_DATA_DIR="$run/data"
+# The audit listener posts each record to Steward, signed with this (K5).
+export STEWARD_AUDIT_WEBHOOK_SECRET="$KLOAKWARE_AUDIT_WEBHOOK_SECRET"
 export PORT=3000
 rm -rf "$run/data"
 
 echo "== Steward, live, signing in through $STEWARD_OIDC_ISSUER_URL"
 # Nothing may already hold the port: a previous run's server, for instance.
-lsof -ti tcp:"$PORT" 2>/dev/null | xargs kill 2>/dev/null || true
+# Only the listener: a plain port match also catches the Docker backend
+# proxying the audit listener's connection to Steward, and kills the engine.
+lsof -ti tcp:"$PORT" -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null || true
 (cd "$root" && exec pnpm start > "$run/steward.log" 2>&1) &
 steward=$!
 cleanup() {
   kill "$steward" 2>/dev/null || true
   # pnpm hands off to next-server; end whatever still listens on the port.
-  lsof -ti tcp:"$PORT" 2>/dev/null | xargs kill 2>/dev/null || true
+  lsof -ti tcp:"$PORT" -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -59,4 +63,5 @@ curl -sf http://localhost:3000/api/health >/dev/null || { echo "Steward did not 
 
 echo "== the sign-in, end to end"
 STEWARD_URL=http://localhost:3000 STEWARD_PUBLIC_URL="$public_url" KLOAKWARE_URL="$kloakware_url" \
+  STEWARD_E2E_DATABASE="$run/data/steward.sqlite" \
   node --test "$root/test/e2e/KloakwareSignIn.test.mjs" || { echo "--- steward.log ---"; tail -60 "$run/steward.log"; exit 1; }

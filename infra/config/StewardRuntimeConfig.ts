@@ -31,6 +31,7 @@ const RuntimeEnvironmentSchema = z.object({
   STEWARD_OIDC_SCOPES: z.string().min(1).default("openid profile email"),
   STEWARD_PUBLIC_URL: z.string().url().optional(),
   STEWARD_SESSION_COOKIE: z.string().min(1).default("steward_session"),
+  STEWARD_AUDIT_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 /**
@@ -118,6 +119,8 @@ export interface StewardRuntimeValues {
   decionisWorkspace: DecionisWorkspaceConfig | null;
   oidc?: OidcConfig | null;
   sessionCookie?: string;
+  /** The secret kloakware's audit listener signs each record with; null disables the endpoint. */
+  auditWebhookSecret?: string | null;
 }
 
 export class StewardRuntimeConfig {
@@ -134,6 +137,7 @@ export class StewardRuntimeConfig {
   readonly oidc: OidcConfig | null;
   /** The cookie carrying Steward's own session id; one cookie, HttpOnly, opaque. */
   readonly sessionCookie: string;
+  readonly auditWebhookSecret: string | null;
 
   constructor(values: StewardRuntimeValues) {
     this.dataMode = values.dataMode;
@@ -148,6 +152,7 @@ export class StewardRuntimeConfig {
     this.decionisWorkspace = values.decionisWorkspace;
     this.oidc = values.oidc ?? null;
     this.sessionCookie = values.sessionCookie ?? "steward_session";
+    this.auditWebhookSecret = values.auditWebhookSecret ?? null;
   }
 
   static fromEnvironment(
@@ -185,6 +190,10 @@ export class StewardRuntimeConfig {
       decionisWorkspace,
       oidc: StewardRuntimeConfig.readOidc(parsed, dataMode, decionisWorkspace),
       sessionCookie: parsed.STEWARD_SESSION_COOKIE,
+      auditWebhookSecret:
+        dataMode === "live"
+          ? (parsed.STEWARD_AUDIT_WEBHOOK_SECRET ?? null)
+          : null,
     });
   }
 

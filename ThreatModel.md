@@ -62,7 +62,10 @@ records the decision that put this boundary here.
 workstream. Kloakware is the Keycloak access service the operator runs beside Steward; Steward's
 server sends the browser there to sign in and, on return, verifies the ID token against the issuer's
 published keys before it creates a session of its own. The browser never holds a kloakware token, and
-a kloakware token never reaches the platform: boundary 2 → 3 is unchanged by it.
+a kloakware token never reaches the platform: boundary 2 → 3 is unchanged by it. The one request that
+crosses this boundary the other way is kloakware's audit listener posting each sign-in, failure and
+administrator action to `/api/activities/kloakware`, signed with a shared secret under HMAC-SHA256 and
+refused outside a five-minute window; a record is kept as an activity and never executed.
 
 ## Threats and mitigations
 

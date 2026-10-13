@@ -28,6 +28,9 @@ const UNAUTHENTICATED_PATHS = new Set([
   "/api/auth/oidc/callback",
   "/api/auth/oidc/backchannel-logout",
   "/api/auth/oidc/sign-out",
+  // Kloakware's audit listener posts each record here, signed with a shared
+  // secret the route verifies; there is no browser and no session behind it.
+  "/api/activities/kloakware",
 ]);
 
 function isLiveMode(): boolean {

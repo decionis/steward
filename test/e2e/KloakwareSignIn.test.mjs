@@ -258,6 +258,44 @@ test("signing out of Steward ends its session and sends the browser to the issue
   assert.equal((await session(stale)).status, 401);
 });
 
+test("the sign-in reaches Steward's own record through kloakware's audit listener", async () => {
+  // K5: the listener posts a signed LOGIN record to /api/activities/kloakware,
+  // and Steward keeps it as an activity beside its own SIGNED_IN, attributed
+  // to the user who signs in as that issuer subject.
+  const database = process.env.STEWARD_E2E_DATABASE;
+  assert.ok(database, "STEWARD_E2E_DATABASE names Steward's embedded database");
+  const { default: Database } = await import("better-sqlite3");
+
+  const stewardJar = new Jar();
+  const kloakwareJar = new Jar();
+  await signIn(stewardJar, kloakwareJar, "/");
+  const { body } = await session(stewardJar);
+
+  const kinds = () => {
+    const db = new Database(database, { readonly: true });
+    try {
+      return db
+        .prepare(
+          "SELECT kind, user_id AS userId FROM activities WHERE user_id = ? ORDER BY occurred_at",
+        )
+        .all(body.subject);
+    } finally {
+      db.close();
+    }
+  };
+  const recorded = await until(async () =>
+    kinds().some((row) => row.kind === "KLOAKWARE_LOGIN"),
+  );
+  assert.ok(
+    recorded,
+    `the KLOAKWARE_LOGIN activity arrived: ${JSON.stringify(kinds())}`,
+  );
+  assert.ok(
+    kinds().some((row) => row.kind === "SIGNED_IN"),
+    "beside Steward's own SIGNED_IN",
+  );
+});
+
 test("a sign-in that comes back without its flow lands on the sign-in page with a reason", async () => {
   const jar = new Jar();
   const response = await browse(

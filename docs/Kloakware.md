@@ -263,7 +263,7 @@ kloakware workflow against K1's container. README, Docker guide and the evidence
 lifetimes, rotation, front- and backchannel logout, revocation, key rotation). _Answers: Q5, Q15,
 Q16._
 
-#### K4 — Token design and fine-grained authorisation
+#### K4 — Token design and fine-grained authorisation ✅ Done, [#129](https://github.com/decionis/steward/pull/129)
 
 The `token-mapper-market` protocol mapper (the `market` claim; Steward's roles as one compact claim
 under the `steward` scope); "full scope allowed" off; the lightweight access token enabled for the

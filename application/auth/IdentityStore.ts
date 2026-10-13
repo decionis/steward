@@ -47,6 +47,8 @@ export interface ActivityInput {
 export interface IdentityStore {
   /** Creates the user on first sign-in, updates name, email and roles on every later one. */
   upsertSsoUser(input: SsoUserInput): Promise<SignedInUser>;
+  /** The user who signs in as this issuer subject, or null. */
+  findUserBySsoSubject(ssoSubject: string): Promise<SignedInUser | null>;
   createSession(input: NewSession): Promise<ActiveSession>;
   /** The session if it exists, has not expired and has not been revoked; else null. */
   findActiveSession(id: string): Promise<ActiveSession | null>;

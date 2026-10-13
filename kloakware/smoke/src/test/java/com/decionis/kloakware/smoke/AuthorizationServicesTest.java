@@ -34,7 +34,7 @@ class AuthorizationServicesTest {
 
   @Test
   void anApproverInTheMarketMayReviewThere() throws Exception {
-    assertEquals(200, decide(erin, "opportunity:SE#review").statusCode());
+    assertEquals(200, decide(erin, "opportunity:DE#review").statusCode());
   }
 
   @Test
@@ -44,8 +44,8 @@ class AuthorizationServicesTest {
 
   @Test
   void theTechnicalTeamInTheMarketMayViewButNotReview() throws Exception {
-    assertEquals(200, decide(ops, "opportunity:SE#view").statusCode());
-    assertEquals(403, decide(ops, "opportunity:SE#review").statusCode());
+    assertEquals(200, decide(ops, "opportunity:DE#view").statusCode());
+    assertEquals(403, decide(ops, "opportunity:DE#review").statusCode());
   }
 
   private HttpResponse<String> decide(String bearer, String permission) throws Exception {

@@ -50,6 +50,20 @@ export class InMemoryIdentityStore implements IdentityStore {
     };
   }
 
+  async findUserBySsoSubject(ssoSubject: string): Promise<SignedInUser | null> {
+    const user = [...this.users.values()].find(
+      (u) => u.ssoSubject === ssoSubject,
+    );
+    return user
+      ? {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          roles: [...user.roles],
+        }
+      : null;
+  }
+
   async createSession(input: NewSession): Promise<ActiveSession> {
     const user = this.users.get(input.userId);
     if (!user) throw new Error(`No user ${input.userId}`);

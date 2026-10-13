@@ -45,6 +45,18 @@ describe("TypeOrmIdentityStore — users", () => {
     expect(second.roles).toEqual(["ADMIN", "AUDITS"]);
   });
 
+  it("finds a user by the issuer subject they sign in as, and nobody by an unknown one", async () => {
+    const created = await store.upsertSsoUser(erin);
+    expect((await store.findUserBySsoSubject(erin.ssoSubject))?.id).toBe(
+      created.id,
+    );
+    expect(
+      await store.findUserBySsoSubject(
+        "https://issuer.example/realms/steward#nobody",
+      ),
+    ).toBeNull();
+  });
+
   it("links an existing account by email when the subject is new, so a migration keeps the user", async () => {
     const first = await store.upsertSsoUser(erin);
     const linked = await store.upsertSsoUser({

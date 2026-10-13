@@ -9,6 +9,7 @@
 #   KEYCLOAK_USER, KEYCLOAK_PASSWORD the administrator config-cli signs in as
 #   KLOAKWARE_STEWARD_CLIENT_SECRET  the steward client's secret there
 #   KLOAKWARE_STEWARD_API_SECRET     the steward-api resource server's secret there
+#   KLOAKWARE_BANKID_URL             where the BankID Relying Party API answers for that environment
 #
 # The realm file is the one committed at the tag being promoted; nothing is
 # read from the running realm, and an unchanged file still converges it.
@@ -38,4 +39,5 @@ docker run --rm \
   -e STEWARD_URL \
   -e KLOAKWARE_STEWARD_CLIENT_SECRET \
   -e KLOAKWARE_STEWARD_API_SECRET \
+  -e KLOAKWARE_BANKID_URL="${KLOAKWARE_BANKID_URL:-http://bankid:8090}" \
   "$image"

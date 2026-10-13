@@ -30,9 +30,9 @@ FROM ${MAVEN_IMAGE} AS extensions
 WORKDIR /build
 COPY pom.xml ./
 COPY extensions ./extensions
-# Each extension is built from its own POM: the parent is read as a parent, so
-# the context needs no other module of the reactor.
-RUN mvn --batch-mode --no-transfer-progress --file extensions/token-mapper-market/pom.xml \
+# The extensions' own reactor: the parent is read as a parent, so the context
+# needs nothing else of the project.
+RUN mvn --batch-mode --no-transfer-progress --file extensions/pom.xml \
       -DskipTests package \
     && mkdir -p /providers \
     && cp extensions/*/target/*.jar /providers/
