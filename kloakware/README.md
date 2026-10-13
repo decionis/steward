@@ -14,15 +14,17 @@ directory is built one workstream at a time, and each workstream's guide is unde
 kloakware/
   pom.xml                   the Maven parent: Java level, Keycloak version, the license gate
   Dockerfile                the image: the extensions compiled in by a Maven stage, then Keycloak 26.8, pinned by digest, built once, started --optimized
-  extensions/               the Java extensions, one module each: the steward claim (K4), the audit listener, the market second factor, the legacy password hash (K5)
+  extensions/               the Java extensions, one module each: the steward claim (K4), the audit listener, the market second factor, the legacy password hash (K5), the Steward user storage (K6)
   deploy/compose/bankid/    the BankID Relying Party API in shape only, for the second factor on a laptop
-  config/realms/            the steward realm, as keycloak-config-cli applies it: policies, roles, markets, scopes, flows
-  config/realms/dev/        the dev overlay: the seeded operator and the smoke client; laptop and CI only
+  deploy/compose/ldap/      OpenLDAP from Debian's slapd, seeded at start: the directory the ldap federation reads (K6)
+  deploy/compose/steward-db/ Steward's own database stood in beside kloakware's, one local account seeded, for the user storage (K6)
+  config/realms/            the steward realm, as keycloak-config-cli applies it: policies, roles, markets, scopes, flows, storages, brokers; and corp, the corporate identity provider stood in (K6)
+  config/realms/dev/        the dev overlay: the seeded operators, the smoke client, Corp's people; laptop and CI only
   config/terraform/         the market realms, one per entry in `markets`, through the Keycloak provider
   config/drift/             the drift check: apply, change by hand, detect, converge
   config/promote/           the realm applied to one environment; the promotion workflow runs it per environment
   deploy/compose/           PostgreSQL, the server, config-cli: the stack on a laptop
-  smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change
+  smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser
   docs/                     one guide per Keycloak concept, each ending in the interview questions it answers
   ../test/e2e/              Steward signing in through this stack, end to end (K3), run by the sign-in job
 ```

@@ -33,7 +33,7 @@ class AuditTrailTest {
   void aSignInIsRecordedAndPostedWithAValidSignature() throws Exception {
     Tokens.passwordGrant(stack, "kloakware-smoke", KloakwareStack.DEV_USER, stack.devUserPassword);
 
-    AuditReceiver.Received record = stack.auditReceiver().await("LOGIN", 10_000);
+    AuditReceiver.Received record = stack.auditReceiver().await("LOGIN", KloakwareStack.DEV_USER, 10_000);
     assertNotNull(record, "the LOGIN record reached the receiver");
     assertEquals(
         AuditEvent.signature(stack.auditSecret, record.timestamp(), record.body()),
@@ -64,7 +64,7 @@ class AuditTrailTest {
     assertTrue(refused.statusCode() == 400 || refused.statusCode() == 401, "refused: " + refused.statusCode());
     assertEquals("invalid_grant", Tokens.JSON.readTree(refused.body()).get("error").asText());
 
-    AuditReceiver.Received record = stack.auditReceiver().await("LOGIN_ERROR", 10_000);
+    AuditReceiver.Received record = stack.auditReceiver().await("LOGIN_ERROR", KloakwareStack.DEV_USER, 10_000);
     assertNotNull(record, "the LOGIN_ERROR record reached the receiver");
     JsonNode body = Tokens.JSON.readTree(record.body());
     assertEquals("invalid_user_credentials", body.get("error").asText());

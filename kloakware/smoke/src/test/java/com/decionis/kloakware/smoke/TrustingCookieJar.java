@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * JDK's {@link java.net.CookieManager} has no such exception: it stores the
  * cookies and never sends them to an {@code http://} URL, so the second step
  * of the login fails with "Restart login cookie not found". This jar keeps one
- * cookie per host and name, honours path and deletion, and ignores the Secure
+ * cookie per host, name and path, honours deletion, and ignores the Secure
  * flag, which is exactly the browser's behaviour on a laptop.
  */
 final class TrustingCookieJar extends CookieHandler {
@@ -46,8 +46,11 @@ final class TrustingCookieJar extends CookieHandler {
       if (header.getKey() == null || !header.getKey().equalsIgnoreCase("Set-Cookie")) continue;
       for (String value : header.getValue()) {
         for (HttpCookie cookie : HttpCookie.parse(value)) {
-          if (cookie.getMaxAge() == 0) jar.remove(cookie.getName());
-          else jar.put(cookie.getName(), cookie);
+          // One cookie per name and path: two realms on one host set cookies
+          // of the same name under their own paths, and both must survive.
+          String key = cookie.getName() + "|" + (cookie.getPath() == null ? "/" : cookie.getPath());
+          if (cookie.getMaxAge() == 0) jar.remove(key);
+          else jar.put(key, cookie);
         }
       }
     }

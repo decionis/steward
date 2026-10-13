@@ -20,8 +20,12 @@ services:
       POSTGRES_DB: kloakware
       POSTGRES_USER: kloakware
       POSTGRES_PASSWORD: ${KLOAKWARE_DB_PASSWORD:?set it in .env (see .env.example)}
+      # Steward's own database, stood in on the same server for the
+      # steward-users storage (K6); created once with the volume.
+      STEWARD_DB_PASSWORD: ${STEWARD_DB_PASSWORD:?set it in .env (see .env.example)}
     volumes:
       - db:/var/lib/postgresql/data
+      - ./steward-db/Init.sh:/docker-entrypoint-initdb.d/10-steward.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kloakware -d kloakware"]
       interval: 5s
@@ -83,6 +87,15 @@ services:
 
   # The realm, from Git. Runs to completion; what it created before and no
   # longer finds in the file, it removes.
+  ldap:
+    # OpenLDAP, the directory the realm's ldap federation reads (K6): Debian's
+    # slapd, seeded at start from ./ldap/Seed.ldif with one password for its
+    # people and the administrator's from the environment.
+    build: ./ldap
+    environment:
+      LDAP_ADMIN_PASSWORD: ${KLOAKWARE_LDAP_BIND_PASSWORD:?set it in .env (see .env.example)}
+      LDAP_USER_PASSWORD: ${KLOAKWARE_DEV_USER_PASSWORD:?set it in .env (see .env.example)}
+
   config:
     image: docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274
     depends_on:
@@ -94,15 +107,24 @@ services:
       KEYCLOAK_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
       KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
       KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 120s
-      IMPORT_FILES_LOCATIONS: /config/steward.json
+      IMPORT_FILES_LOCATIONS: /config/corp.json,/config/steward.json
       IMPORT_VARSUBSTITUTION_ENABLED: "true"
       # Re-applying an unchanged file must still converge the realm (K2: drift).
       IMPORT_CACHE_ENABLED: "false"
       STEWARD_URL: ${STEWARD_URL:-http://localhost:3000}
       KLOAKWARE_BANKID_URL: http://bankid:8090
+      # The brokers (K6): the browser reaches the corp realm at the public URL,
+      # the server reaches it at its own; the broker client's secret; the
+      # ldap bind and the Steward database read the realm's storages use.
+      KLOAKWARE_PUBLIC_URL: http://localhost:8080
+      KLOAKWARE_INTERNAL_URL: http://localhost:8080
+      KLOAKWARE_BROKER_CLIENT_SECRET: ${KLOAKWARE_BROKER_CLIENT_SECRET:?set it in .env (see .env.example)}
+      KLOAKWARE_LDAP_BIND_PASSWORD: ${KLOAKWARE_LDAP_BIND_PASSWORD:?set it in .env (see .env.example)}
+      STEWARD_DB_PASSWORD: ${STEWARD_DB_PASSWORD:?set it in .env (see .env.example)}
       KLOAKWARE_STEWARD_CLIENT_SECRET: ${KLOAKWARE_STEWARD_CLIENT_SECRET:?set it in .env (see .env.example)}
       KLOAKWARE_STEWARD_API_SECRET: ${KLOAKWARE_STEWARD_API_SECRET:?set it in .env (see .env.example)}
     volumes:
+      - ../../config/realms/corp.json:/config/corp.json:ro
       - ../../config/realms/steward.json:/config/steward.json:ro
 
   # The dev overlay: plain HTTP accepted on the master and steward realms (a
@@ -121,7 +143,7 @@ services:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
       KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
-      IMPORT_FILES_LOCATIONS: /config/dev/master-dev.json,/config/dev/steward-dev.json
+      IMPORT_FILES_LOCATIONS: /config/dev/master-dev.json,/config/dev/steward-dev.json,/config/dev/corp-dev.json
       IMPORT_VARSUBSTITUTION_ENABLED: "true"
       # Re-applying an unchanged file must still converge the realm (K2: drift).
       IMPORT_CACHE_ENABLED: "false"

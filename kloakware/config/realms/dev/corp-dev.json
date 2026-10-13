@@ -1,0 +1,63 @@
+{
+  "realm": "corp",
+  "sslRequired": "none",
+  "users": [
+    {
+      "username": "carl.corp",
+      "email": "carl@corp.test",
+      "firstName": "Carl",
+      "lastName": "Corp",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "market": ["SE"],
+        "stewardRole": ["operator"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "erin.corp",
+      "email": "erin@example.test",
+      "firstName": "Erin",
+      "lastName": "Corp",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "market": ["DE"],
+        "stewardRole": ["approver"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "dana.corp",
+      "email": "dana@corp.test",
+      "firstName": "Dana",
+      "lastName": "Corp",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "market": ["GB"],
+        "stewardRole": ["audits"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

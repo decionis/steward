@@ -61,6 +61,9 @@
     <license-maven-plugin.version>2.7.1</license-maven-plugin.version>
     <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
     <kafka-clients.version>4.3.1</kafka-clients.version>
+    <!-- The Bouncy Castle the server ships in lib/lib/main; a provider must compile against the same. -->
+    <bouncycastle.version>1.86</bouncycastle.version>
+    <postgresql-jdbc.version>42.7.13</postgresql-jdbc.version>
   </properties>
 
   <dependencyManagement>
@@ -115,6 +118,11 @@
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
         <version>${kafka-clients.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>

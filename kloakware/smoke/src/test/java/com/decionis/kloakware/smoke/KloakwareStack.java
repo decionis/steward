@@ -57,6 +57,7 @@ final class KloakwareStack implements AutoCloseable {
   private final Network network = Network.newNetwork();
   private final PostgreSQLContainer<?> database;
   private final GenericContainer<?> bankId;
+  private final GenericContainer<?> ldap;
   private final GenericContainer<?> server;
   private final AuditReceiver auditReceiver = new AuditReceiver();
 
@@ -66,6 +67,9 @@ final class KloakwareStack implements AutoCloseable {
   final String stewardApiSecret = secret();
   final String devUserPassword = secret();
   final String auditSecret = secret();
+  final String brokerClientSecret = secret();
+  final String ldapBindPassword = secret();
+  final String stewardDbPassword = secret();
 
   KloakwareStack(Path root) {
     this.root = root.toAbsolutePath().normalize();
@@ -76,7 +80,27 @@ final class KloakwareStack implements AutoCloseable {
             .withNetworkAliases("db")
             .withDatabaseName("kloakware")
             .withUsername("kloakware")
-            .withPassword(databasePassword);
+            .withPassword(databasePassword)
+            // Steward's own database, stood in beside kloakware's as the
+            // compose file does, for the steward-users storage to read.
+            .withEnv("STEWARD_DB_PASSWORD", stewardDbPassword)
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/steward-db/Init.sh"), 0755),
+                "/docker-entrypoint-initdb.d/10-steward.sh");
+
+    // OpenLDAP from the compose file's own Dockerfile, seeded at start.
+    ldap =
+        new GenericContainer<>(
+                new ImageFromDockerfile("kloakware/ldap:smoke", false)
+                    .withDockerfile(this.root.resolve("deploy/compose/ldap/Dockerfile")))
+            .withNetwork(network)
+            .withNetworkAliases("ldap")
+            .withEnv("LDAP_ADMIN_PASSWORD", ldapBindPassword)
+            .withEnv("LDAP_USER_PASSWORD", devUserPassword)
+            .withExposedPorts(389)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("ldap"))
+            .waitingFor(
+                Wait.forLogMessage(".*slapd starting.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)));
 
     bankId =
         new GenericContainer<>(PYTHON)
@@ -131,12 +155,18 @@ final class KloakwareStack implements AutoCloseable {
   void start() {
     database.start();
     bankId.start();
+    ldap.start();
     server.start();
-    // The realm first, with config-cli's defaults: what it created before and
-    // no longer finds in the file, it removes. Then the dev overlay, which
-    // must not remove the realm's clients it does not mention.
-    applyRealm(List.of(root.resolve("config/realms/steward.json")), Map.of());
+    // The realms first, with config-cli's defaults: what it created before
+    // and no longer finds in the file, it removes. Corp before steward, since
+    // steward's brokers point at it. Then the dev overlay, which must not
+    // remove the realm's clients it does not mention.
+    applyRealm(realmFiles(), Map.of());
     applyDevOverlay();
+  }
+
+  private List<Path> realmFiles() {
+    return List.of(root.resolve("config/realms/corp.json"), root.resolve("config/realms/steward.json"));
   }
 
   /**
@@ -144,7 +174,7 @@ final class KloakwareStack implements AutoCloseable {
    * does on a laptop: what is committed for this environment is the pair.
    */
   void reapplyRealm() {
-    applyRealm(List.of(root.resolve("config/realms/steward.json")), Map.of());
+    applyRealm(realmFiles(), Map.of());
     applyDevOverlay();
   }
 
@@ -159,7 +189,8 @@ final class KloakwareStack implements AutoCloseable {
     applyRealm(
         List.of(
             root.resolve("config/realms/dev/master-dev.json"),
-            root.resolve("config/realms/dev/steward-dev.json")),
+            root.resolve("config/realms/dev/steward-dev.json"),
+            root.resolve("config/realms/dev/corp-dev.json")),
         Map.of("IMPORT_MANAGED_CLIENT", "no-delete"));
   }
 
@@ -182,6 +213,15 @@ final class KloakwareStack implements AutoCloseable {
     environment.put("KLOAKWARE_STEWARD_CLIENT_SECRET", clientSecret);
     environment.put("KLOAKWARE_STEWARD_API_SECRET", stewardApiSecret);
     environment.put("KLOAKWARE_DEV_USER_PASSWORD", devUserPassword);
+    // The brokers (K6): the browser, this JVM, reaches the corp realm at the
+    // mapped port; the server reaches it at its own. The ldap URL and the
+    // Steward database's URL and user are left to the realm file's defaults,
+    // which name the compose services this stack aliases the same way.
+    environment.put("KLOAKWARE_PUBLIC_URL", baseUrl());
+    environment.put("KLOAKWARE_INTERNAL_URL", "http://localhost:8080");
+    environment.put("KLOAKWARE_BROKER_CLIENT_SECRET", brokerClientSecret);
+    environment.put("KLOAKWARE_LDAP_BIND_PASSWORD", ldapBindPassword);
+    environment.put("STEWARD_DB_PASSWORD", stewardDbPassword);
     environment.putAll(overrides);
 
     GenericContainer<?> container = new GenericContainer<>(CONFIG_CLI).withNetwork(network);
@@ -239,6 +279,25 @@ final class KloakwareStack implements AutoCloseable {
     return auditReceiver;
   }
 
+  /** The corp realm, the stand-in corporate identity provider, as the browser reaches it. */
+  String corpRealmUrl() {
+    return baseUrl() + "/realms/corp";
+  }
+
+  /** The stand-in Steward database from this JVM, as the steward user, for seeding rows. */
+  String stewardJdbcUrl() {
+    return "jdbc:postgresql://" + host() + ":" + database.getMappedPort(5432) + "/steward";
+  }
+
+  /** Pauses or resumes the directory: what users see when it is down. */
+  void directory(boolean up) {
+    if (up) {
+      ldap.getDockerClient().unpauseContainerCmd(ldap.getContainerId()).exec();
+    } else {
+      ldap.getDockerClient().pauseContainerCmd(ldap.getContainerId()).exec();
+    }
+  }
+
   /** What the server wrote so far: the audit listener's standard-output sink is read here. */
   String serverLogs() {
     return server.getLogs();
@@ -247,6 +306,7 @@ final class KloakwareStack implements AutoCloseable {
   @Override
   public void close() {
     server.stop();
+    ldap.stop();
     bankId.stop();
     database.stop();
     auditReceiver.stop();
