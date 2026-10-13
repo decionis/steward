@@ -50,6 +50,11 @@ final class KloakwareStack implements AutoCloseable {
   static final String STEWARD_URL = "http://localhost:3000";
 
   /** The BankID simulator, the same script the compose file runs, pinned like it. */
+  /** The entry in front of the two nodes, the same image and config as the compose file. */
+  static final DockerImageName HAPROXY =
+      DockerImageName.parse(
+          "docker.io/library/haproxy:3.2-alpine@sha256:5d97434a423c2533cfeb42874d45cf6d69a840b60334582dfbfd5008e94c80be");
+
   static final DockerImageName PYTHON =
       DockerImageName.parse("docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f");
 
@@ -59,6 +64,8 @@ final class KloakwareStack implements AutoCloseable {
   private final GenericContainer<?> bankId;
   private final GenericContainer<?> ldap;
   private final GenericContainer<?> server;
+  private final GenericContainer<?> second;
+  private final GenericContainer<?> proxy;
   private final AuditReceiver auditReceiver = new AuditReceiver();
 
   private final String databasePassword = secret();
@@ -133,23 +140,48 @@ final class KloakwareStack implements AutoCloseable {
     runtime.put("KC_HOSTNAME_STRICT", "false");
     runtime.put("KC_HTTP_ENABLED", "true");
 
-    server =
-        new GenericContainer<>(
-                // The Dockerfile at the project root, its .dockerignore honoured:
-                // the extensions are compiled into the image here, as everywhere.
-                new ImageFromDockerfile("kloakware/server:smoke", false)
-                    .withDockerfile(this.root.resolve("Dockerfile")))
+    // The Dockerfile at the project root, its .dockerignore honoured: the
+    // extensions are compiled into the image here, as everywhere. Built
+    // once, run twice: a cluster of two, discovered through jdbc-ping in the
+    // shared database (K7). The tests reach the first node by name; the
+    // cluster test reaches the second as well.
+    ImageFromDockerfile image =
+        new ImageFromDockerfile("kloakware/server:smoke", false)
+            .withDockerfile(this.root.resolve("Dockerfile"));
+    server = node(image, runtime, "kloakware-1").withNetworkAliases("kloakware-1");
+    second = node(image, runtime, "kloakware-2").withNetworkAliases("kloakware-2");
+
+    // The proxy holds the name every client uses, as on a laptop: round-robin
+    // over both nodes, so every test runs against the cluster, and one
+    // address, so every node issues the same issuer. A node reached on its
+    // own address would name that address, and the other would refuse its
+    // tokens.
+    proxy =
+        new GenericContainer<>(HAPROXY)
             .withNetwork(network)
             .withNetworkAliases("kloakware")
-            .withEnv(runtime)
-            .withExposedPorts(8080, 9000)
-            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("kloakware"))
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/haproxy/haproxy.cfg")),
+                "/usr/local/etc/haproxy/haproxy.cfg")
+            .withExposedPorts(8080)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("haproxy"))
             .waitingFor(
-                Wait.forHttp("/health/ready")
-                    .forPort(9000)
-                    .forStatusCode(200)
-                    .withStartupTimeout(Duration.ofMinutes(4)))
-            .dependsOn(database);
+                Wait.forHttp("/haproxy/health").forPort(8080).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(1)));
+  }
+
+  private GenericContainer<?> node(ImageFromDockerfile image, Map<String, String> runtime, String name) {
+    return new GenericContainer<>(image)
+        .withNetwork(network)
+        .withEnv(runtime)
+        .withEnv("KC_CACHE_EMBEDDED_NODE_NAME", name)
+        .withExposedPorts(8080, 9000)
+        .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix(name))
+        .waitingFor(
+            Wait.forHttp("/health/ready")
+                .forPort(9000)
+                .forStatusCode(200)
+                .withStartupTimeout(Duration.ofMinutes(4)))
+        .dependsOn(database);
   }
 
   void start() {
@@ -157,6 +189,10 @@ final class KloakwareStack implements AutoCloseable {
     bankId.start();
     ldap.start();
     server.start();
+    // The second node after the first: on an empty database both would race
+    // to create the schema, and the loser exits.
+    second.start();
+    proxy.start();
     // The realms first, with config-cli's defaults: what it created before
     // and no longer finds in the file, it removes. Corp before steward, since
     // steward's brokers point at it. Then the dev overlay, which must not
@@ -242,12 +278,36 @@ final class KloakwareStack implements AutoCloseable {
     }
   }
 
+  /** The cluster as its clients see it: the proxy, round-robin over both nodes. */
   String baseUrl() {
+    return "http://" + host() + ":" + proxy.getMappedPort(8080);
+  }
+
+  /** The first node on its own address; its issuer is that address, so tokens are not for sharing. */
+  String firstBaseUrl() {
     return "http://" + host() + ":" + server.getMappedPort(8080);
   }
 
   String managementUrl() {
     return "http://" + host() + ":" + server.getMappedPort(9000);
+  }
+
+  /** The second node of the cluster, reached directly; up unless the cluster test has stopped it. */
+  String secondBaseUrl() {
+    return "http://" + host() + ":" + second.getMappedPort(8080);
+  }
+
+  String secondManagementUrl() {
+    return "http://" + host() + ":" + second.getMappedPort(9000);
+  }
+
+  /** Stops the second node, or starts it again as a new container that joins the cluster. */
+  void second(boolean up) {
+    if (up) {
+      second.start();
+    } else {
+      second.stop();
+    }
   }
 
   /**
@@ -305,6 +365,8 @@ final class KloakwareStack implements AutoCloseable {
 
   @Override
   public void close() {
+    proxy.stop();
+    second.stop();
     server.stop();
     ldap.stop();
     bankId.stop();

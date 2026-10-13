@@ -293,7 +293,7 @@ deprecated. _Guide: Extensions_ (Provider and ProviderFactory, the session, conf
 `--spi-*` options, packaging, testing, deploying, versioning against Keycloak). _Answers: Q7, Q8,
 Q18._
 
-#### K6 — Federation and brokering
+#### K6 — Federation and brokering ✅ Done, [#131](https://github.com/decionis/steward/pull/131)
 
 `user-storage-steward`: a `UserStorageProvider` over Steward's `users` table, read-only with import
 on first sign-in and a `CredentialInputValidator` for Steward's argon2id hashes, so an operator who

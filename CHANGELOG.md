@@ -12,6 +12,17 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K7, clustering and high availability: two kloakware nodes in the compose file behind an
+  HAProxy that holds the name `kloakware`, round-robin without stickiness, discovered through
+  `jdbc-ping` in the shared database, the second started after the first so that one node migrates
+  the schema; the test stack runs two nodes as well, and `ClusterTest` reads a cluster of two from
+  each node's `vendor_cluster_size`, has a realm applied through one node served by the other, and
+  refreshes a session issued by one node on the other after the first is stopped, the cluster
+  shrinking to one and back to two. The guide: `kloakware/docs/Clustering.md`, what Infinispan holds
+  and where, discovery (the `kubernetes` stack being deprecated in 26.8, jdbc-ping is the one stack
+  on Kubernetes too), persistent user sessions and what they change about restarts, sizing and
+  stickiness, the JGroups failure-detection and merge defaults and what a partition costs, the
+  multi-site reference architecture, answering Q2 and Q21.
 - Kloakware K6, federation and brokering: `extensions/user-storage-steward`, a UserStorageProvider
   SPI over Steward's own `users` table, read-only, importing each user with Steward's id and roles
   on their first sign-in and verifying their password against Steward's argon2id hash, the copy

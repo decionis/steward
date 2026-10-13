@@ -13,6 +13,53 @@
 # The images are pinned by digest, the same pins the smoke test uses.
 name: kloakware
 
+# One kloakware node (K7): the image, the database, the hostname the
+# browser sees and the audit listener's target. Two of these run behind the
+# HAProxy that holds the name `kloakware`, discovered through jdbc-ping, the
+# JGroups table in the shared database.
+x-kloakware-node: &kloakware-node
+  build:
+    # The whole project is the context: the Dockerfile compiles the
+    # extensions under ../../extensions in before Keycloak's own build.
+    context: ../..
+  image: kloakware/server:local
+  depends_on:
+    db:
+      condition: service_healthy
+  environment: &kloakware-environment
+    KC_DB_URL: jdbc:postgresql://db:5432/kloakware
+    KC_DB_USERNAME: kloakware
+    KC_DB_PASSWORD: ${KLOAKWARE_DB_PASSWORD:?set it in .env (see .env.example)}
+    # A temporary admin, created on the first start of an empty database.
+    KC_BOOTSTRAP_ADMIN_USERNAME: admin
+    KC_BOOTSTRAP_ADMIN_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
+    # The issuer Steward and the browser both see: the proxy's address. Plain
+    # HTTP on a laptop only; the proxy says so in X-Forwarded-Proto.
+    KC_HOSTNAME: http://localhost:8080
+    KC_HTTP_ENABLED: "true"
+    KC_PROXY_HEADERS: xforwarded
+    # The audit listener (K5): every record to standard output, and to
+    # Steward's activities endpoint, signed, when STEWARD_URL reaches it.
+    KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_URL: ${STEWARD_URL:-http://localhost:3000}/api/activities/kloakware
+    KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_SECRET: ${KLOAKWARE_AUDIT_WEBHOOK_SECRET:?set it in .env (see .env.example)}
+  # Steward on the host, for the backchannel logout the realm posts to
+  # STEWARD_URL: set STEWARD_URL=http://host.docker.internal:3000 to have it
+  # reach a Steward running beside this stack. Docker Desktop resolves the
+  # name on its own; on Linux this maps it to the host.
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  healthcheck:
+    # The image carries no curl; bash's /dev/tcp reaches the management port.
+    test:
+      [
+        "CMD-SHELL",
+        "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3",
+      ]
+    interval: 5s
+    timeout: 5s
+    retries: 60
+    start_period: 30s
+
 services:
   db:
     image: docker.io/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
@@ -32,52 +79,55 @@ services:
       timeout: 3s
       retries: 12
 
-  kloakware:
-    build:
-      # The whole project is the context: the Dockerfile compiles the
-      # extensions under ../../extensions in before Keycloak's own build.
-      context: ../..
-    image: kloakware/server:local
+  kloakware-1:
+    <<: *kloakware-node
+    environment:
+      <<: *kloakware-environment
+      KC_CACHE_EMBEDDED_NODE_NAME: kloakware-1
+    ports:
+      # Each node's management port, for its own health and metrics.
+      - "9001:9000"
+
+  kloakware-2:
+    <<: *kloakware-node
+    # After the first node: on an empty database both would race to create
+    # the schema, and the loser exits. One node migrates, the others join;
+    # the Operator starts nodes in turn for the same reason.
     depends_on:
-      db:
+      kloakware-1:
         condition: service_healthy
     environment:
-      KC_DB_URL: jdbc:postgresql://db:5432/kloakware
-      KC_DB_USERNAME: kloakware
-      KC_DB_PASSWORD: ${KLOAKWARE_DB_PASSWORD:?set it in .env (see .env.example)}
-      # A temporary admin, created on the first start of an empty database.
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
-      # The issuer Steward and the browser both see. Plain HTTP on a laptop only.
-      KC_HOSTNAME: http://localhost:8080
-      KC_HTTP_ENABLED: "true"
-      # The audit listener (K5): every record to standard output, and to
-      # Steward's activities endpoint, signed, when STEWARD_URL reaches it.
-      KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_URL: ${STEWARD_URL:-http://localhost:3000}/api/activities/kloakware
-      KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_SECRET: ${KLOAKWARE_AUDIT_WEBHOOK_SECRET:?set it in .env (see .env.example)}
+      <<: *kloakware-environment
+      KC_CACHE_EMBEDDED_NODE_NAME: kloakware-2
+    ports:
+      - "9002:9000"
+
+  kloakware:
+    # The entry: HAProxy on 8080, round-robin over the two nodes, no
+    # stickiness. It carries the name every other service and Steward use.
+    image: docker.io/library/haproxy:3.2-alpine@sha256:5d97434a423c2533cfeb42874d45cf6d69a840b60334582dfbfd5008e94c80be
+    depends_on:
+      kloakware-1:
+        condition: service_healthy
+      kloakware-2:
+        condition: service_healthy
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - "8080:8080"
-      - "9000:9000"
-    # Steward on the host, for the backchannel logout the realm posts to
-    # STEWARD_URL: set STEWARD_URL=http://host.docker.internal:3000 to have it
-    # reach a Steward running beside this stack. Docker Desktop resolves the
-    # name on its own; on Linux this maps it to the host.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
-      # The image carries no curl; bash's /dev/tcp reaches the management port.
       test:
         [
-          "CMD-SHELL",
-          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3",
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:8080/haproxy/health",
         ]
       interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 30s
-
-  # The BankID simulator (K5): the Relying Party API in shape only, for the
-  # market second factor on a laptop. A deployment points KLOAKWARE_BANKID_URL
+      timeout: 3s
+      retries: 12
   # at the real API, over mutual TLS.
   bankid:
     image: docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f
