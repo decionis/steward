@@ -17,3 +17,6 @@ out/
 
 # The end-to-end run: a built Steward started beside kloakware, its data and its log
 /test/e2e/.run
+
+# The upgrade rehearsal's snapshots, k6 output and the manual migration export.
+kloakware/upgrade/.run/

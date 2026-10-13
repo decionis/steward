@@ -145,9 +145,16 @@ final class KloakwareStack implements AutoCloseable {
     // once, run twice: a cluster of two, discovered through jdbc-ping in the
     // shared database (K7). The tests reach the first node by name; the
     // cluster test reaches the second as well.
+    // -Dkloakware.keycloak.image=<quay reference> builds the same Dockerfile
+    // on another Keycloak: the upgrade rehearsal runs this suite against the
+    // next release before the pin moves (K9).
     ImageFromDockerfile image =
         new ImageFromDockerfile("kloakware/server:smoke", false)
             .withDockerfile(this.root.resolve("Dockerfile"));
+    String keycloakImage = System.getProperty("kloakware.keycloak.image", "");
+    if (!keycloakImage.isBlank()) {
+      image = image.withBuildArg("KEYCLOAK_IMAGE", keycloakImage);
+    }
     server = node(image, runtime, "kloakware-1").withNetworkAliases("kloakware-1");
     second = node(image, runtime, "kloakware-2").withNetworkAliases("kloakware-2");
 
