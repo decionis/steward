@@ -215,8 +215,7 @@ Kloakware, or any OpenID Connect issuer Steward is configured to trust, is taken
 misconfigured: it issues a token carrying any role its realm grants, or an attacker steers the
 sign-in to an issuer of their own.
 
-**Mitigated when the sign-in workstream of [docs/Kloakware.md](docs/Kloakware.md) merges; until
-then, live mode signs in only through the Decionis handoff.** Steward trusts exactly one issuer,
+**Mitigated.** Steward trusts exactly one issuer,
 `STEWARD_OIDC_ISSUER_URL`, and verifies every ID token on the server against that issuer's published
 keys: issuer, audience, nonce, signature, expiry. The authorisation code travels with PKCE, so an
 intercepted redirect yields nothing. Roles are read from the token and mapped onto Steward's six with
@@ -227,9 +226,12 @@ presents the org API key, the platform re-authorises every write, and a kloakwar
 Steward's server. Sessions are server-side rows, revoked on backchannel logout and on sign-out, so an
 operator who discovers a compromise ends every session from one place.
 
-_Verify:_ the sign-in workstream's tests: an ID token from another issuer, for another audience, with
-a wrong nonce, expired, or signed with an unknown key is refused; a backchannel logout revokes the
-session; a role the mapper does not know resolves to `VIEWER`.
+_Verify:_ `OidcProvider.test.ts`: an ID token from another issuer, for another audience, with a wrong
+nonce, expired, or signed with an unknown key is refused; `OidcSignInService.test.ts`: a backchannel
+logout revokes the session, a callback without its flow or with another flow's state is refused;
+`OidcRoleMapper.test.ts`: a role the mapper does not know resolves to `VIEWER`;
+`StewardSessionResolver.test.ts`: a session cookie naming no active session is refused;
+`test/e2e/KloakwareSignIn.test.mjs`: the whole flow against a running kloakware.
 
 ## The container
 
@@ -333,6 +335,9 @@ Stated plainly, because a threat model that lists only mitigations is marketing.
   under `STEWARD_DATA_DIR` or the server `STEWARD_DATABASE_URL` names; a signal's content is never
   written, there is no cache and no log of evidence content, and a collected batch is held in memory
   for the request that forwards it and then discarded.
-- **No cookies set by this application.** Session cookies originate from the Decionis identity
-  handoff; Steward only reads them.
+- **Two cookies set by this application, neither a token.** `steward_session` is an opaque id into
+  the `sessions` table, HttpOnly, `Secure` on an https origin, `SameSite=Lax`, set by a sign-in
+  through kloakware and refused the moment its row is revoked; `steward_oidc_flow` is the signed
+  state of a sign-in in progress and lives ten minutes. The Decionis identity handoff's cookies are
+  read, not set.
 - **No PII in URLs.** Account identifiers are opaque references, not customer identity.

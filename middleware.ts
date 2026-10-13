@@ -21,6 +21,13 @@ const UNAUTHENTICATED_PATHS = new Set([
   // before anyone has signed in. Public documentation, nothing about a tenant.
   "/llms.txt",
   "/llms-full.txt",
+  // The sign-in through kloakware (docs/Kloakware.md): the redirect out, the
+  // redirect back, the issuer's backchannel logout, and sign-out, which clears
+  // a cookie whether or not it still names a session.
+  "/api/auth/oidc/start",
+  "/api/auth/oidc/callback",
+  "/api/auth/oidc/backchannel-logout",
+  "/api/auth/oidc/sign-out",
 ]);
 
 function isLiveMode(): boolean {
@@ -78,6 +85,12 @@ function refuseUnauthenticated(request: NextRequest): NextResponse | null {
   if (!isLiveMode()) return null;
   if (UNAUTHENTICATED_PATHS.has(request.nextUrl.pathname)) return null;
 
+  // Steward's own session: an opaque id the server looks up and refuses when
+  // it names nothing. The edge cannot reach the database, so presence is what
+  // is checked here; the resolver is the control.
+  const sessionCookie = process.env.STEWARD_SESSION_COOKIE ?? "steward_session";
+  if (request.cookies.get(sessionCookie)?.value) return null;
+
   const accessTokenCookie =
     process.env.STEWARD_ACCESS_TOKEN_COOKIE ?? "decionis_access_token";
   const orgIdCookie = process.env.STEWARD_ORG_ID_COOKIE ?? "decionis_org_id";
@@ -87,7 +100,7 @@ function refuseUnauthenticated(request: NextRequest): NextResponse | null {
 
   if (request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.json(
-      { error: "UNAUTHORIZED", message: "A Decionis session is required" },
+      { error: "UNAUTHORIZED", message: "A session is required" },
       { status: 401 },
     );
   }

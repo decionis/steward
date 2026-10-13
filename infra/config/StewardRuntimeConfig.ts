@@ -25,7 +25,29 @@ const RuntimeEnvironmentSchema = z.object({
   STEWARD_DATABASE_URL: z.string().min(1).optional(),
   STEWARD_DATA_DIR: z.string().min(1).default("./data"),
   STEWARD_DATABASE_MIGRATE: z.enum(["on-start", "off"]).default("on-start"),
+  STEWARD_OIDC_ISSUER_URL: z.string().url().optional(),
+  STEWARD_OIDC_CLIENT_ID: z.string().min(1).optional(),
+  STEWARD_OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+  STEWARD_OIDC_SCOPES: z.string().min(1).default("openid profile email"),
+  STEWARD_PUBLIC_URL: z.string().url().optional(),
+  STEWARD_SESSION_COOKIE: z.string().min(1).default("steward_session"),
 });
+
+/**
+ * Sign-in through kloakware, or any OpenID Connect issuer (docs/Kloakware.md,
+ * K3): the issuer Steward trusts, the confidential client it is registered
+ * as, and the public origin its redirect URI is built from. Set all three
+ * `STEWARD_OIDC_*` values or none; the secret is a mounted environment
+ * variable, never a file in the tree.
+ */
+export interface OidcConfig {
+  issuerUrl: string;
+  clientId: string;
+  clientSecret: string;
+  scopes: string;
+  /** Steward's origin as the browser and the issuer see it; null derives it from each request. */
+  publicUrl: string | null;
+}
 
 /**
  * The Decionis workspace Steward acts for on the published Protocol
@@ -94,6 +116,8 @@ export interface StewardRuntimeValues {
   signalIngress: SignalIngressConfig | null;
   persistence: PersistenceConfig | null;
   decionisWorkspace: DecionisWorkspaceConfig | null;
+  oidc?: OidcConfig | null;
+  sessionCookie?: string;
 }
 
 export class StewardRuntimeConfig {
@@ -107,6 +131,9 @@ export class StewardRuntimeConfig {
   readonly signalIngress: SignalIngressConfig | null;
   readonly persistence: PersistenceConfig | null;
   readonly decionisWorkspace: DecionisWorkspaceConfig | null;
+  readonly oidc: OidcConfig | null;
+  /** The cookie carrying Steward's own session id; one cookie, HttpOnly, opaque. */
+  readonly sessionCookie: string;
 
   constructor(values: StewardRuntimeValues) {
     this.dataMode = values.dataMode;
@@ -119,6 +146,8 @@ export class StewardRuntimeConfig {
     this.signalIngress = values.signalIngress;
     this.persistence = values.persistence;
     this.decionisWorkspace = values.decionisWorkspace;
+    this.oidc = values.oidc ?? null;
+    this.sessionCookie = values.sessionCookie ?? "steward_session";
   }
 
   static fromEnvironment(
@@ -137,6 +166,11 @@ export class StewardRuntimeConfig {
 
     const apiBaseUrl =
       parsed.DECIONIS_API_BASE_URL?.replace(/\/+$/, "") ?? null;
+    const decionisWorkspace = StewardRuntimeConfig.readDecionisWorkspace(
+      parsed,
+      dataMode,
+      apiBaseUrl,
+    );
 
     return new StewardRuntimeConfig({
       dataMode,
@@ -148,12 +182,39 @@ export class StewardRuntimeConfig {
       timeoutMs: 8_000,
       signalIngress: StewardRuntimeConfig.readSignalIngress(parsed, apiBaseUrl),
       persistence: StewardRuntimeConfig.readPersistence(parsed, dataMode),
-      decionisWorkspace: StewardRuntimeConfig.readDecionisWorkspace(
-        parsed,
-        dataMode,
-        apiBaseUrl,
-      ),
+      decionisWorkspace,
+      oidc: StewardRuntimeConfig.readOidc(parsed, dataMode, decionisWorkspace),
+      sessionCookie: parsed.STEWARD_SESSION_COOKIE,
     });
+  }
+
+  private static readOidc(
+    parsed: z.infer<typeof RuntimeEnvironmentSchema>,
+    dataMode: StewardDataMode,
+    decionisWorkspace: DecionisWorkspaceConfig | null,
+  ): OidcConfig | null {
+    if (dataMode === "demo") return null;
+    const issuerUrl = parsed.STEWARD_OIDC_ISSUER_URL;
+    const clientId = parsed.STEWARD_OIDC_CLIENT_ID;
+    const clientSecret = parsed.STEWARD_OIDC_CLIENT_SECRET;
+    if (!issuerUrl && !clientId && !clientSecret) return null;
+    if (!issuerUrl || !clientId || !clientSecret) {
+      throw new Error(
+        "STEWARD_OIDC_ISSUER_URL, STEWARD_OIDC_CLIENT_ID and STEWARD_OIDC_CLIENT_SECRET go together; set all three or none",
+      );
+    }
+    if (!decionisWorkspace) {
+      throw new Error(
+        "A sign-in through kloakware is scoped to the configured organisation: set DECIONIS_API_KEY and DECIONIS_ORG_ID with the STEWARD_OIDC_* values",
+      );
+    }
+    return {
+      issuerUrl: issuerUrl.replace(/\/+$/, ""),
+      clientId,
+      clientSecret,
+      scopes: parsed.STEWARD_OIDC_SCOPES,
+      publicUrl: parsed.STEWARD_PUBLIC_URL?.replace(/\/+$/, "") ?? null,
+    };
   }
 
   private static readDecionisWorkspace(

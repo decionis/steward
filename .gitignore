@@ -14,3 +14,6 @@ out/
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+
+# The end-to-end run: a built Steward started beside kloakware, its data and its log
+/test/e2e/.run

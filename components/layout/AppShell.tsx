@@ -6,6 +6,7 @@ import {
   Building2,
   Cable,
   CircleHelp,
+  LogOut,
   Settings2,
   ShieldCheck,
 } from "lucide-react";
@@ -97,6 +98,16 @@ export function AppShell({ session, children }: AppShellProps) {
                 Connect your platform
                 <ArrowUpRight size={14} aria-hidden="true" />
               </Link>
+            ) : null}
+            {session.signedInThrough === "KLOAKWARE" ? (
+              // A POST, so a link cannot sign anyone out; the route ends the
+              // Steward session and the organisation's session with it.
+              <form method="post" action="/api/auth/oidc/sign-out">
+                <button type="submit" className={styles.signOut}>
+                  <LogOut size={14} aria-hidden="true" />
+                  Sign out
+                </button>
+              </form>
             ) : null}
           </div>
         </header>

@@ -191,6 +191,60 @@ describe("middleware — live mode", () => {
   });
 });
 
+describe("middleware — Steward's own session", () => {
+  function goLive() {
+    vi.stubEnv("STEWARD_DATA_MODE", "live");
+  }
+
+  it("admits a request carrying the session cookie, and refuses an empty one", () => {
+    goLive();
+
+    expect(
+      isPassThrough(
+        middleware(
+          request("/api/steward/portfolio", { steward_session: "s-1" }),
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      middleware(request("/api/steward/portfolio", { steward_session: "" }))
+        .status,
+    ).toBe(401);
+  });
+
+  it("honours a configured session cookie name", () => {
+    goLive();
+    vi.stubEnv("STEWARD_SESSION_COOKIE", "custom_session");
+
+    expect(
+      isPassThrough(middleware(request("/", { custom_session: "s-1" }))),
+    ).toBe(true);
+    expect(middleware(request("/", { steward_session: "s-1" })).status).toBe(
+      307,
+    );
+  });
+
+  it("leaves the sign-in routes reachable without a session, and gates the session route", () => {
+    // The redirect out, the redirect back, the issuer's backchannel logout and
+    // sign-out all run before or after a session exists.
+    goLive();
+
+    for (const path of [
+      "/api/auth/oidc/start",
+      "/api/auth/oidc/callback",
+      "/api/auth/oidc/backchannel-logout",
+      "/api/auth/oidc/sign-out",
+    ]) {
+      const response = middleware(request(path));
+      expect(isPassThrough(response)).toBe(true);
+      expect(response.headers.get("content-security-policy")).toContain(
+        "default-src 'self'",
+      );
+    }
+    expect(middleware(request("/api/auth/session")).status).toBe(401);
+  });
+});
+
 describe("middleware — matcher", () => {
   it("exempts only immutable static assets", () => {
     // The matcher is part of the security boundary: anything it excludes is

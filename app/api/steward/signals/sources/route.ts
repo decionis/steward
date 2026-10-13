@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const context = new StewardCompositionRoot().createRequestContext(request);
+    const context = await new StewardCompositionRoot().createRequestContext(
+      request,
+    );
     return NextResponse.json({ sources: context.signals.listSources() });
   } catch (error) {
     return StewardApiErrorMapper.toResponse(error);

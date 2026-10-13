@@ -44,6 +44,40 @@
         }
       ],
       "groups": ["/markets/SE"]
+    },
+    {
+      "username": "ops.example",
+      "email": "ops@example.test",
+      "firstName": "Ola",
+      "lastName": "Example",
+      "enabled": true,
+      "emailVerified": true,
+      "groups": ["/markets/SE"],
+      "realmRoles": ["steward-operations"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "audit.example",
+      "email": "audit@example.test",
+      "firstName": "Ade",
+      "lastName": "Example",
+      "enabled": true,
+      "emailVerified": true,
+      "groups": ["/markets/SE"],
+      "realmRoles": ["steward-audits"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

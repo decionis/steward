@@ -1,3 +1,4 @@
+import { StewardPermissions } from "@/domain/auth/StewardPermissions";
 import type { StewardSession } from "@/domain/auth/StewardSession";
 import type {
   SignalBatch,
@@ -18,10 +19,11 @@ export interface SignalCollection {
 
 /**
  * Collect from a source and forward the batch. Collection reaches a system
- * the operator connected, so it is gated to OPERATOR and above; VIEWER can see
- * the sources and their health but cannot pull from them. As with reviews,
- * the gate here is a UX affordance and the platform re-authorises what it
- * receives.
+ * the operator connected, so it is gated by the "collect" grant in
+ * StewardPermissions: OPERATOR, APPROVER, OPERATIONS and ADMIN; VIEWER and
+ * AUDITS can see the sources and their health but cannot pull from them. As
+ * with reviews, the gate here is a UX affordance and the platform
+ * re-authorises what it receives.
  */
 export class SignalService {
   constructor(
@@ -35,9 +37,9 @@ export class SignalService {
   }
 
   async collect(sourceId: string): Promise<SignalCollection> {
-    if (!this.session.roles.some((role) => role !== "VIEWER")) {
+    if (!StewardPermissions.allows(this.session.roles, "collect")) {
       throw new StewardForbiddenError(
-        "Collecting signals needs the OPERATOR role or above",
+        "Collecting signals needs the OPERATOR, OPERATIONS or a higher role",
       );
     }
     const connector = this.registry.require(sourceId);

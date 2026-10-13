@@ -233,7 +233,7 @@ smoke test). _Guide: Architecture_ (realms, clients, scopes, the single-realm an
 models, Organizations, the Quarkus distribution and its build-time options, how kloakware is laid
 out). _Answers: Q1, Q11, Q12._
 
-#### K2 — Configuration as code
+#### K2 — Configuration as code ✅ Done, [#127](https://github.com/decionis/steward/pull/127)
 
 `config/realms/steward.json` for keycloak-config-cli with `$(env:...)` variables per environment:
 the market groups and attribute, the `market` client scope, the role model, the password and
