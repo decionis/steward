@@ -12,6 +12,16 @@ you integrate against these types.
 
 ### Added
 
+- [docs/Kloakware.md](./docs/Kloakware.md): the plan, decided, for kloakware, the access service
+  operators sign in to Steward through: a Keycloak distribution the operator runs, extended in Java
+  (an audit event listener, a market-aware second factor, a legacy password hash for migration,
+  Steward's own `users` table as a federated store), configured from Git by keycloak-config-cli and
+  the Keycloak Terraform provider, clustered through the Keycloak Operator, deployed to AWS by
+  Terraform with a switch to Azure. Steward signs in through it with the Authorization Code flow
+  and PKCE and keeps one opaque session cookie of its own. Thirteen workstreams, each a pull request
+  carrying its code, a guide to the Keycloak concept it exercises and the written answers to the
+  interview questions on it; nine decisions taken, among them two roles added to Steward's four,
+  `OPERATIONS` and `AUDITS`, and the boundary documents that name the new trust boundary.
 - The client for the published Decionis Protocol, workstream C1 of
   [docs/ProtocolContracts.md](./docs/ProtocolContracts.md): `DecionisProtocolClient` over the
   operations documented at docs.decionis.com and in the OpenAPI document (health, decision

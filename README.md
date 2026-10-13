@@ -65,6 +65,12 @@ named by `STEWARD_DATABASE_URL`. A signal's content is never written to it. The 
 only through portable migrations, applied at start. [docs/Persistence.md](docs/Persistence.md) records the
 decision.
 
+Operators will sign in through kloakware, the Keycloak access service the operator runs beside
+Steward: extended in Java where Keycloak's defaults stop, configured from Git, clustered through the
+Keycloak Operator, deployed to AWS by Terraform with a switch to Azure. [docs/Kloakware.md](docs/Kloakware.md)
+records the decision and the workstreams; until its sign-in workstream merges, live mode signs in
+through the Decionis handoff.
+
 [OpenCore.md](./OpenCore.md) states the same boundary as a business model: what is free forever,
 what Decionis operates, and the one point where commerce enters the flow.
 [docs/Distribution.md](docs/Distribution.md) is the plan for shipping Steward as a container and

@@ -51,6 +51,12 @@ The platform behind the `/v1/cdi` API owns:
 None of that code is in this repository, and this repository does not proxy it beyond forwarding a
 review with the operator's own credential.
 
+Kloakware, the Keycloak access service an operator runs beside Steward to sign their people in
+([docs/Kloakware.md](./docs/Kloakware.md)), is in the free column: it is the operator's identity for
+Steward, Apache-2.0 like the rest of this repository. The platform's own identity, its sign-in handoff,
+its SSO and SCIM, stay where the list above puts them, and no kloakware session ever reaches the
+platform.
+
 ## The seam
 
 **Code interface**, in `infra/repositories/StewardRepository.ts`:
