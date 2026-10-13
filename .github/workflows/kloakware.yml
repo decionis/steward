@@ -1,0 +1,53 @@
+name: Kloakware
+
+# The gate for the access service under kloakware/: the Maven build, the
+# license allowlist, and the smoke test, which builds the server image, starts
+# it against PostgreSQL, applies the realm with keycloak-config-cli and signs
+# the seeded operator in. Path-filtered so a change to Steward does not build
+# kloakware and a change to kloakware does not run `pnpm verify`.
+#
+# Every third-party action is pinned to a commit SHA, as in verify.yml.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "kloakware/**"
+      - ".github/workflows/kloakware.yml"
+  pull_request:
+    paths:
+      - "kloakware/**"
+      - ".github/workflows/kloakware.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kloakware-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: verify (java 21)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        # The server image runs Java 21; the build is proven on the same level.
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify
+        # compile -> test (the smoke test, through Testcontainers on the
+        # runner's Docker) -> the license gate.
+        run: mvn --batch-mode --no-transfer-progress --file kloakware/pom.xml verify

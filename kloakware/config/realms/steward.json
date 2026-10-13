@@ -1,0 +1,106 @@
+{
+  "realm": "steward",
+  "displayName": "Steward",
+  "enabled": true,
+  "sslRequired": "external",
+
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "editUsernameAllowed": false,
+
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 10,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "minimumQuickLoginWaitSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "passwordPolicy": "length(12) and notUsername and notEmail and passwordHistory(5)",
+
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 300,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanLogin": 1800,
+  "accessCodeLifespanUserAction": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "steward-viewer",
+        "description": "Sees the queue, the accounts and the evidence. The floor: every signed-in user holds it."
+      },
+      {
+        "name": "steward-operator",
+        "description": "Collects signals and works the queue."
+      },
+      {
+        "name": "steward-approver",
+        "description": "Records reviews: approve, hold, reject."
+      },
+      {
+        "name": "steward-operations",
+        "description": "The technical team: signal sources and collections, the workspace connection, health. Records no review."
+      },
+      {
+        "name": "steward-audits",
+        "description": "Reads every record Steward keeps. Changes nothing."
+      },
+      {
+        "name": "steward-admin",
+        "description": "Everything, including users and the workspace connection."
+      },
+      {
+        "name": "default-roles-steward",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "composites": {
+          "realm": ["steward-viewer"],
+          "client": {
+            "account": ["view-profile", "manage-account"]
+          }
+        }
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "steward",
+      "name": "Steward",
+      "description": "The Steward application. A confidential client: the Authorization Code flow with PKCE from the server, backchannel logout to the server, no browser-side token.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "$(env:KLOAKWARE_STEWARD_CLIENT_SECRET)",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": false,
+      "frontchannelLogout": false,
+      "rootUrl": "$(env:STEWARD_URL)",
+      "baseUrl": "/",
+      "redirectUris": ["$(env:STEWARD_URL)/api/auth/oidc/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "backchannel.logout.url": "$(env:STEWARD_URL)/api/auth/oidc/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "post.logout.redirect.uris": "$(env:STEWARD_URL)/sign-in",
+        "use.refresh.tokens": "true",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      }
+    }
+  ]
+}

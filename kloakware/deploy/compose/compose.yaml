@@ -1,0 +1,104 @@
+# Kloakware on a laptop: PostgreSQL, the server image built from
+# ../../server/Dockerfile, and keycloak-config-cli applying the realm, then the
+# dev overlay with its seeded operator and the smoke client.
+#
+#   cp .env.example .env            # dev-only values; edit if you like
+#   docker compose up --build
+#
+# Admin console: http://localhost:8080/admin (the bootstrap admin from .env)
+# Realm:         http://localhost:8080/realms/steward
+# Health:        http://localhost:9000/health/ready
+# Metrics:       http://localhost:9000/metrics
+#
+# The images are pinned by digest, the same pins the smoke test uses.
+name: kloakware
+
+services:
+  db:
+    image: public.ecr.aws/docker/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_DB: kloakware
+      POSTGRES_USER: kloakware
+      POSTGRES_PASSWORD: ${KLOAKWARE_DB_PASSWORD:?set it in .env (see .env.example)}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kloakware -d kloakware"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  kloakware:
+    build:
+      context: ../../server
+    image: kloakware/server:local
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KC_DB_URL: jdbc:postgresql://db:5432/kloakware
+      KC_DB_USERNAME: kloakware
+      KC_DB_PASSWORD: ${KLOAKWARE_DB_PASSWORD:?set it in .env (see .env.example)}
+      # A temporary admin, created on the first start of an empty database.
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
+      # The issuer Steward and the browser both see. Plain HTTP on a laptop only.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8080:8080"
+      - "9000:9000"
+    healthcheck:
+      # The image carries no curl; bash's /dev/tcp reaches the management port.
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  # The realm, from Git. Runs to completion; what it created before and no
+  # longer finds in the file, it removes.
+  config:
+    image: docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274
+    depends_on:
+      kloakware:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_URL: http://kloakware:8080
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 120s
+      IMPORT_FILES_LOCATIONS: /config/steward.json
+      IMPORT_VARSUBSTITUTION_ENABLED: "true"
+      STEWARD_URL: ${STEWARD_URL:-http://localhost:3000}
+      KLOAKWARE_STEWARD_CLIENT_SECRET: ${KLOAKWARE_STEWARD_CLIENT_SECRET:?set it in .env (see .env.example)}
+    volumes:
+      - ../../config/realms/steward.json:/config/steward.json:ro
+
+  # The dev overlay: the seeded operator and the smoke client. Laptop and CI
+  # only; a deployment never runs this. It must not remove the realm's clients
+  # it does not mention, hence no-delete.
+  config-dev:
+    image: docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274
+    depends_on:
+      config:
+        condition: service_completed_successfully
+    environment:
+      KEYCLOAK_URL: http://kloakware:8080
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      IMPORT_FILES_LOCATIONS: /config/steward-dev.json
+      IMPORT_VARSUBSTITUTION_ENABLED: "true"
+      IMPORT_MANAGED_CLIENT: no-delete
+      KLOAKWARE_DEV_USER_PASSWORD: ${KLOAKWARE_DEV_USER_PASSWORD:?set it in .env (see .env.example)}
+    volumes:
+      - ../../config/realms/dev/steward-dev.json:/config/steward-dev.json:ro
+
+volumes:
+  db: {}

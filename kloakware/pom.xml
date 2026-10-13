@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Kloakware: the access service operators sign in to Steward through.
+
+  This parent holds what every module shares: the Java level, the Keycloak
+  version the extensions compile against, the test dependencies, and the
+  license gate. Modules arrive one workstream at a time (docs/Kloakware.md):
+  the smoke test first, the extensions from K5.
+
+  Java 17 as the compilation target, on purpose: the server image runs Java 21,
+  and a JAR compiled for 17 loads there unchanged, while a contributor on 17
+  can still build and run the tests. CI compiles and runs on 21, the server's
+  own level, so nothing is proven on a JVM the server does not use.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.decionis.kloakware</groupId>
+  <artifactId>kloakware</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>Kloakware</name>
+  <description>The access service operators sign in to Steward through: Keycloak, extended in Java, configured from Git.</description>
+  <url>https://github.com/decionis/steward/tree/master/kloakware</url>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <modules>
+    <module>smoke</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+
+    <!--
+      The server image is pinned by digest in server/Dockerfile. This is the
+      same release, as the Java API the extensions compile against (from K5).
+      The two move together: a Dependabot bump of one is a bump of the other.
+    -->
+    <keycloak.version>26.8.0</keycloak.version>
+
+    <junit.version>6.1.3</junit.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
+    <jackson.version>2.22.3</jackson.version>
+    <slf4j.version>2.0.20</slf4j.version>
+
+    <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+    <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+    <license-maven-plugin.version>2.7.1</license-maven-plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!--
+        Testcontainers declares the 1.7 API; the binding is 2.x. Managing the
+        API here keeps the two on one version, or SLF4J falls back to a no-op
+        logger and Testcontainers' diagnostics vanish.
+      -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <trimStackTrace>false</trimStackTrace>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${maven-enforcer-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>${license-maven-plugin.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-build-environment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[17,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--
+        The license gate, the same policy scripts/CheckLicensePolicy.mjs applies
+        to Steward's npm dependencies: what ships must be permissive. Test
+        dependencies are excluded as the npm check excludes development ones;
+        they are not in the image. A license outside the list fails the build
+        until it is reviewed and added here with a reason.
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>check-shipped-licenses</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>add-third-party</goal>
+            </goals>
+            <configuration>
+              <excludedScopes>test</excludedScopes>
+              <failOnMissing>true</failOnMissing>
+              <failOnBlacklist>true</failOnBlacklist>
+              <includedLicenses>
+                <includedLicense>Apache-2.0</includedLicense>
+                <includedLicense>MIT</includedLicense>
+                <includedLicense>BSD-2-Clause</includedLicense>
+                <includedLicense>BSD-3-Clause</includedLicense>
+                <includedLicense>ISC</includedLicense>
+                <includedLicense>0BSD</includedLicense>
+              </includedLicenses>
+              <licenseMerges>
+                <licenseMerge>Apache-2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache License 2.0|Apache 2.0|Apache-2.0 License|The Apache License, Version 2.0|Apache License v2.0|Apache License Version 2.0|ASL 2.0</licenseMerge>
+                <licenseMerge>MIT|MIT License|The MIT License|MIT license|The MIT License (MIT)</licenseMerge>
+                <licenseMerge>BSD-3-Clause|BSD 3-Clause|BSD-3-Clause License|The BSD 3-Clause License|New BSD License|BSD License 3|3-Clause BSD License</licenseMerge>
+                <licenseMerge>BSD-2-Clause|BSD 2-Clause|The BSD 2-Clause License|BSD-2-Clause License|Simplified BSD License</licenseMerge>
+                <licenseMerge>ISC|ISC License</licenseMerge>
+              </licenseMerges>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

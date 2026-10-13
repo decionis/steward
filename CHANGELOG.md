@@ -12,6 +12,16 @@ you integrate against these types.
 
 ### Added
 
+- `kloakware/`, the first workstream (K1) of the kloakware plan: the server image,
+  Keycloak 26.8 pinned by digest and built once with PostgreSQL, health, metrics and the
+  `jdbc-ping` cache stack, started `--optimized`; the `steward` realm as keycloak-config-cli
+  applies it (the six `steward-*` realm roles with `steward-viewer` as the default, the `steward`
+  confidential client with PKCE required and backchannel logout, five-minute access tokens,
+  rotating refresh tokens, brute-force protection); a dev overlay with a seeded operator and the
+  smoke client; the compose stack; a Testcontainers smoke test that builds the image, applies the
+  realm and proves the sign-in contract; the Maven parent with the license gate; and the
+  path-filtered `kloakware.yml` workflow. The guide: `kloakware/docs/Architecture.md`, answering
+  Q1, Q11 and Q12.
 - [docs/Kloakware.md](./docs/Kloakware.md): the plan, decided, for kloakware, the access service
   operators sign in to Steward through: a Keycloak distribution the operator runs, extended in Java
   (an audit event listener, a market-aware second factor, a legacy password hash for migration,
