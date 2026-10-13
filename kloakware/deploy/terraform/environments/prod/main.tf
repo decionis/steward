@@ -145,10 +145,17 @@ module "kloakware" {
   }
   realm_env = local.realm_env
 
-  server_options = {
-    "spi-events-listener-steward-audit-sink-url"    = "${var.steward_url}/api/activities/kloakware"
-    "spi-events-listener-steward-audit-sink-secret" = var.audit_webhook_secret
-  }
+  server_options = merge(
+    {
+      "spi-events-listener-steward-audit-sink-url"    = "${var.steward_url}/api/activities/kloakware"
+      "spi-events-listener-steward-audit-sink-secret" = var.audit_webhook_secret
+      # Observability (K10): JSON logs for the cloud's log agent; traces to
+      # the collector when one is named, sampled off otherwise.
+      "log-console-output"    = "json"
+      "tracing-sampler-ratio" = var.otel_endpoint == "" ? "0.0" : var.tracing_sampler_ratio
+    },
+    var.otel_endpoint == "" ? {} : { "tracing-endpoint" = var.otel_endpoint },
+  )
 
   bankid_simulator        = var.tier != "production"
   bankid_simulator_source = file("${path.module}/../../../compose/bankid/Simulator.py")

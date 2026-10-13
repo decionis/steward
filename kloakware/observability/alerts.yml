@@ -1,0 +1,69 @@
+# The alerts, each with its threshold and the reason for it (K10). The
+# thresholds are a laptop's and a basic tier's starting points; the guide
+# says which number to move first once the production tier has a baseline.
+groups:
+  - name: kloakware
+    rules:
+      - alert: KloakwareNodeDown
+        expr: up{job="kloakware"} == 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $labels.instance }} does not answer its management port"
+          reason: "A node that stops scraping has stopped; the cluster is below its expected size and the other nodes carry its share."
+
+      - alert: KloakwareClusterShrunk
+        expr: min(vendor_cluster_size) < 2
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "The cluster sees fewer than two nodes"
+          reason: "Two nodes is the minimum for a roll without downtime; one node alone is a restart away from an outage. Two minutes, since a roll takes one node out for less."
+
+      - alert: KloakwareConnectionPoolWaiting
+        expr: agroal_blocking_time_average_milliseconds > 100
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "Requests wait more than 100 ms for a database connection on {{ $labels.instance }}"
+          reason: "The pool is the first thing that saturates under a login rate: every request holds a connection, and waiting for one is latency users feel before CPU is anywhere near full. Raise the pool, the database's connection limit, or the number of nodes, in that order."
+
+      - alert: KloakwareTokenEndpointSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{uri="/realms/{realm}/protocol/{protocol}/token"}[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "The token endpoint's p95 is above 500 ms"
+          reason: "Steward's sign-in and every refresh go through this endpoint; 500 ms is where a browser round trip becomes a pause the user notices. The password hash is the cost of a login, the pool the cost of everything else."
+
+      - alert: KloakwareFailedSignIns
+        # A failed login is a login event with its error tag set, not an event of its own.
+        expr: sum(rate(keycloak_user_events_total{event="login",error!=""}[10m])) / clamp_min(sum(rate(keycloak_user_events_total{event="login"}[10m])), 0.001) > 0.2
+        for: 10m
+        labels:
+          severity: warn
+        annotations:
+          summary: "More than a fifth of sign-ins fail"
+          reason: "A fifth over ten minutes is not users mistyping; it is a credential-stuffing run, a broken federation, or a client sending the wrong thing. Which, the realm and client tags on the metric say."
+
+      - alert: KloakwareGcPause
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: "{{ $labels.instance }} spends more than 10% of its time in GC pauses"
+          reason: "Ten percent of wall-clock time paused means the heap is too small for the session caches it holds, or the caches are uncapped; the cache-embedded-*-max-count options and the heap are the levers."
+
+      - alert: KloakwareServerErrors
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001) > 0.01
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "More than 1% of requests end in a 5xx"
+          reason: "Keycloak answers 5xx for its own failures, the database gone or a cluster call timed out, not for users' mistakes; one percent sustained is an incident, whatever the cause."

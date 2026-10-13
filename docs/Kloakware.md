@@ -336,7 +336,7 @@ proven itself, multi-AZ, autoscaling, backups, deletion protection. The Deployme
 monthly cost of each tier. _Guide: Deployment._
 _Answers: Q22, Q23._
 
-#### K9 — Zero-downtime upgrades and the promotion pipeline
+#### K9 — Zero-downtime upgrades and the promotion pipeline ✅ Done, [#134](https://github.com/decionis/steward/pull/134)
 
 The upgrade runbook with its rehearsal in CI: a patch update (26.6 made these rolling with no
 downtime, and the Operator's `Auto` strategy runs a job to decide whether rolling is safe before it

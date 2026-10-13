@@ -20,3 +20,5 @@ out/
 
 # The upgrade rehearsal's snapshots, k6 output and the manual migration export.
 kloakware/upgrade/.run/
+# The bottleneck experiment's k6 summary and log.
+kloakware/observability/.run/

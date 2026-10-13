@@ -90,7 +90,15 @@ class ClusterTest {
     form.put("grant_type", "refresh_token");
     form.put("client_id", "kloakware-smoke");
     form.put("refresh_token", refreshToken);
-    HttpResponse<String> response = Tokens.postForm(stack.realmUrl() + "/protocol/openid-connect/token", form, null);
+    HttpResponse<String> response;
+    try {
+      response = Tokens.postForm(stack.realmUrl() + "/protocol/openid-connect/token", form, null);
+    } catch (IOException closed) {
+      // The proxy shuts the sessions of a node that went down, and this
+      // client's kept-alive connection may have been one of them: a browser
+      // retries a connection the server closed, and so does this.
+      response = Tokens.postForm(stack.realmUrl() + "/protocol/openid-connect/token", form, null);
+    }
     assertEquals(200, response.statusCode(), response.body());
     return response;
   }

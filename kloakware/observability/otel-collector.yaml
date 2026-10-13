@@ -1,0 +1,28 @@
+# The collector the kloakware nodes trace to (K10). On a laptop it prints
+# what arrives; a deployment keeps the receivers and swaps the exporter for
+# the cloud's: `awsxray` for traces and `awsemf` for metrics on AWS,
+# `azuremonitor` on Azure, each from the contrib distribution this image is.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 2s
+
+exporters:
+  debug:
+    verbosity: normal
+    sampling_initial: 10
+    sampling_thereafter: 100
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

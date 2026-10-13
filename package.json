@@ -31,13 +31,15 @@
     "format:fix": "prettier --write .",
     "licenses:check": "node scripts/CheckLicensePolicy.mjs",
     "licenses:list": "pnpm licenses list --prod",
-    "verify": "pnpm format && pnpm lint && pnpm typecheck && pnpm discovery && pnpm test:automation && pnpm test && pnpm build",
+    "verify": "pnpm format && pnpm lint && pnpm typecheck && pnpm discovery && pnpm questions:check && pnpm test:automation && pnpm test && pnpm build",
     "discovery": "node scripts/CheckDiscovery.mjs",
     "screenshots": "node scripts/CaptureScreenshots.mjs",
     "sbom": "node scripts/GenerateSbom.mjs decionis-steward.cdx.json",
     "prepare": "git config core.hooksPath .githooks || true",
     "links:check": "node scripts/CheckMarkdownLinks.mjs",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "questions": "node scripts/AggregateInterviewQuestions.mjs",
+    "questions:check": "node scripts/AggregateInterviewQuestions.mjs --check"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

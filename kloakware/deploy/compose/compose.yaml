@@ -44,6 +44,11 @@ x-kloakware-node: &kloakware-node
     # Steward's activities endpoint, signed, when STEWARD_URL reaches it.
     KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_URL: ${STEWARD_URL:-http://localhost:3000}/api/activities/kloakware
     KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_SECRET: ${KLOAKWARE_AUDIT_WEBHOOK_SECRET:?set it in .env (see .env.example)}
+    # Observability (K10): every trace to the collector beside the stack,
+    # JSON on standard output for a log shipper to parse.
+    KC_TRACING_ENDPOINT: http://otel-collector:4317
+    KC_TRACING_SAMPLER_RATIO: "1.0"
+    KC_LOG_CONSOLE_OUTPUT: json
   # Steward on the host, for the backchannel logout the realm posts to
   # STEWARD_URL: set STEWARD_URL=http://host.docker.internal:3000 to have it
   # reach a Steward running beside this stack. Docker Desktop resolves the
@@ -147,6 +152,44 @@ services:
     environment:
       LDAP_ADMIN_PASSWORD: ${KLOAKWARE_LDAP_BIND_PASSWORD:?set it in .env (see .env.example)}
       LDAP_USER_PASSWORD: ${KLOAKWARE_DEV_USER_PASSWORD:?set it in .env (see .env.example)}
+
+  # --- Observability (K10): the collector the nodes trace to, Prometheus
+  # scraping both management ports with the alert rules, Grafana with the
+  # dashboard provisioned. On a laptop the collector prints what it gets;
+  # a deployment points its exporters at CloudWatch or Azure Monitor.
+  otel-collector:
+    image: docker.io/otel/opentelemetry-collector-contrib:0.162.0@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../../observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+
+  prometheus:
+    image: docker.io/prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=2d
+    volumes:
+      - ../../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: docker.io/grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: ${KLOAKWARE_GRAFANA_ADMIN_PASSWORD:?set it in .env (see .env.example)}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ../../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      # Steward holds 3000 on a laptop.
+      - "3001:3000"
+    depends_on:
+      - prometheus
 
   config:
     image: docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274
