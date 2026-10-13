@@ -36,7 +36,7 @@ final class KloakwareStack implements AutoCloseable {
   /** The same images the compose file runs, pinned by digest there and here. */
   static final DockerImageName POSTGRES =
       DockerImageName.parse(
-              "public.ecr.aws/docker/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24")
+              "docker.io/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24")
           .asCompatibleSubstituteFor("postgres");
 
   static final DockerImageName CONFIG_CLI =
@@ -51,7 +51,7 @@ final class KloakwareStack implements AutoCloseable {
 
   /** The BankID simulator, the same script the compose file runs, pinned like it. */
   static final DockerImageName PYTHON =
-      DockerImageName.parse("public.ecr.aws/docker/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f");
+      DockerImageName.parse("docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f");
 
   private final Path root;
   private final Network network = Network.newNetwork();

@@ -15,7 +15,7 @@ name: kloakware
 
 services:
   db:
-    image: public.ecr.aws/docker/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    image: docker.io/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     environment:
       POSTGRES_DB: kloakware
       POSTGRES_USER: kloakware
@@ -76,7 +76,7 @@ services:
   # market second factor on a laptop. A deployment points KLOAKWARE_BANKID_URL
   # at the real API, over mutual TLS.
   bankid:
-    image: public.ecr.aws/docker/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f
+    image: docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f
     command: ["python3", "-I", "/sim/Simulator.py"]
     volumes:
       - ./bankid/Simulator.py:/sim/Simulator.py:ro

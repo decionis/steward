@@ -24,8 +24,11 @@ you integrate against these types.
   rehashes to argon2. An extensions aggregator the image builds in one reactor; the realm enables
   the listener and places the second factor with its configuration; the dev overlay seeds a BankID
   user in SE and a legacy-hash user, and moves the others to DE. Container tests for all three, and
-  the end-to-end run reads the sign-in's audit record back from Steward's own database. The guide:
-  `kloakware/docs/Extensions.md`, answering Q7, Q8 and Q18.
+  the end-to-end run reads the sign-in's audit record back from Steward's own database. The
+  `postgres` and `python` images come from Docker Hub at their unchanged digests: ECR Public's
+  unauthenticated data quota is per source address and shared by GitHub's runners, and refused the
+  pull on a runner Docker Hub served. The guide: `kloakware/docs/Extensions.md`, answering Q7, Q8
+  and Q18.
 - Kloakware K4, token design and fine-grained authorisation: the first Java extension,
   `extensions/token-mapper-market`, a ProtocolMapper SPI that writes one compact `steward` claim,
   the user's Steward roles without their prefix and their markets, into the ID token, the access
