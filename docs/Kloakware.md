@@ -214,14 +214,14 @@ Each is one branch off `master` and one pull request; sibling branches touching 
 merged forward, never stacked. Every pull request carries a CHANGELOG entry, the guide, the answers,
 and tests that would fail if the behaviour regressed.
 
-#### K0 — This plan and the boundary documents
+#### K0 — This plan and the boundary documents ✅ Done, [#124](https://github.com/decionis/steward/pull/124)
 
 This file; the new boundary and threat in ThreatModel; one sentence in OpenCore placing kloakware
 in the free column and the platform's identity where it was; the README's sign-in methods; the
 CODEOWNERS entries for `kloakware/config/`, `kloakware/extensions/` and `kloakware/deploy/`; the
 discovery entry in `llms.txt`. No guide; the answers start with K1.
 
-#### K1 — The server
+#### K1 — The server ✅ Done, [#126](https://github.com/decionis/steward/pull/126)
 
 The Maven parent and `server/`: a Dockerfile that builds Keycloak 26.8 (pinned by digest) with
 `kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true --cache=ispn` and starts it

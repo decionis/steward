@@ -238,7 +238,7 @@ promoted once per deployment, and the isolated markets have no SSO into the shar
 which is the law's requirement, not a limitation.
 
 _Evidence in this repository:_ the realm with markets as the default model in
-[`config/realms/steward.json`](../config/realms/steward.json) and decision K-D3 in the plan; the
+[`config/realms/steward.json`](../config/realms/steward.json) and decision K-D3 in [the plan](../../docs/Kloakware.md); the
 per-market template and the drift pipeline in K2; the brokering between issuers in K6; a deployment
 as a Terraform environment in K8.
 
@@ -260,7 +260,7 @@ organisations. Tenants who need their own policy, their own administrators, thei
 or their own jurisdiction are realms, or deployments.
 
 _Evidence in this repository:_ the comparison table in this guide; the Organizations row of
-decision K-D3.
+decision K-D3 in [the plan](../../docs/Kloakware.md).
 
 ### Q12. "Build-time versus runtime options in the Quarkus distribution: what does `kc.sh build` do, why `--optimized`, and what goes wrong when an image is built per environment?"
 

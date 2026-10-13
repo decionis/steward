@@ -51,3 +51,30 @@ jobs:
         # compile -> test (the smoke test, through Testcontainers on the
         # runner's Docker) -> the license gate.
         run: mvn --batch-mode --no-transfer-progress --file kloakware/pom.xml verify
+
+  drift:
+    name: drift (terraform)
+    # The Terraform half of configuration as code: the market realms apply
+    # clean, a change by hand is detected, the next apply converges. The
+    # config-cli half is RealmConvergenceTest, under verify.
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.16.5"
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -diff -recursive kloakware/config/terraform
+
+      - name: Drift
+        run: kloakware/config/drift/CheckDrift.sh

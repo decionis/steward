@@ -1,0 +1,108 @@
+name: Kloakware promote
+
+# The realm, promoted: the steward realm committed at a tag is applied to dev,
+# then QA, then staging, then production, each behind its GitHub environment
+# and whatever reviewers that environment requires. The same file, the same
+# image, four times; what differs is where and as whom, which the environment
+# supplies as variables and secrets:
+#
+#   vars:    KLOAKWARE_URL, STEWARD_URL
+#   secrets: KLOAKWARE_ADMIN_USER, KLOAKWARE_ADMIN_PASSWORD, KLOAKWARE_STEWARD_CLIENT_SECRET
+#
+# An environment with no KLOAKWARE_URL is skipped with a notice, so the
+# pipeline exists before the deployments do (K8). The market realms under
+# config/terraform join this workflow when K8 gives them remote state.
+#
+#   git tag kloakware-v0.2.0 && git push origin kloakware-v0.2.0
+
+on:
+  push:
+    tags: ["kloakware-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kloakware-promote
+  cancel-in-progress: false
+
+jobs:
+  dev:
+    name: dev
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: kloakware-dev
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Apply the realm
+        env:
+          KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
+          STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
+          KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
+          KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+        run: kloakware/config/promote/ApplyRealm.sh
+
+  qa:
+    name: qa
+    needs: dev
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: kloakware-qa
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Apply the realm
+        env:
+          KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
+          STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
+          KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
+          KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+        run: kloakware/config/promote/ApplyRealm.sh
+
+  staging:
+    name: staging
+    needs: qa
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: kloakware-staging
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Apply the realm
+        env:
+          KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
+          STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
+          KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
+          KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+        run: kloakware/config/promote/ApplyRealm.sh
+
+  prod:
+    name: prod
+    needs: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: kloakware-prod
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Apply the realm
+        env:
+          KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
+          STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
+          KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
+          KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
+        run: kloakware/config/promote/ApplyRealm.sh

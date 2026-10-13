@@ -3,8 +3,10 @@ package com.decionis.kloakware.smoke;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -101,14 +103,37 @@ final class KloakwareStack implements AutoCloseable {
     // The realm first, with config-cli's defaults: what it created before and
     // no longer finds in the file, it removes. Then the dev overlay, which
     // must not remove the realm's clients it does not mention.
-    applyRealm(root.resolve("config/realms/steward.json"), Map.of());
+    applyRealm(List.of(root.resolve("config/realms/steward.json")), Map.of());
+    applyDevOverlay();
+  }
+
+  /**
+   * Applies the realm file again, then the dev overlay, as the compose file
+   * does on a laptop: what is committed for this environment is the pair.
+   */
+  void reapplyRealm() {
+    applyRealm(List.of(root.resolve("config/realms/steward.json")), Map.of());
+    applyDevOverlay();
+  }
+
+  /**
+   * The dev overlay, laptop and CI only. It relaxes TLS on the master and
+   * steward realms because a laptop runs plain HTTP and Docker Desktop may
+   * present the host's traffic from an address outside the private ranges,
+   * which "external" refuses; it seeds the operator and the smoke client; and
+   * it must not remove the clients it does not mention.
+   */
+  private void applyDevOverlay() {
     applyRealm(
-        root.resolve("config/realms/dev/steward-dev.json"),
+        List.of(
+            root.resolve("config/realms/dev/master-dev.json"),
+            root.resolve("config/realms/dev/steward-dev.json")),
         Map.of("IMPORT_MANAGED_CLIENT", "no-delete"));
   }
 
-  private void applyRealm(Path file, Map<String, String> overrides) {
-    String target = "/config/" + file.getFileName();
+  private void applyRealm(List<Path> files, Map<String, String> overrides) {
+    String target =
+        files.stream().map(f -> "/config/" + f.getFileName()).collect(Collectors.joining(","));
     Map<String, String> environment = new HashMap<>();
     environment.put("KEYCLOAK_URL", "http://kloakware:8080");
     environment.put("KEYCLOAK_USER", "admin");
@@ -117,15 +142,22 @@ final class KloakwareStack implements AutoCloseable {
     environment.put("KEYCLOAK_AVAILABILITYCHECK_TIMEOUT", "120s");
     environment.put("IMPORT_FILES_LOCATIONS", target);
     environment.put("IMPORT_VARSUBSTITUTION_ENABLED", "true");
+    // An unchanged file must still converge the realm: the whole point of
+    // re-applying is to undo what was changed by hand.
+    environment.put("IMPORT_CACHE_ENABLED", "false");
     environment.put("STEWARD_URL", STEWARD_URL);
     environment.put("KLOAKWARE_STEWARD_CLIENT_SECRET", clientSecret);
     environment.put("KLOAKWARE_DEV_USER_PASSWORD", devUserPassword);
     environment.putAll(overrides);
 
+    GenericContainer<?> container = new GenericContainer<>(CONFIG_CLI).withNetwork(network);
+    for (Path file : files) {
+      container =
+          container.withCopyFileToContainer(
+              MountableFile.forHostPath(file), "/config/" + file.getFileName());
+    }
     try (GenericContainer<?> cli =
-        new GenericContainer<>(CONFIG_CLI)
-            .withNetwork(network)
-            .withCopyFileToContainer(MountableFile.forHostPath(file), target)
+        container
             .withEnv(environment)
             .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("config-cli"))
             .withStartupCheckStrategy(
@@ -137,15 +169,36 @@ final class KloakwareStack implements AutoCloseable {
   }
 
   String baseUrl() {
-    return "http://" + server.getHost() + ":" + server.getMappedPort(8080);
+    return "http://" + host() + ":" + server.getMappedPort(8080);
   }
 
   String managementUrl() {
-    return "http://" + server.getHost() + ":" + server.getMappedPort(9000);
+    return "http://" + host() + ":" + server.getMappedPort(9000);
+  }
+
+  /**
+   * The address the tests use, never the name "localhost": the JDK's cookie
+   * manager (JDK-7169142, still in 17) stores a cookie for a host without a
+   * dot under "localhost.local" and cannot match it on the next request. The
+   * browser test keeps its own jar for the Secure flag as well; the IP keeps
+   * every other client on the plain manager working.
+   */
+  private String host() {
+    String host = server.getHost();
+    return "localhost".equals(host) ? "127.0.0.1" : host;
   }
 
   String realmUrl() {
     return baseUrl() + "/realms/" + REALM;
+  }
+
+  /** The admin API root for the steward realm, through the bootstrap admin. */
+  String adminUrl() {
+    return baseUrl() + "/admin/realms/" + REALM;
+  }
+
+  String masterTokenUrl() {
+    return baseUrl() + "/realms/master/protocol/openid-connect/token";
   }
 
   @Override
@@ -155,7 +208,11 @@ final class KloakwareStack implements AutoCloseable {
     network.close();
   }
 
+  /**
+   * Random, and within the realm's password policy: twelve or more characters
+   * with a digit, lower and upper case and a symbol, nothing of the username.
+   */
   private static String secret() {
-    return UUID.randomUUID().toString();
+    return "Kw!1-" + UUID.randomUUID();
   }
 }

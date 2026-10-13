@@ -12,6 +12,20 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K2, configuration as code: the `steward` realm now declares its user profile with a
+  `market` attribute, the markets as groups under `/markets/` carrying it, a `market` client scope
+  whose mapper aggregates it into a multivalued claim, explicit client scopes with no offline
+  access, a payment-grade password policy, and the browser flow as a copy of the built-in one,
+  bound, ready for K5's second factor. The market realms, one per entry in `markets`, from a
+  Terraform module over the `keycloak/keycloak` provider with the same policies and a hardcoded
+  market claim. Drift: `config/drift/CheckDrift.sh` proves a clean plan, a hand-made change
+  detected (`plan -detailed-exitcode` 2) and converged, run by the new `drift` job;
+  `RealmConvergenceTest` proves config-cli undoes a hand-made change to the realm and to the
+  client, with the file cache off everywhere. Promotion: `kloakware-promote.yml` applies the realm
+  committed at a `kloakware-v*` tag to dev, QA, staging and production behind GitHub environments,
+  skipping an environment not yet deployed. `BrowserSignInTest` signs in through the login page
+  with PKCE and proves a request without PKCE or with an unknown redirect URI is refused. The guide:
+  `kloakware/docs/Configuration.md`, answering Q9, Q13 and Q14.
 - `kloakware/`, the first workstream (K1) of the kloakware plan: the server image,
   Keycloak 26.8 pinned by digest and built once with PostgreSQL, health, metrics and the
   `jdbc-ping` cache stack, started `--optimized`; the `steward` realm as keycloak-config-cli
