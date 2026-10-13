@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- [docs/Kloakware.md](./docs/Kloakware.md): the plan, proposed, for kloakware, the access service
+  operators sign in to Steward through: a Keycloak distribution the operator runs, extended in Java
+  (an audit event listener, a market-aware second factor, a legacy password hash for migration,
+  Steward's own `users` table as a federated store), configured from Git by keycloak-config-cli and
+  the Keycloak Terraform provider, clustered through the Keycloak Operator, deployed to AWS by
+  Terraform with a switch to Azure. Steward signs in through it with the Authorization Code flow
+  and PKCE and keeps one opaque session cookie of its own. Thirteen workstreams, each a pull request
+  carrying its code, a guide to the Keycloak concept it exercises and the written answers to the
+  interview questions on it; nine decisions needed.
 - [docs/Persistence.md](./docs/Persistence.md): the plan, decided, for Steward's own
   database: users, sessions, the Decionis workspace connection, signal sources, decisions,
   reviews and activities, never a signal's content. Database-agnostic through TypeORM: PostgreSQL by
