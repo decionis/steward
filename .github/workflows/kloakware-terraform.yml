@@ -112,6 +112,11 @@ jobs:
       run:
         working-directory: kloakware/deploy/terraform/environments/dev
     steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Configured?
         id: configured
         env:
@@ -121,12 +126,6 @@ jobs:
           if [ -n "$ROLE" ] && [ -n "$BUCKET" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
             echo "::notice::KLOAKWARE_TERRAFORM_PLAN_ROLE_ARN or KLOAKWARE_TERRAFORM_STATE_BUCKET is not set: the bootstrap stack has not been applied, nothing to plan against"
             echo "ok=false" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Check out
-        if: steps.configured.outputs.ok == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
       - name: Set up Terraform
         if: steps.configured.outputs.ok == 'true'
@@ -165,6 +164,11 @@ jobs:
       run:
         working-directory: kloakware/deploy/terraform/environments/dev
     steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Configured?
         id: configured
         env:
@@ -174,12 +178,6 @@ jobs:
           if [ -n "$ROLE" ] && [ -n "$BUCKET" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
             echo "::notice::KLOAKWARE_TERRAFORM_ROLE_ARN or KLOAKWARE_TERRAFORM_STATE_BUCKET is not set for kloakware-dev: nothing applied"
             echo "ok=false" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Check out
-        if: steps.configured.outputs.ok == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
       - name: Set up Terraform
         if: steps.configured.outputs.ok == 'true'
@@ -227,6 +225,11 @@ jobs:
       run:
         working-directory: kloakware/deploy/terraform/environments/${{ matrix.environment }}
     steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Configured?
         id: configured
         env:
@@ -236,12 +239,6 @@ jobs:
           if [ -n "$ROLE" ] && [ -n "$BUCKET" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
             echo "::notice::KLOAKWARE_TERRAFORM_ROLE_ARN or KLOAKWARE_TERRAFORM_STATE_BUCKET is not set for kloakware-${{ matrix.environment }}: nothing applied"
             echo "ok=false" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Check out
-        if: steps.configured.outputs.ok == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
 
       - name: Set up Terraform
         if: steps.configured.outputs.ok == 'true'
