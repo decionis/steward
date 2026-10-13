@@ -55,6 +55,11 @@ final class KloakwareStack implements AutoCloseable {
       DockerImageName.parse(
           "docker.io/library/haproxy:3.2-alpine@sha256:5d97434a423c2533cfeb42874d45cf6d69a840b60334582dfbfd5008e94c80be");
 
+  /** The collector the nodes trace to, printing what arrives; the observability test reads it. */
+  static final DockerImageName OTEL_COLLECTOR =
+      DockerImageName.parse(
+          "docker.io/otel/opentelemetry-collector-contrib:0.162.0@sha256:39923a8e431bd1f57be82411999d389fcfe40857492e4365456d97a4c1f74be6");
+
   static final DockerImageName PYTHON =
       DockerImageName.parse("docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f");
 
@@ -63,6 +68,7 @@ final class KloakwareStack implements AutoCloseable {
   private final PostgreSQLContainer<?> database;
   private final GenericContainer<?> bankId;
   private final GenericContainer<?> ldap;
+  private final GenericContainer<?> collector;
   private final GenericContainer<?> server;
   private final GenericContainer<?> second;
   private final GenericContainer<?> proxy;
@@ -120,6 +126,17 @@ final class KloakwareStack implements AutoCloseable {
             .withExposedPorts(8090)
             .waitingFor(Wait.forLogMessage(".*bankid simulator listening.*\\n", 1));
 
+    collector =
+        new GenericContainer<>(OTEL_COLLECTOR)
+            .withNetwork(network)
+            .withNetworkAliases("otel-collector")
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("observability/otel-collector.yaml")),
+                "/etc/otelcol/config.yaml")
+            .withCommand("--config=/etc/otelcol/config.yaml")
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("otel"))
+            .waitingFor(Wait.forLogMessage(".*Everything is ready.*\\n", 1));
+
     // The audit listener posts to Steward; here, to a receiver in this JVM,
     // reached from the container as host.testcontainers.internal.
     auditReceiver.start();
@@ -139,6 +156,11 @@ final class KloakwareStack implements AutoCloseable {
     // a test reaching a mapped port needs. A deployment sets KC_HOSTNAME.
     runtime.put("KC_HOSTNAME_STRICT", "false");
     runtime.put("KC_HTTP_ENABLED", "true");
+    // Observability (K10), as the compose file runs it: every trace to the
+    // collector, JSON on standard output.
+    runtime.put("KC_TRACING_ENDPOINT", "http://otel-collector:4317");
+    runtime.put("KC_TRACING_SAMPLER_RATIO", "1.0");
+    runtime.put("KC_LOG_CONSOLE_OUTPUT", "json");
 
     // The Dockerfile at the project root, its .dockerignore honoured: the
     // extensions are compiled into the image here, as everywhere. Built
@@ -195,6 +217,7 @@ final class KloakwareStack implements AutoCloseable {
     database.start();
     bankId.start();
     ldap.start();
+    collector.start();
     server.start();
     // The second node after the first: on an empty database both would race
     // to create the schema, and the loser exits.
@@ -346,6 +369,11 @@ final class KloakwareStack implements AutoCloseable {
     return auditReceiver;
   }
 
+  /** What the collector printed so far: the spans the nodes sent it. */
+  String collectorLogs() {
+    return collector.getLogs();
+  }
+
   /** The corp realm, the stand-in corporate identity provider, as the browser reaches it. */
   String corpRealmUrl() {
     return baseUrl() + "/realms/corp";
@@ -379,6 +407,7 @@ final class KloakwareStack implements AutoCloseable {
     proxy.stop();
     second.stop();
     server.stop();
+    collector.stop();
     ldap.stop();
     bankId.stop();
     database.stop();

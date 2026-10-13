@@ -72,3 +72,15 @@ variable "realm_env_overrides" {
   type        = map(string)
   default     = {}
 }
+
+variable "otel_endpoint" {
+  description = "The OpenTelemetry collector the nodes trace to, for example http://otel-collector.observability.svc:4317; empty samples tracing off."
+  type        = string
+  default     = ""
+}
+
+variable "tracing_sampler_ratio" {
+  description = "The share of traces kept when a collector is named."
+  type        = string
+  default     = "0.1"
+}

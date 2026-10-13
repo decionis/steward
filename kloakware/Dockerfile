@@ -48,6 +48,13 @@ ENV KC_DB=postgres
 # /health/* and /metrics on the management port (9000), for probes and Prometheus.
 ENV KC_HEALTH_ENABLED=true
 ENV KC_METRICS_ENABLED=true
+# Tracing and the user-event metrics are build-time options (K10): compiled
+# in here, pointed at a collector or sampled off at run time.
+ENV KC_TRACING_ENABLED=true
+ENV KC_EVENT_METRICS_USER_ENABLED=true
+# The sampler type is persisted at build time too; the ratio is the run-time
+# knob: zero unless a deployment names a collector and raises it.
+ENV KC_TRACING_SAMPLER_TYPE=parentbased_traceidratio
 # Infinispan embedded, nodes discovering each other through a table in the
 # database: no multicast, nothing extra to run, the same on a laptop, on EKS
 # and on AKS. The Operator switches this to the kubernetes stack where it runs.
@@ -73,6 +80,18 @@ COPY --from=build /opt/keycloak/ /opt/keycloak/
 # The base image's unprivileged user; stated so a reviewer need not look it up.
 USER 1000
 EXPOSE 8080 8443 9000
+
+# Tracing samples nothing until a deployment names a collector and raises
+# the ratio; without that an unreachable localhost:4317 would be logged.
+ENV KC_TRACING_SAMPLER_RATIO=0.0
+ENV KC_TRACING_SERVICE_NAME=kloakware
+# The user-event metrics by realm, client and provider; HTTP histograms so a
+# p95 can be read from Prometheus, with buckets around the token endpoint's
+# usual tens of milliseconds and the login flow's hundreds.
+ENV KC_EVENT_METRICS_USER_TAGS=realm,clientId,idp
+ENV KC_HTTP_METRICS_HISTOGRAMS_ENABLED=true
+ENV KC_HTTP_METRICS_SLOS=5,10,25,50,100,250,500,1000,2500,5000
+ENV KC_CACHE_METRICS_HISTOGRAMS_ENABLED=true
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 CMD ["start", "--optimized"]
