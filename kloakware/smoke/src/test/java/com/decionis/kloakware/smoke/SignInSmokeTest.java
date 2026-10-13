@@ -61,21 +61,28 @@ class SignInSmokeTest {
     JsonNode claims = claims(tokens.get("access_token").asText());
 
     assertEquals(stack.realmUrl(), claims.get("iss").asText());
-    assertEquals(KloakwareStack.DEV_USER, claims.get("preferred_username").asText());
+    // The access token is lightweight: who, not what they are called. The ID
+    // token names the person.
+    assertEquals(
+        KloakwareStack.DEV_USER,
+        claims(tokens.get("id_token").asText()).get("preferred_username").asText());
+    assertTrue(claims.hasNonNull("sub"), "the subject stays in the lightweight token");
 
-    JsonNode roles = claims.path("realm_access").path("roles");
-    assertTrue(has(roles, "steward-admin"), "assigned directly");
-    assertTrue(has(roles, "steward-approver"), "assigned directly");
-    assertTrue(has(roles, "steward-viewer"), "the floor, through the default role");
+    // The steward claim, from the mapper compiled into this server: the
+    // Steward roles without their prefix, composites expanded, and the markets
+    // from the group the operator belongs to. Nothing else about roles.
+    JsonNode steward = claims.get("steward");
+    assertTrue(has(steward.get("roles"), "admin"), "assigned directly");
+    assertTrue(has(steward.get("roles"), "approver"), "assigned directly");
+    assertTrue(has(steward.get("roles"), "viewer"), "the floor, through the default role");
+    assertEquals(3, steward.get("roles").size());
+    assertTrue(has(steward.get("markets"), "SE"), "market from /markets/SE");
+    assertEquals(1, steward.get("markets").size());
+    assertTrue(claims.get("realm_access") == null, "full scope is off: no realm_access");
 
     // Five minutes: the access token lifespan the realm sets.
     assertEquals(300, claims.get("exp").asLong() - claims.get("iat").asLong());
     assertEquals(300, tokens.get("expires_in").asInt());
-
-    // The market claim: from the markets group the operator belongs to, through
-    // the market scope's aggregating mapper. No per-user attribute was set.
-    assertTrue(has(claims.get("market"), "SE"), "market from /markets/SE");
-    assertEquals(1, claims.get("market").size());
   }
 
   @Test

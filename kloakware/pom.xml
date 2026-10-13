@@ -34,6 +34,7 @@
   </licenses>
 
   <modules>
+    <module>extensions/token-mapper-market</module>
     <module>smoke</module>
   </modules>
 
@@ -43,9 +44,9 @@
     <maven.compiler.release>17</maven.compiler.release>
 
     <!--
-      The server image is pinned by digest in server/Dockerfile. This is the
-      same release, as the Java API the extensions compile against (from K5).
-      The two move together: a Dependabot bump of one is a bump of the other.
+      The server image is pinned by digest in Dockerfile. This is the same
+      release, as the Java API the extensions compile against. The two move
+      together: a Dependabot bump of one is a bump of the other.
     -->
     <keycloak.version>26.8.0</keycloak.version>
 
@@ -88,6 +89,26 @@
         API here keeps the two on one version, or SLF4J falls back to a no-op
         logger and Testcontainers' diagnostics vanish.
       -->
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-core</artifactId>
+        <version>${keycloak.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-server-spi</artifactId>
+        <version>${keycloak.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-server-spi-private</artifactId>
+        <version>${keycloak.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-services</artifactId>
+        <version>${keycloak.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -172,7 +193,8 @@
               <goal>add-third-party</goal>
             </goals>
             <configuration>
-              <excludedScopes>test</excludedScopes>
+              <!-- test: not in the image; provided: the server's own libraries, not ours to ship -->
+              <excludedScopes>test,provided</excludedScopes>
               <failOnMissing>true</failOnMissing>
               <failOnBlacklist>true</failOnBlacklist>
               <includedLicenses>

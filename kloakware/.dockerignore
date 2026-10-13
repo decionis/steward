@@ -1,0 +1,8 @@
+# The image's build context is this directory; only what the Dockerfile reads
+# enters it: the parent POM and the extensions' sources. Nothing else, so a
+# test run, a Terraform state or a log never changes the image.
+**
+!pom.xml
+!extensions/**
+extensions/**/target
+!Dockerfile

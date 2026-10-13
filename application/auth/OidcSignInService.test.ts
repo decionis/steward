@@ -86,6 +86,45 @@ describe("OidcSignInService — a sign-in, end to end", () => {
     expect(store.activities.map((a) => a.kind)).toEqual(["SIGNED_IN"]);
   });
 
+  it("reads the compact steward claim when the realm writes it, and the profile from userinfo when the ID token has none", async () => {
+    issuer.userInfoRequests = 0;
+    issuer.userInfo = {
+      sub: "erin",
+      name: "Erin From Userinfo",
+      email: "erin.userinfo@example.test",
+    };
+    const start = await service.start({ origin: ORIGIN, returnTo: "/" });
+    const url = new URL(start.authorizationUrl);
+    const code = issuer.issueCode({
+      nonce: url.searchParams.get("nonce")!,
+      sub: "erin",
+      claims: { steward: { roles: ["audits", "operations"], markets: ["SE"] } },
+    });
+
+    const done = await service.complete({
+      origin: ORIGIN,
+      flowCookie: start.flowCookie,
+      query: { code, state: url.searchParams.get("state")! },
+    });
+
+    const session = await store.findActiveSession(done.sessionId);
+    expect(session?.user.roles).toEqual(["AUDITS", "OPERATIONS"]);
+    expect(session?.user.displayName).toBe("Erin From Userinfo");
+    expect(session?.user.email).toBe("erin.userinfo@example.test");
+    expect(issuer.userInfoRequests).toBe(1);
+  });
+
+  it("leaves userinfo alone when the ID token already names the person", async () => {
+    issuer.userInfoRequests = 0;
+    const start = await service.start({ origin: ORIGIN, returnTo: "/" });
+    await service.complete({
+      origin: ORIGIN,
+      flowCookie: start.flowCookie,
+      query: await signInAtIssuer(start.authorizationUrl),
+    });
+    expect(issuer.userInfoRequests).toBe(0);
+  });
+
   it("updates the user on the next sign-in: new roles, same account", async () => {
     const first = await service.start({ origin: ORIGIN, returnTo: "/" });
     const a = await service.complete({

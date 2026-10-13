@@ -1,7 +1,7 @@
 import type { StewardRole } from "@/domain/auth/StewardSession";
 import type { OidcClient } from "@/infra/auth/oidc/OidcClient";
 import { OidcFlowCookie } from "@/infra/auth/oidc/OidcFlowCookie";
-import { OidcError } from "@/infra/auth/oidc/OidcProvider";
+import { OidcError, type UserInfoClaims } from "@/infra/auth/oidc/OidcProvider";
 import { OidcRoleMapper } from "@/infra/auth/oidc/OidcRoleMapper";
 import type { IdentityStore } from "./IdentityStore";
 
@@ -130,12 +130,21 @@ export class OidcSignInService {
 
     const { claims } = tokens;
     const roles: StewardRole[] = OidcRoleMapper.fromClaims(claims);
+    // The ID token says who and what; what they are called may be left to the
+    // userinfo endpoint when the realm keeps its tokens lean (K4).
+    let profile: UserInfoClaims = claims;
+    if (!OidcRoleMapper.namesThePerson(claims) || !claims.email) {
+      const info = await this.client
+        .userInfo(tokens.accessToken)
+        .catch(() => null);
+      if (info && info.sub === claims.sub) profile = { ...claims, ...info };
+    }
     const user = await this.store.upsertSsoUser({
       ssoSubject: `${this.client.config.issuerUrl}#${claims.sub}`,
       email:
-        claims.email ??
-        `${claims.preferred_username ?? claims.sub}@${new URL(this.client.config.issuerUrl).host}`,
-      displayName: OidcRoleMapper.displayName(claims),
+        profile.email ??
+        `${profile.preferred_username ?? claims.sub}@${new URL(this.client.config.issuerUrl).host}`,
+      displayName: OidcRoleMapper.displayName(profile),
       roles,
     });
     const session = await this.store.createSession({

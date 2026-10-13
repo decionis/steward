@@ -246,7 +246,7 @@ variable. Drift: a CI job that runs config-cli in validate mode and `terraform p
 tag through dev, QA, staging, production with GitHub environments gating each. _Guide:
 Configuration._ _Answers: Q9, Q13, Q14._
 
-#### K3 — Steward signs in through kloakware
+#### K3 — Steward signs in through kloakware ✅ Done, [#128](https://github.com/decionis/steward/pull/128)
 
 In Steward: `infra/auth/oidc/` (the client with PKCE, the ID-token verification with `jose` against
 the issuer's JWKS, the session store over `sessions`, the role mapper), the routes
