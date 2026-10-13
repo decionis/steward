@@ -1,0 +1,178 @@
+{
+  "realm": "corp",
+  "displayName": "Corp, the corporate identity provider stood in",
+  "enabled": true,
+  "sslRequired": "external",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(12) and maxLength(128) and digits(1) and lowerCase(1) and upperCase(1) and specialChars(1) and notUsername and notEmail and passwordHistory(5)",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": []
+  },
+  "clientScopes": [
+    {
+      "name": "corp-claims",
+      "description": "What Corp says about a person that kloakware maps: the market and the Steward role.",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "market",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "market",
+            "claim.name": "market",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "steward role",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "stewardRole",
+            "claim.name": "steward_role",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "steward-broker",
+      "name": "Kloakware's steward realm, as an OpenID Connect relying party",
+      "description": "The broker in the steward realm signs people in here and maps what Corp says about them. Confidential, code flow with PKCE, nothing else.",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "$(env:KLOAKWARE_BROKER_CLIENT_SECRET)",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/steward/broker/corp/endpoint*"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+",
+        "backchannel.logout.session.required": "true"
+      },
+      "fullScopeAllowed": false,
+      "defaultClientScopes": ["basic", "profile", "email", "corp-claims"],
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/steward",
+      "name": "Kloakware's steward realm, as a SAML service provider",
+      "description": "The SAML broker in the steward realm, by its entity id. Assertions signed, responses by POST, the email as the subject.",
+      "protocol": "saml",
+      "enabled": true,
+      "redirectUris": [
+        "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/steward/broker/corp-saml/endpoint*"
+      ],
+      "fullScopeAllowed": false,
+      "attributes": {
+        "saml.assertion.signature": "true",
+        "saml.server.signature": "true",
+        "saml.client.signature": "false",
+        "saml.force.post.binding": "true",
+        "saml.authnstatement": "true",
+        "saml_name_id_format": "email",
+        "saml_force_name_id_format": "true",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml_assertion_consumer_url_post": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/steward/broker/corp-saml/endpoint",
+        "saml_single_logout_service_url_post": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/steward/broker/corp-saml/endpoint"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "user.attribute": "email",
+            "attribute.name": "email",
+            "friendly.name": "Email",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "firstName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "user.attribute": "firstName",
+            "attribute.name": "firstName",
+            "friendly.name": "First name",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "lastName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "user.attribute": "lastName",
+            "attribute.name": "lastName",
+            "friendly.name": "Last name",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "market",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "market",
+            "attribute.name": "market",
+            "friendly.name": "Market",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "steward role",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "stewardRole",
+            "attribute.name": "steward_role",
+            "friendly.name": "Steward role",
+            "attribute.nameformat": "Basic"
+          }
+        }
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}, {\"name\": \"stewardRole\", \"displayName\": \"Steward role\", \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"validations\": {\"options\": {\"options\": [\"admin\", \"approver\", \"operator\", \"operations\", \"audits\", \"viewer\"]}}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  }
+}

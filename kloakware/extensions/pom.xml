@@ -25,5 +25,6 @@
     <module>event-listener</module>
     <module>authenticator-market-mfa</module>
     <module>password-hash-legacy</module>
+    <module>user-storage-steward</module>
   </modules>
 </project>

@@ -12,6 +12,19 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K6, federation and brokering: `extensions/user-storage-steward`, a UserStorageProvider
+  SPI over Steward's own `users` table, read-only, importing each user with Steward's id and roles
+  on their first sign-in and verifying their password against Steward's argon2id hash, the copy
+  following Steward when suspended or deleted and kept as it is when Steward's database is down;
+  the one SELECT it uses is pinned by a Steward test against the users entity. LDAP federation of
+  an OpenLDAP the compose file builds from Debian's slapd, read-only with import, the market from
+  an attribute and a group, the Steward role from a group, with a test of what its people see when
+  it is down. Identity brokering from the `corp` realm standing in for a corporate provider over
+  OpenID Connect with PKCE and over SAML with signed assertions, mappers that set the market and the
+  Steward role from what Corp states, and a first-login flow that creates a new account or links by
+  email to the one that exists, each driven as a browser in the container tests. The guide:
+  `kloakware/docs/Federation.md`, answering Q19 and Q20, with Entra ID and Google as the production
+  equivalents.
 - Kloakware K5, the Java extensions: `event-listener`, an EventListener SPI that turns every
   sign-in, failure, sign-out, credential change and administrator action into one JSON record on
   standard output and one signed POST to Steward's new `/api/activities/kloakware` (HMAC-SHA256,

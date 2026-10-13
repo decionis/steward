@@ -1,0 +1,54 @@
+# The directory the ldap federation reads: people under ou=people, their
+# market as departmentNumber and as membership of a group under ou=markets,
+# their Steward role as membership of a group under ou=roles. Every person
+# takes the one password the entrypoint substitutes.
+dn: ou=people,dc=steward,dc=example
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=markets,dc=steward,dc=example
+objectClass: organizationalUnit
+ou: markets
+
+dn: ou=roles,dc=steward,dc=example
+objectClass: organizationalUnit
+ou: roles
+
+dn: uid=anna.directory,ou=people,dc=steward,dc=example
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: anna.directory
+cn: Anna Directory
+givenName: Anna
+sn: Directory
+mail: anna@directory.test
+departmentNumber: SE
+userPassword: @USER_PASSWORD@
+
+dn: uid=bo.directory,ou=people,dc=steward,dc=example
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: bo.directory
+cn: Bo Directory
+givenName: Bo
+sn: Directory
+mail: bo@directory.test
+departmentNumber: DE
+userPassword: @USER_PASSWORD@
+
+dn: cn=SE,ou=markets,dc=steward,dc=example
+objectClass: groupOfNames
+cn: SE
+member: uid=anna.directory,ou=people,dc=steward,dc=example
+
+dn: cn=DE,ou=markets,dc=steward,dc=example
+objectClass: groupOfNames
+cn: DE
+member: uid=bo.directory,ou=people,dc=steward,dc=example
+
+dn: cn=steward-operator,ou=roles,dc=steward,dc=example
+objectClass: groupOfNames
+cn: steward-operator
+member: uid=anna.directory,ou=people,dc=steward,dc=example

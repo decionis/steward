@@ -52,6 +52,25 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- The Steward user storage's argon2id, to seed a Steward user with a password of the run's own. -->
+    <dependency>
+      <groupId>com.decionis.kloakware</groupId>
+      <artifactId>kloakware-user-storage-steward</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- The JDBC driver, to seed the stand-in Steward database from the test. -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql-jdbc.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

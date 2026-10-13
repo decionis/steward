@@ -106,8 +106,169 @@
         "subComponents": {},
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}, {\"name\": \"personalNumber\", \"displayName\": \"Personal number\", \"validations\": {\"pattern\": {\"pattern\": \"^[0-9]{12}$\", \"error-message\": \"Twelve digits, YYYYMMDDNNNN\"}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false, \"annotations\": {\"inputType\": \"text\"}}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}, {\"name\": \"personalNumber\", \"displayName\": \"Personal number\", \"validations\": {\"pattern\": {\"pattern\": \"^[0-9]{12}$\", \"error-message\": \"Twelve digits, YYYYMMDDNNNN\"}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false, \"annotations\": {\"inputType\": \"text\"}}, {\"name\": \"stewardId\", \"displayName\": \"Steward id\", \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
           ]
+        }
+      }
+    ],
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "name": "steward-users",
+        "providerId": "steward-users",
+        "subComponents": {},
+        "config": {
+          "enabled": ["true"],
+          "priority": ["10"],
+          "cachePolicy": ["MAX_LIFESPAN"],
+          "jdbcUrl": [
+            "$(env:STEWARD_DB_JDBC_URL:-jdbc:postgresql://db:5432/steward)"
+          ],
+          "jdbcUser": ["$(env:STEWARD_DB_USER:-steward)"],
+          "jdbcPassword": ["$(env:STEWARD_DB_PASSWORD)"],
+          "rolePrefix": ["steward-"],
+          "maxLifespan": ["300000"]
+        }
+      },
+      {
+        "name": "ldap",
+        "providerId": "ldap",
+        "subComponents": {
+          "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+            {
+              "name": "username",
+              "providerId": "user-attribute-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "ldap.attribute": ["uid"],
+                "user.model.attribute": ["username"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            },
+            {
+              "name": "email",
+              "providerId": "user-attribute-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "ldap.attribute": ["mail"],
+                "user.model.attribute": ["email"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["false"]
+              }
+            },
+            {
+              "name": "first name",
+              "providerId": "user-attribute-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "ldap.attribute": ["givenName"],
+                "user.model.attribute": ["firstName"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["false"]
+              }
+            },
+            {
+              "name": "last name",
+              "providerId": "user-attribute-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "ldap.attribute": ["sn"],
+                "user.model.attribute": ["lastName"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            },
+            {
+              "name": "market",
+              "providerId": "user-attribute-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "ldap.attribute": ["departmentNumber"],
+                "user.model.attribute": ["market"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["true"],
+                "is.mandatory.in.ldap": ["false"]
+              }
+            },
+            {
+              "name": "markets",
+              "providerId": "group-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "groups.dn": ["ou=markets,dc=steward,dc=example"],
+                "group.name.ldap.attribute": ["cn"],
+                "group.object.classes": ["groupOfNames"],
+                "preserve.group.inheritance": ["false"],
+                "ignore.missing.groups": ["false"],
+                "membership.ldap.attribute": ["member"],
+                "membership.attribute.type": ["DN"],
+                "membership.user.ldap.attribute": ["uid"],
+                "groups.ldap.filter": [""],
+                "mode": ["READ_ONLY"],
+                "user.roles.retrieve.strategy": [
+                  "LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"
+                ],
+                "mapped.group.attributes": [""],
+                "drop.non.existing.groups.during.sync": ["false"],
+                "groups.path": ["/markets"]
+              }
+            },
+            {
+              "name": "steward roles",
+              "providerId": "role-ldap-mapper",
+              "subComponents": {},
+              "config": {
+                "roles.dn": ["ou=roles,dc=steward,dc=example"],
+                "role.name.ldap.attribute": ["cn"],
+                "role.object.classes": ["groupOfNames"],
+                "membership.ldap.attribute": ["member"],
+                "membership.attribute.type": ["DN"],
+                "membership.user.ldap.attribute": ["uid"],
+                "roles.ldap.filter": [""],
+                "mode": ["READ_ONLY"],
+                "user.roles.retrieve.strategy": [
+                  "LOAD_ROLES_BY_MEMBER_ATTRIBUTE"
+                ],
+                "use.realm.roles.mapping": ["true"]
+              }
+            }
+          ]
+        },
+        "config": {
+          "enabled": ["true"],
+          "priority": ["20"],
+          "editMode": ["READ_ONLY"],
+          "importEnabled": ["true"],
+          "syncRegistrations": ["false"],
+          "vendor": ["other"],
+          "usernameLDAPAttribute": ["uid"],
+          "rdnLDAPAttribute": ["uid"],
+          "uuidLDAPAttribute": ["entryUUID"],
+          "userObjectClasses": ["inetOrgPerson, organizationalPerson"],
+          "connectionUrl": ["$(env:KLOAKWARE_LDAP_URL:-ldap://ldap:389)"],
+          "usersDn": ["ou=people,dc=steward,dc=example"],
+          "authType": ["simple"],
+          "bindDn": ["cn=admin,dc=steward,dc=example"],
+          "bindCredential": ["$(env:KLOAKWARE_LDAP_BIND_PASSWORD)"],
+          "searchScope": ["1"],
+          "pagination": ["true"],
+          "batchSizeForSync": ["1000"],
+          "fullSyncPeriod": ["-1"],
+          "changedSyncPeriod": ["300"],
+          "cachePolicy": ["MAX_LIFESPAN"],
+          "trustEmail": ["true"],
+          "useTruststoreSpi": ["always"],
+          "connectionPooling": ["true"],
+          "connectionTimeout": ["5000"],
+          "readTimeout": ["5000"],
+          "removeInvalidUsersEnabled": ["true"],
+          "validatePasswordPolicy": ["false"],
+          "startTls": ["false"],
+          "maxLifespan": ["300000"]
         }
       }
     ]
@@ -551,6 +712,54 @@
           "authenticatorFlow": false
         }
       ]
+    },
+    {
+      "alias": "steward first broker login",
+      "description": "The first time a brokered identity arrives: the profile as the provider sent it, then a new account when nothing matches, or the account with that email, linked. Right only because both providers verify the email.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-review-profile",
+          "authenticatorConfig": "steward review profile",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
+          "flowAlias": "steward first broker login: create or link",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "steward first broker login: create or link",
+      "description": "A new account when the email is new; the existing account, linked automatically, when it is not.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-create-user-if-unique",
+          "authenticatorConfig": "steward create user if unique",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
+          "authenticator": "idp-auto-link",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        }
+      ]
     }
   ],
   "eventsEnabled": true,
@@ -568,6 +777,319 @@
         "bankid.personal-number-attribute": "personalNumber",
         "markets.group.path": "/markets",
         "market.attribute": "market"
+      }
+    },
+    {
+      "alias": "steward review profile",
+      "config": {
+        "update.profile.on.first.login": "off"
+      }
+    },
+    {
+      "alias": "steward create user if unique",
+      "config": {
+        "require.password.update.after.registration": "false"
+      }
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "corp",
+      "displayName": "Corporate sign-in",
+      "providerId": "oidc",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "hideOnLogin": false,
+      "firstBrokerLoginFlowAlias": "steward first broker login",
+      "config": {
+        "clientId": "steward-broker",
+        "clientSecret": "$(env:KLOAKWARE_BROKER_CLIENT_SECRET)",
+        "clientAuthMethod": "client_secret_post",
+        "authorizationUrl": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/corp/protocol/openid-connect/auth",
+        "tokenUrl": "$(env:KLOAKWARE_INTERNAL_URL:-http://localhost:8080)/realms/corp/protocol/openid-connect/token",
+        "jwksUrl": "$(env:KLOAKWARE_INTERNAL_URL:-http://localhost:8080)/realms/corp/protocol/openid-connect/certs",
+        "useJwksUrl": "true",
+        "validateSignature": "true",
+        "issuer": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/corp",
+        "logoutUrl": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/corp/protocol/openid-connect/logout",
+        "defaultScope": "openid profile email",
+        "pkceEnabled": "true",
+        "pkceMethod": "S256",
+        "syncMode": "FORCE",
+        "backchannelSupported": "false"
+      }
+    },
+    {
+      "alias": "corp-saml",
+      "displayName": "Corporate sign-in (SAML)",
+      "providerId": "saml",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "hideOnLogin": false,
+      "firstBrokerLoginFlowAlias": "steward first broker login",
+      "config": {
+        "entityId": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/steward",
+        "singleSignOnServiceUrl": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/corp/protocol/saml",
+        "singleLogoutServiceUrl": "$(env:KLOAKWARE_PUBLIC_URL:-http://localhost:8080)/realms/corp/protocol/saml",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+        "principalType": "SUBJECT",
+        "postBindingResponse": "true",
+        "postBindingAuthnRequest": "true",
+        "postBindingLogout": "true",
+        "wantAuthnRequestsSigned": "false",
+        "wantAssertionsSigned": "true",
+        "wantAssertionsEncrypted": "false",
+        "validateSignature": "true",
+        "useMetadataDescriptorUrl": "true",
+        "metadataDescriptorUrl": "$(env:KLOAKWARE_INTERNAL_URL:-http://localhost:8080)/realms/corp/protocol/saml/descriptor",
+        "signatureAlgorithm": "RSA_SHA256",
+        "syncMode": "FORCE"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "market",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "claim": "market",
+        "user.attribute": "market",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market SE",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-group-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"market\", \"value\": \"SE\"}]",
+        "are.claim.values.regex": "false",
+        "group": "/markets/SE",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market NG",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-group-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"market\", \"value\": \"NG\"}]",
+        "are.claim.values.regex": "false",
+        "group": "/markets/NG",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market GB",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-group-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"market\", \"value\": \"GB\"}]",
+        "are.claim.values.regex": "false",
+        "group": "/markets/GB",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market DE",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-group-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"market\", \"value\": \"DE\"}]",
+        "are.claim.values.regex": "false",
+        "group": "/markets/DE",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role admin",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-role-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"steward_role\", \"value\": \"admin\"}]",
+        "are.claim.values.regex": "false",
+        "role": "steward-admin",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role approver",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-role-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"steward_role\", \"value\": \"approver\"}]",
+        "are.claim.values.regex": "false",
+        "role": "steward-approver",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role operator",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-role-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"steward_role\", \"value\": \"operator\"}]",
+        "are.claim.values.regex": "false",
+        "role": "steward-operator",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role operations",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-role-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"steward_role\", \"value\": \"operations\"}]",
+        "are.claim.values.regex": "false",
+        "role": "steward-operations",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role audits",
+      "identityProviderAlias": "corp",
+      "identityProviderMapper": "oidc-advanced-role-idp-mapper",
+      "config": {
+        "claims": "[{\"key\": \"steward_role\", \"value\": \"audits\"}]",
+        "are.claim.values.regex": "false",
+        "role": "steward-audits",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": {
+        "attribute.name": "market",
+        "user.attribute": "market",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market SE",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-group-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"market\", \"value\": \"SE\"}]",
+        "are.attribute.values.regex": "false",
+        "group": "/markets/SE",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market NG",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-group-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"market\", \"value\": \"NG\"}]",
+        "are.attribute.values.regex": "false",
+        "group": "/markets/NG",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market GB",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-group-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"market\", \"value\": \"GB\"}]",
+        "are.attribute.values.regex": "false",
+        "group": "/markets/GB",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "market DE",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-group-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"market\", \"value\": \"DE\"}]",
+        "are.attribute.values.regex": "false",
+        "group": "/markets/DE",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role admin",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-role-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"steward_role\", \"value\": \"admin\"}]",
+        "are.attribute.values.regex": "false",
+        "role": "steward-admin",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role approver",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-role-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"steward_role\", \"value\": \"approver\"}]",
+        "are.attribute.values.regex": "false",
+        "role": "steward-approver",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role operator",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-role-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"steward_role\", \"value\": \"operator\"}]",
+        "are.attribute.values.regex": "false",
+        "role": "steward-operator",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role operations",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-role-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"steward_role\", \"value\": \"operations\"}]",
+        "are.attribute.values.regex": "false",
+        "role": "steward-operations",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "role audits",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-advanced-role-idp-mapper",
+      "config": {
+        "attributes": "[{\"key\": \"steward_role\", \"value\": \"audits\"}]",
+        "are.attribute.values.regex": "false",
+        "role": "steward-audits",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "first name",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": {
+        "attribute.name": "firstName",
+        "user.attribute": "firstName",
+        "syncMode": "FORCE"
+      }
+    },
+    {
+      "name": "last name",
+      "identityProviderAlias": "corp-saml",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": {
+        "attribute.name": "lastName",
+        "user.attribute": "lastName",
+        "syncMode": "FORCE"
       }
     }
   ]

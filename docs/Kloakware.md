@@ -277,7 +277,7 @@ template says. _Guide: Tokens_ (the fat-token problem, lightweight tokens, `user
 introspection, RBAC against ABAC and fine-grained authorisation, what a payment dashboard should
 and should not carry in a JWT). _Answers: Q6, Q17._
 
-#### K5 — The Java extensions
+#### K5 — The Java extensions ✅ Done, [#130](https://github.com/decionis/steward/pull/130)
 
 `event-listener`: an `EventListenerProvider` that emits sign-in, sign-out, failed sign-in, password
 and admin events as structured JSON to stdout, posts them to Steward's activities endpoint signed

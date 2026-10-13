@@ -59,12 +59,15 @@ final class AuditReceiver {
     return received;
   }
 
-  /** The first record of this type that arrives within the wait, or null. */
-  Received await(String type, long millis) throws InterruptedException {
+  /** The first record of this type naming this user that arrives within the wait, or null. */
+  Received await(String type, String username, long millis) throws InterruptedException {
     long deadline = System.currentTimeMillis() + millis;
     while (System.currentTimeMillis() < deadline) {
       for (Received record : received) {
-        if (record.body().contains("\"type\":\"" + type + "\"")) return record;
+        if (record.body().contains("\"type\":\"" + type + "\"")
+            && record.body().contains("\"username\":\"" + username + "\"")) {
+          return record;
+        }
       }
       Thread.sleep(200);
     }
