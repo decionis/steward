@@ -23,6 +23,7 @@ kloakware/
   config/terraform/         the market realms, one per entry in `markets`, through the Keycloak provider
   config/drift/             the drift check: apply, change by hand, detect, converge
   config/promote/           the realm applied to one environment; the promotion workflow runs it per environment
+  deploy/terraform/         the platforms as code (K8): a module per cloud with one output contract, the kloakware module on either, an environment per stage, the bootstrap applied once
   deploy/compose/           PostgreSQL, the server, config-cli: the stack on a laptop
   smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser
   docs/                     one guide per Keycloak concept, each ending in the interview questions it answers

@@ -12,6 +12,24 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K8, Terraform to AWS with the Azure switch: `deploy/terraform/modules/platform-aws`
+  (VPC, EKS with a managed node group, Aurora PostgreSQL, Secrets Manager, Route 53, ACM, the load
+  balancer controller and external-dns) and `modules/platform-azure` (VNet, AKS with application
+  routing, PostgreSQL Flexible Server on a private subnet, Key Vault, Azure DNS, cert-manager with
+  Let's Encrypt), both producing one output contract; `modules/kloakware` on either, the Keycloak
+  Operator vendored at 26.8.0 and applied server-side, the Keycloak resource pointing at the
+  published image, the realm applied by a config-cli Job named after the realm files' hash, a
+  HorizontalPodAutoscaler on the resource's scale subresource, a PodDisruptionBudget, zone spread
+  and the Operator's network policy and update strategy, the BankID simulator beside the basic
+  tier; `environments/dev|qa|staging|prod` selecting `cloud` and `tier`, one S3 state each;
+  `bootstrap/aws` and `bootstrap/azure`, applied once, for GitHub's OIDC trust, the roles per
+  environment and the state bucket. The `Kloakware terraform` workflow formats, validates, lints
+  with tflint and scans with trivy on every pull request, plans dev under a read-only role, applies
+  dev on merge and QA, staging and production from a tag behind each environment's approval, all
+  skipping with a notice until the bootstrap's outputs are set; the `Kloakware image` workflow
+  publishes the image to GHCR on merge and on tags. The guide: `kloakware/docs/Deployment.md`,
+  the tiers and what a month of each costs, the pipeline, the one-time setup, answering Q22 and
+  Q23.
 - Kloakware K6, federation and brokering: `extensions/user-storage-steward`, a UserStorageProvider
   SPI over Steward's own `users` table, read-only, importing each user with Steward's id and roles
   on their first sign-in and verifying their password against Steward's argon2id hash, the copy
