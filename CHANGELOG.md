@@ -12,6 +12,17 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K9, zero-downtime upgrades and the promotion pipeline: `kloakware/upgrade/Rehearse.sh`
+  moves the laptop cluster from one Keycloak to another the way production would, a patch rolled
+  one node at a time under a k6 login load with each node drained in HAProxy first and not one
+  failed request allowed, a minor recreated from a snapshot with the first new node migrating the
+  schema under Liquibase's lock, then the manual migration strategy's SQL export without running it
+  and the rollback from the snapshot to the old image; the `Kloakware upgrade rehearsal` workflow
+  runs it on every pull request that moves the pin, from master's pin to the pull request's, with
+  the whole container suite against the new Keycloak (`-Dkloakware.keycloak.image`), weekly from the
+  previous release, and rehearses the promotion script against the same stack. The compose nodes'
+  image is overridable per `up` and the proxy carries an admin socket. The guide:
+  `kloakware/docs/Upgrades.md`, answering Q3, Q24 and Q9 revisited.
 - Kloakware K8, Terraform to AWS with the Azure switch: `deploy/terraform/modules/platform-aws`
   (VPC, EKS with a managed node group, Aurora PostgreSQL, Secrets Manager, Route 53, ACM, the load
   balancer controller and external-dns) and `modules/platform-azure` (VNet, AKS with application

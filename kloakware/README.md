@@ -23,6 +23,7 @@ kloakware/
   config/terraform/         the market realms, one per entry in `markets`, through the Keycloak provider
   config/drift/             the drift check: apply, change by hand, detect, converge
   config/promote/           the realm applied to one environment; the promotion workflow runs it per environment
+  upgrade/                  the upgrade runbook rehearsed (K9): a patch rolled under k6 load with the proxy draining, a minor recreated with the schema migrated, the manual SQL export, the rollback
   deploy/terraform/         the platforms as code (K8): a module per cloud with one output contract, the kloakware module on either, an environment per stage, the bootstrap applied once
   deploy/compose/           PostgreSQL, two kloakware nodes behind HAProxy, config-cli: the stack on a laptop (K7)
   deploy/compose/haproxy/   the entry on 8080: round-robin over the nodes, no stickiness, health on each node's management port

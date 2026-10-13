@@ -317,7 +317,7 @@ in two availability zones of one region, Aurora PostgreSQL multi-AZ, cross-site 
 Global Accelerator; cross-region active-active stated as outside the tested envelope. _Guide:
 Clustering._ _Answers: Q2, Q21._
 
-#### K8 — Terraform to AWS, with the Azure switch
+#### K8 — Terraform to AWS, with the Azure switch ✅ Done, [#133](https://github.com/decionis/steward/pull/133)
 
 `deploy/terraform/`: `modules/platform-aws` (VPC, EKS with a managed node group, Aurora PostgreSQL
 multi-AZ, Secrets Manager, Route 53, ACM, the load-balancer controller), `modules/platform-azure`

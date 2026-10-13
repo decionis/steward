@@ -1,0 +1,115 @@
+name: Kloakware upgrade rehearsal
+
+# The upgrade runbook, rehearsed (K9). On a pull request that moves the
+# Keycloak pin in the Dockerfile (Dependabot's, or a hand one), the move is
+# rehearsed from master's pin to the pull request's: a patch rolled under
+# load with not one failed request, a minor recreated with the schema
+# migrated, then the manual strategy's SQL export and the rollback from the
+# snapshot; and the whole container suite runs against the new Keycloak, so
+# an extension the new version breaks fails here, before the pin merges.
+# Weekly, and by hand, the same rehearsal runs from the previous release to
+# the pinned one, so the minor path stays exercised between bumps. The
+# promotion script is rehearsed against the same stack.
+
+on:
+  pull_request:
+    paths:
+      - "kloakware/Dockerfile"
+      - "kloakware/pom.xml"
+      - "kloakware/extensions/**"
+      - "kloakware/upgrade/**"
+      - "kloakware/deploy/compose/**"
+      - "kloakware/config/promote/**"
+      - ".github/workflows/kloakware-upgrade.yml"
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kloakware-upgrade-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The release before the pinned one: what the weekly rehearsal starts from.
+  PREVIOUS_KEYCLOAK_IMAGE: quay.io/keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
+
+jobs:
+  rehearse:
+    name: rehearse the upgrade
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: From and to
+        id: versions
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          pin() { sed -nE 's/^ARG KEYCLOAK_IMAGE=(.*)$/\1/p' "$1"; }
+          to="$(pin kloakware/Dockerfile)"
+          from="$PREVIOUS_KEYCLOAK_IMAGE"
+          if [ "$EVENT" = "pull_request" ]; then
+            base_pin="$(git show "origin/$BASE:kloakware/Dockerfile" | pin /dev/stdin)"
+            if [ -n "$base_pin" ] && [ "$base_pin" != "$to" ]; then
+              from="$base_pin"; echo "bump=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "bump=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+          fi
+          { echo "from=$from"; echo "to=$to"; } >> "$GITHUB_OUTPUT"
+          echo "::notice::Rehearsing $from -> $to"
+
+      - name: Rehearse
+        env:
+          FROM: ${{ steps.versions.outputs.from }}
+          TO: ${{ steps.versions.outputs.to }}
+          LOAD_SECONDS: "120"
+        run: kloakware/upgrade/Rehearse.sh "$FROM" "$TO"
+
+      - name: Set up Java 21
+        if: steps.versions.outputs.bump == 'true'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: The container suite on the new Keycloak
+        # Every extension, through the browser, the brokers and the cluster,
+        # against the version the pull request moves to.
+        if: steps.versions.outputs.bump == 'true'
+        env:
+          TO: ${{ steps.versions.outputs.to }}
+        run: mvn --batch-mode --no-transfer-progress --file kloakware/pom.xml verify -Dkloakware.keycloak.image="$TO"
+
+      - name: The promotion script, against this stack
+        # The script the promotion workflow runs per environment, here
+        # against the laptop stack at the pinned version: dev, then "qa" from
+        # the same tag, converging both times.
+        working-directory: kloakware/deploy/compose
+        env:
+          STEWARD_URL: http://host.docker.internal:3000
+        run: |
+          docker compose --env-file .env.example up --build --wait --wait-timeout 600
+          docker wait "$(docker compose --env-file .env.example ps -aq config-dev)"
+          set -a; . ./.env.example; set +a
+          for environment in dev qa; do
+            echo "::group::promote to $environment"
+            KLOAKWARE_URL=http://host.docker.internal:8080 KEYCLOAK_USER=admin \
+              KEYCLOAK_PASSWORD="$KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD" \
+              KLOAKWARE_PUBLIC_URL=http://localhost:8080 KLOAKWARE_INTERNAL_URL=http://localhost:8080 \
+              ../../config/promote/ApplyRealm.sh
+            echo "::endgroup::"
+          done
+          docker compose --env-file .env.example down --volumes --remove-orphans

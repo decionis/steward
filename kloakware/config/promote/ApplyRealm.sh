@@ -33,7 +33,10 @@ realms=$(cd "$here/../realms" && pwd)
 # The same image, by digest, as deploy/compose/compose.yaml.
 image="docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274"
 
+# host.docker.internal reaches the machine this runs on, for a rehearsal
+# against a laptop or CI stack; a deployment's KLOAKWARE_URL is a real name.
 docker run --rm \
+  --add-host host.docker.internal:host-gateway \
   -v "$realms/corp.json:/config/corp.json:ro" \
   -v "$realms/steward.json:/config/steward.json:ro" \
   -e KEYCLOAK_URL="$KLOAKWARE_URL" \

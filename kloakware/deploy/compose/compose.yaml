@@ -22,7 +22,9 @@ x-kloakware-node: &kloakware-node
     # The whole project is the context: the Dockerfile compiles the
     # extensions under ../../extensions in before Keycloak's own build.
     context: ../..
-  image: kloakware/server:local
+  # KLOAKWARE_IMAGE overrides the image for one `up` of one node: how the
+  # upgrade rehearsal rolls the cluster (K9).
+  image: ${KLOAKWARE_IMAGE:-kloakware/server:local}
   depends_on:
     db:
       condition: service_healthy
