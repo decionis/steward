@@ -136,7 +136,11 @@ name the actor in surface decisions and overrides.
 2. **The Steward database.** The `workspaces` row, entered through the setup page or created by
    signup. This is what an operator who set no environment relies on, on a laptop, a VPS or a
    cluster alike.
-3. **Neither.** The setup page, administrators only, offers two paths:
+3. **Boot parameters.** `--email` and `--org` (or `STEWARD_OWNER_EMAIL` and `STEWARD_ORG_NAME`)
+   start the signup below without anyone opening the setup page first; the emailed code is the one
+   step a person completes on the page. [docs/ProtocolContracts.md](./ProtocolContracts.md), "First
+   boot", has the sequence.
+4. **Neither.** The setup page, administrators only once the first exists, offers two paths:
    - **Sign up for Decionis**, through the published public onboarding:
      `POST /v1/public/auth/register/start` (owner email and name, organisation name), then
      `POST /v1/public/auth/register/verify` with the one-time code, then a signal-mapping session
@@ -185,9 +189,9 @@ Decionis handoff, the one-time administrator setup.
 
 #### DB3 — The workspace connection
 
-The `workspaces` table with encrypted secrets, the setup page with its three paths, the resolution
+The `workspaces` table with encrypted secrets, the setup page with its paths, the resolution
 order in `StewardRuntimeConfig`, credential verification before save, rotation. Depends on the
-Protocol client (C1 in [docs/ProtocolContracts.md, PR #93](https://github.com/decionis/steward/pull/93)).
+Protocol client (C1 in [docs/ProtocolContracts.md](./ProtocolContracts.md)); the boot parameters are C7 there.
 
 #### DB4 — Signal sources persisted
 
