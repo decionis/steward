@@ -46,7 +46,10 @@ describe("The schema and its migration", () => {
       )) as { name: string }[]
     ).map((row) => row.name);
 
-    expect(first.applied).toEqual(["InitialSchema1758800000000"]);
+    expect(first.applied).toEqual([
+      "InitialSchema1758800000000",
+      "SessionIssuer1760400000000",
+    ]);
     expect(again.applied).toEqual([]);
     for (const table of TABLES) expect(names).toContain(table);
     await dataSource.destroy();
@@ -74,6 +77,8 @@ describe("The schema and its migration", () => {
         issuedAt: now,
         expiresAt: now,
         revokedAt: null,
+        ssoSessionId: "sid-1",
+        ssoIdToken: null,
       },
       Workspace: {
         id: "w1",
@@ -164,7 +169,7 @@ describe("The schema and its migration", () => {
       PersistenceSchemaBehindError,
     );
     await expect(migrate(dataSource, "off")).rejects.toThrow(
-      /behind by 1 migration/,
+      /behind by 2 migrations/,
     );
     await dataSource.destroy();
   });
@@ -214,7 +219,10 @@ describe("Persistence — the process-wide handle", () => {
       file: null,
       migrated: true,
       pendingMigrations: 0,
-      appliedAtStart: ["InitialSchema1758800000000"],
+      appliedAtStart: [
+        "InitialSchema1758800000000",
+        "SessionIssuer1760400000000",
+      ],
     });
   });
 

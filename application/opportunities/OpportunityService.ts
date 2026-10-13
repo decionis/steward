@@ -1,3 +1,4 @@
+import { StewardPermissions } from "@/domain/auth/StewardPermissions";
 import type { StewardSession } from "@/domain/auth/StewardSession";
 import {
   OpportunityReviewSchema,
@@ -21,11 +22,7 @@ export class OpportunityService {
     opportunityId: string,
     input: unknown,
   ): Promise<OpportunityReviewResult> {
-    if (
-      !this.session.roles.some(
-        (role) => role === "APPROVER" || role === "ADMIN",
-      )
-    ) {
+    if (!StewardPermissions.allows(this.session.roles, "review")) {
       throw new StewardForbiddenError();
     }
     const review = OpportunityReviewSchema.parse(input);

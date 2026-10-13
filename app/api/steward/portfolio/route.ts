@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const context = new StewardCompositionRoot().createRequestContext(request);
+    const context = await new StewardCompositionRoot().createRequestContext(
+      request,
+    );
     return NextResponse.json(await context.dashboard.getPortfolio());
   } catch (error) {
     return StewardApiErrorMapper.toResponse(error);

@@ -11,7 +11,9 @@ export async function POST(
 ) {
   try {
     const { id: opportunityId } = await params;
-    const context = new StewardCompositionRoot().createRequestContext(request);
+    const context = await new StewardCompositionRoot().createRequestContext(
+      request,
+    );
     return NextResponse.json(
       await context.opportunities.review(opportunityId, await request.json()),
     );

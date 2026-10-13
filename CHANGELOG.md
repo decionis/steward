@@ -12,6 +12,25 @@ you integrate against these types.
 
 ### Added
 
+- Steward signs in through kloakware, K3 of the kloakware plan: a confidential OpenID Connect
+  client under `infra/auth/oidc/` (discovery and keys cached with a rate-limited refetch on an
+  unknown key, the Authorization Code flow with PKCE S256, the code exchanged on the server, the ID
+  token verified for issuer, audience, nonce, signature and expiry, a signed ten-minute flow cookie,
+  the `steward-*` realm roles mapped onto Steward's with the `VIEWER` floor); the identity store
+  over Steward's `users`, `sessions` and `activities` (a migration adds the issuer's session id and
+  the ID token hint to `sessions`), with an in-memory twin for tests; the sign-in service and the
+  routes `/api/auth/oidc/{start,callback,backchannel-logout,sign-out}` and `/api/auth/session`;
+  the resolver turning the `steward_session` cookie into a session, refusing one that names no
+  active row; the middleware admitting it and leaving the sign-in routes open; "Sign in with your
+  organisation account" on `/sign-in` and "Sign out" in the shell; `STEWARD_OIDC_ISSUER_URL`,
+  `STEWARD_OIDC_CLIENT_ID`, `STEWARD_OIDC_CLIENT_SECRET`, `STEWARD_PUBLIC_URL`,
+  `STEWARD_SESSION_COOKIE`. The `steward` client in the realm gains a mapper that writes the realm
+  roles into the ID token, which Keycloak's default `roles` scope does not. Two roles join
+  Steward's four, `OPERATIONS` and `AUDITS`, with the
+  permission table `StewardPermissions` the services and the pages read. The sign-in proven end to
+  end against the compose stack by `test/e2e/KloakwareSignIn.test.mjs` in the new `sign-in` job.
+  The guide: `kloakware/docs/SignIn.md`, answering Q5, Q15 and Q16. `jose` (MIT) joins the
+  dependencies.
 - Kloakware K2, configuration as code: the `steward` realm now declares its user profile with a
   `market` attribute, the markets as groups under `/markets/` carrying it, a `market` client scope
   whose mapper aggregates it into a multivalued claim, explicit client scopes with no offline

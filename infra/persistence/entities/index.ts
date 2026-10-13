@@ -44,6 +44,10 @@ export interface SessionRecord {
   issuedAt: string;
   expiresAt: string;
   revokedAt: string | null;
+  /** The issuer's session id (the ID token's `sid`) for a sign-in through kloakware; what a backchannel logout names. */
+  ssoSessionId: string | null;
+  /** The ID token of that sign-in, kept for the issuer's end-session request; a token, never a secret. */
+  ssoIdToken: string | null;
 }
 export const Session = new EntitySchema<SessionRecord>({
   name: "Session",
@@ -54,8 +58,13 @@ export const Session = new EntitySchema<SessionRecord>({
     issuedAt: timestamp("issued_at"),
     expiresAt: timestamp("expires_at"),
     revokedAt: timestamp("revoked_at", true),
+    ssoSessionId: label("sso_session_id", 64, true),
+    ssoIdToken: text("sso_id_token", true),
   },
-  indices: [{ name: "ix_sessions_user", columns: ["userId"] }],
+  indices: [
+    { name: "ix_sessions_user", columns: ["userId"] },
+    { name: "ix_sessions_sso", columns: ["ssoSessionId"] },
+  ],
 });
 
 export interface WorkspaceRecord {

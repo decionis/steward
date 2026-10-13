@@ -226,3 +226,9 @@
     padding: 24px 18px 48px;
   }
 }
+
+.signOut {
+  composes: connect;
+  cursor: pointer;
+  font: inherit;
+}

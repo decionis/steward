@@ -48,6 +48,12 @@ services:
     ports:
       - "8080:8080"
       - "9000:9000"
+    # Steward on the host, for the backchannel logout the realm posts to
+    # STEWARD_URL: set STEWARD_URL=http://host.docker.internal:3000 to have it
+    # reach a Steward running beside this stack. Docker Desktop resolves the
+    # name on its own; on Linux this maps it to the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       # The image carries no curl; bash's /dev/tcp reaches the management port.
       test:

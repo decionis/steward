@@ -34,3 +34,31 @@ describe("AppShell — the activation point", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("AppShell — signing out", () => {
+  it("offers sign-out, as a form, to a session that came through kloakware", () => {
+    render(
+      <AppShell session={{ ...session("LIVE"), signedInThrough: "KLOAKWARE" }}>
+        content
+      </AppShell>,
+    );
+
+    const button = screen.getByRole("button", { name: /Sign out/ });
+    expect(button.closest("form")).toHaveAttribute(
+      "action",
+      "/api/auth/oidc/sign-out",
+    );
+    expect(button.closest("form")).toHaveAttribute("method", "post");
+  });
+
+  it("offers no sign-out to the handoff or the demo, which end elsewhere", () => {
+    render(
+      <AppShell session={{ ...session("LIVE"), signedInThrough: "DECIONIS" }}>
+        content
+      </AppShell>,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Sign out/ }),
+    ).not.toBeInTheDocument();
+  });
+});

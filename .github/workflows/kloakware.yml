@@ -78,3 +78,54 @@ jobs:
 
       - name: Drift
         run: kloakware/config/drift/CheckDrift.sh
+
+  sign-in:
+    name: sign-in (steward through kloakware)
+    # The whole sign-in against the real pair: Steward in live mode, built
+    # here, and kloakware from the compose file with the dev overlay. Proves
+    # the redirect out, the login page, the redirect back, the session, the
+    # issuer's backchannel logout and Steward's sign-out (K3).
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Start kloakware
+        # The realm redirects to, and posts the backchannel logout to, Steward
+        # on the runner, reached from the container as host.docker.internal.
+        working-directory: kloakware/deploy/compose
+        env:
+          STEWARD_URL: http://host.docker.internal:3000
+        run: |
+          docker compose --env-file .env.example up --build --wait --wait-timeout 300
+          docker wait "$(docker compose --env-file .env.example ps -aq config-dev)"
+
+      - name: Build Steward
+        run: pnpm build
+
+      - name: Sign in, end to end
+        env:
+          STEWARD_URL: http://host.docker.internal:3000
+        run: test/e2e/RunKloakwareSignIn.sh
+
+      - name: Stop kloakware
+        if: always()
+        working-directory: kloakware/deploy/compose
+        run: docker compose --env-file .env.example down --volumes --remove-orphans

@@ -65,11 +65,14 @@ named by `STEWARD_DATABASE_URL`. A signal's content is never written to it. The 
 only through portable migrations, applied at start. [docs/Persistence.md](docs/Persistence.md) records the
 decision.
 
-Operators will sign in through kloakware, the Keycloak access service the operator runs beside
-Steward: extended in Java where Keycloak's defaults stop, configured from Git, clustered through the
-Keycloak Operator, deployed to AWS by Terraform with a switch to Azure. [docs/Kloakware.md](docs/Kloakware.md)
-records the decision and the workstreams; until its sign-in workstream merges, live mode signs in
-through the Decionis handoff.
+Operators sign in through kloakware, the Keycloak access service the operator runs beside Steward:
+extended in Java where Keycloak's defaults stop, configured from Git, clustered through the
+Keycloak Operator, deployed to AWS by Terraform with a switch to Azure. Steward is a confidential
+OpenID Connect client of it: the Authorization Code flow with PKCE from the server, the ID token
+verified against the issuer's keys, one opaque session cookie in the browser and never a token,
+backchannel logout from the issuer, sign-out that ends both sessions. The Decionis handoff stays as
+the other sign-in. [docs/Kloakware.md](docs/Kloakware.md) records the decision and the workstreams;
+the service itself is under [kloakware/](kloakware/README.md).
 
 [OpenCore.md](./OpenCore.md) states the same boundary as a business model: what is free forever,
 what Decionis operates, and the one point where commerce enters the flow.
@@ -180,6 +183,11 @@ Invalid or missing required values fail fast rather than degrading at request ti
 | `STEWARD_DATABASE_URL`             | no                | the embedded database                   | `postgres://`, `mysql://`, `mssql://`, `oracle://` or `sqlite:` selects where Steward's records live.                     |
 | `STEWARD_DATA_DIR`                 | no                | `./data`                                | Where the embedded database file lives when no URL is set; a volume in the container.                                     |
 | `STEWARD_DATABASE_MIGRATE`         | no                | `on-start`                              | `off` refuses to serve a schema that is behind instead of migrating it.                                                   |
+| `STEWARD_OIDC_ISSUER_URL`          | with the next two | —                                       | The kloakware realm Steward signs operators in through, `https://login.example.com/realms/steward`.                       |
+| `STEWARD_OIDC_CLIENT_ID`           | with the issuer   | —                                       | Steward's client in that realm, `steward`.                                                                                |
+| `STEWARD_OIDC_CLIENT_SECRET`       | with the issuer   | —                                       | Its secret; a mounted value, never in a file. Needs `DECIONIS_API_KEY` and `DECIONIS_ORG_ID`.                             |
+| `STEWARD_PUBLIC_URL`               | behind a proxy    | the request's origin                    | Steward's origin as the browser and the issuer see it; the redirect URI is built from it.                                 |
+| `STEWARD_SESSION_COOKIE`           | no                | `steward_session`                       | The cookie carrying Steward's own session id: opaque, HttpOnly, the only thing the browser holds.                         |
 
 Two further cookies are read opportunistically in live mode and are **not** required:
 `decionis_display_name` (URL-encoded, for the app shell) and `decionis_roles` (a comma-separated
@@ -201,8 +209,10 @@ STEWARD_DATA_MODE=live
 DECIONIS_API_BASE_URL=https://api.decionis.com
 ```
 
-In live mode `middleware.ts` requires a Decionis session on every path except `/api/health`,
-`/sign-in`, and the discovery files `/llms.txt` and `/llms-full.txt`. Page requests without one are redirected to `/sign-in?returnTo=…`; API requests receive
+In live mode `middleware.ts` requires a session on every path except `/api/health`, `/sign-in`,
+the discovery files `/llms.txt` and `/llms-full.txt`, and the sign-in routes under
+`/api/auth/oidc/`: Steward's own session cookie, set by a sign-in through kloakware and looked up
+on the server, or the Decionis handoff's cookies. Page requests without one are redirected to `/sign-in?returnTo=…`; API requests receive
 `401 {"error":"UNAUTHORIZED"}`. BFF callers may instead present an `Authorization: Bearer` token with
 an `X-Decionis-Org-Id` header.
 
@@ -212,16 +222,21 @@ feature.
 
 ### Routes this app exposes
 
-| Route                                       | Method | Notes                                                                           |
-| ------------------------------------------- | ------ | ------------------------------------------------------------------------------- |
-| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                       |
-| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                              |
-| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                              |
-| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                     |
-| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                         |
-| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until forwarding is configured. |
-| `/api/health`                               | GET    | Unauthenticated liveness probe; reports the database opened at start.           |
-| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                       |
+| Route                                       | Method | Notes                                                                                      |
+| ------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `/api/steward/portfolio`                    | GET    | Portfolio snapshot for the session's org.                                                  |
+| `/api/steward/accounts/[id]`                | GET    | `404` when the account is unknown.                                                         |
+| `/api/steward/opportunities`                | GET    | Opportunity queue.                                                                         |
+| `/api/steward/opportunities/[id]/review`    | POST   | Requires `APPROVER` or `ADMIN`, else `403`.                                                |
+| `/api/steward/signals/sources`              | GET    | Configured signal sources, with health.                                                    |
+| `/api/steward/signals/sources/[id]/collect` | POST   | Requires `OPERATOR` or above, else `403`; `503` until forwarding is configured.            |
+| `/api/auth/oidc/start`                      | GET    | Sends the browser to kloakware with a sealed flow; `returnTo` is a path inside Steward.    |
+| `/api/auth/oidc/callback`                   | GET    | Exchanges the code, verifies the ID token, opens the session; failures land on `/sign-in`. |
+| `/api/auth/oidc/backchannel-logout`         | POST   | The issuer's logout token ends every Steward session that began with that issuer session.  |
+| `/api/auth/oidc/sign-out`                   | POST   | Ends the session and sends the browser to the issuer's end-session endpoint.               |
+| `/api/auth/session`                         | GET    | Who the session is: subject, name, roles, mode, how it signed in. No token in it.          |
+| `/api/health`                               | GET    | Unauthenticated liveness probe; reports the database opened at start.                      |
+| `/llms.txt`, `/llms-full.txt`               | GET    | Machine discovery; no session, indexable.                                                  |
 
 ### Upstream endpoints it expects
 

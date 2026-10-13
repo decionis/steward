@@ -23,6 +23,7 @@ kloakware/
   deploy/compose/           PostgreSQL, the server, config-cli: the stack on a laptop
   smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change
   docs/                     one guide per Keycloak concept, each ending in the interview questions it answers
+  ../test/e2e/              Steward signing in through this stack, end to end (K3), run by the sign-in job
 ```
 
 ## Run it

@@ -37,7 +37,7 @@ describe("startPersistence — what the server does before its first request", (
     );
 
     expect(outcome.opened).toBe(true);
-    expect(outcome.message).toMatch(/1 migration\(s\) applied at start/);
+    expect(outcome.message).toMatch(/2 migration\(s\) applied at start/);
     expect(exit).not.toHaveBeenCalled();
     expect(Persistence.status()?.migrated).toBe(true);
   });

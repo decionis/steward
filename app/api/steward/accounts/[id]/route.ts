@@ -11,7 +11,9 @@ export async function GET(
 ) {
   try {
     const { id: accountId } = await params;
-    const context = new StewardCompositionRoot().createRequestContext(request);
+    const context = await new StewardCompositionRoot().createRequestContext(
+      request,
+    );
     return NextResponse.json(await context.accounts.requireAccount(accountId));
   } catch (error) {
     return StewardApiErrorMapper.toResponse(error);
