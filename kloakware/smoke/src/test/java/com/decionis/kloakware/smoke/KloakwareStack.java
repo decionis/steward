@@ -358,9 +358,13 @@ final class KloakwareStack implements AutoCloseable {
     }
   }
 
-  /** What the server wrote so far: the audit listener's standard-output sink is read here. */
+  /**
+   * What the servers wrote so far, both nodes: the audit listener's
+   * standard-output sink is read here, and under the proxy's round-robin
+   * the node that served a request is either.
+   */
   String serverLogs() {
-    return server.getLogs();
+    return server.getLogs() + "\n" + second.getLogs();
   }
 
   @Override
