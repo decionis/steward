@@ -101,6 +101,11 @@ export class StewardCompositionRoot {
     );
   }
 
+  /** The identity store, for a route that writes a record without a session; null when this process has no database. */
+  async identityStoreOrNull(): Promise<IdentityStore | null> {
+    return this.identityStore ? this.identityStore() : null;
+  }
+
   /** Steward's origin as the browser and the issuer see it: configured, or the request's own. */
   publicOrigin(request: NextRequest): string {
     return this.config.oidc?.publicUrl ?? request.nextUrl.origin;

@@ -14,7 +14,8 @@ directory is built one workstream at a time, and each workstream's guide is unde
 kloakware/
   pom.xml                   the Maven parent: Java level, Keycloak version, the license gate
   Dockerfile                the image: the extensions compiled in by a Maven stage, then Keycloak 26.8, pinned by digest, built once, started --optimized
-  extensions/               the Java extensions, one module each: token-mapper-market, the steward claim (K4); K5 adds three more
+  extensions/               the Java extensions, one module each: the steward claim (K4), the audit listener, the market second factor, the legacy password hash (K5)
+  deploy/compose/bankid/    the BankID Relying Party API in shape only, for the second factor on a laptop
   config/realms/            the steward realm, as keycloak-config-cli applies it: policies, roles, markets, scopes, flows
   config/realms/dev/        the dev overlay: the seeded operator and the smoke client; laptop and CI only
   config/terraform/         the market realms, one per entry in `markets`, through the Keycloak provider

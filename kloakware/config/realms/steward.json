@@ -106,7 +106,7 @@
         "subComponents": {},
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}, {\"name\": \"personalNumber\", \"displayName\": \"Personal number\", \"validations\": {\"pattern\": {\"pattern\": \"^[0-9]{12}$\", \"error-message\": \"Twelve digits, YYYYMMDDNNNN\"}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false, \"annotations\": {\"inputType\": \"text\"}}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
           ]
         }
       }
@@ -500,7 +500,7 @@
     },
     {
       "alias": "steward-browser forms",
-      "description": "Username, password, then a second factor for the users who have one.",
+      "description": "Username, password, the second factor the user's market requires, then a TOTP for the users who have one.",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
@@ -509,6 +509,14 @@
           "authenticator": "auth-username-password-form",
           "requirement": "REQUIRED",
           "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
+          "authenticator": "steward-market-second-factor",
+          "authenticatorConfig": "market second factor",
+          "requirement": "REQUIRED",
+          "priority": 15,
           "userSetupAllowed": false,
           "authenticatorFlow": false
         },
@@ -543,6 +551,24 @@
           "authenticatorFlow": false
         }
       ]
+    }
+  ],
+  "eventsEnabled": true,
+  "eventsListeners": ["jboss-logging", "steward-audit"],
+  "enabledEventTypes": [],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
+  "authenticatorConfig": [
+    {
+      "alias": "market second factor",
+      "config": {
+        "markets": "SE",
+        "method": "bankid",
+        "bankid.url": "$(env:KLOAKWARE_BANKID_URL)",
+        "bankid.personal-number-attribute": "personalNumber",
+        "markets.group.path": "/markets",
+        "market.attribute": "market"
+      }
     }
   ]
 }

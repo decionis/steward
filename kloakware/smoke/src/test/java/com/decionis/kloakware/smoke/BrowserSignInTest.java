@@ -100,7 +100,7 @@ class BrowserSignInTest {
 
     JsonNode access = claims(body.get("access_token").asText());
     assertTrue(has(access.path("steward").path("roles"), "admin"));
-    assertTrue(has(access.path("steward").path("markets"), "SE"));
+    assertTrue(has(access.path("steward").path("markets"), "DE"));
     assertTrue(access.get("name") == null, "a lightweight access token carries no profile");
     assertEquals(300, body.get("expires_in").asInt());
   }

@@ -15,7 +15,7 @@ name: kloakware
 
 services:
   db:
-    image: public.ecr.aws/docker/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    image: docker.io/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     environment:
       POSTGRES_DB: kloakware
       POSTGRES_USER: kloakware
@@ -47,6 +47,10 @@ services:
       # The issuer Steward and the browser both see. Plain HTTP on a laptop only.
       KC_HOSTNAME: http://localhost:8080
       KC_HTTP_ENABLED: "true"
+      # The audit listener (K5): every record to standard output, and to
+      # Steward's activities endpoint, signed, when STEWARD_URL reaches it.
+      KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_URL: ${STEWARD_URL:-http://localhost:3000}/api/activities/kloakware
+      KC_SPI_EVENTS_LISTENER_STEWARD_AUDIT_SINK_SECRET: ${KLOAKWARE_AUDIT_WEBHOOK_SECRET:?set it in .env (see .env.example)}
     ports:
       - "8080:8080"
       - "9000:9000"
@@ -68,6 +72,15 @@ services:
       retries: 60
       start_period: 30s
 
+  # The BankID simulator (K5): the Relying Party API in shape only, for the
+  # market second factor on a laptop. A deployment points KLOAKWARE_BANKID_URL
+  # at the real API, over mutual TLS.
+  bankid:
+    image: docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f
+    command: ["python3", "-I", "/sim/Simulator.py"]
+    volumes:
+      - ./bankid/Simulator.py:/sim/Simulator.py:ro
+
   # The realm, from Git. Runs to completion; what it created before and no
   # longer finds in the file, it removes.
   config:
@@ -86,6 +99,7 @@ services:
       # Re-applying an unchanged file must still converge the realm (K2: drift).
       IMPORT_CACHE_ENABLED: "false"
       STEWARD_URL: ${STEWARD_URL:-http://localhost:3000}
+      KLOAKWARE_BANKID_URL: http://bankid:8090
       KLOAKWARE_STEWARD_CLIENT_SECRET: ${KLOAKWARE_STEWARD_CLIENT_SECRET:?set it in .env (see .env.example)}
       KLOAKWARE_STEWARD_API_SECRET: ${KLOAKWARE_STEWARD_API_SECRET:?set it in .env (see .env.example)}
     volumes:

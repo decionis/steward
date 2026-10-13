@@ -45,6 +45,13 @@
       <artifactId>slf4j-simple</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- The signature the audit listener puts on a record, verified as Steward does. -->
+    <dependency>
+      <groupId>com.decionis.kloakware</groupId>
+      <artifactId>kloakware-event-listener</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

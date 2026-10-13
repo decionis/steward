@@ -6,7 +6,7 @@ name: Kloakware promote
 # image, four times; what differs is where and as whom, which the environment
 # supplies as variables and secrets:
 #
-#   vars:    KLOAKWARE_URL, STEWARD_URL
+#   vars:    KLOAKWARE_URL, STEWARD_URL, KLOAKWARE_BANKID_URL
 #   secrets: KLOAKWARE_ADMIN_USER, KLOAKWARE_ADMIN_PASSWORD, KLOAKWARE_STEWARD_CLIENT_SECRET,
 #            KLOAKWARE_STEWARD_API_SECRET
 #
@@ -43,6 +43,7 @@ jobs:
         env:
           KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
           STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KLOAKWARE_BANKID_URL: ${{ vars.KLOAKWARE_BANKID_URL }}
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
@@ -64,6 +65,7 @@ jobs:
         env:
           KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
           STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KLOAKWARE_BANKID_URL: ${{ vars.KLOAKWARE_BANKID_URL }}
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
@@ -85,6 +87,7 @@ jobs:
         env:
           KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
           STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KLOAKWARE_BANKID_URL: ${{ vars.KLOAKWARE_BANKID_URL }}
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}
@@ -106,6 +109,7 @@ jobs:
         env:
           KLOAKWARE_URL: ${{ vars.KLOAKWARE_URL }}
           STEWARD_URL: ${{ vars.STEWARD_URL }}
+          KLOAKWARE_BANKID_URL: ${{ vars.KLOAKWARE_BANKID_URL }}
           KEYCLOAK_USER: ${{ secrets.KLOAKWARE_ADMIN_USER }}
           KEYCLOAK_PASSWORD: ${{ secrets.KLOAKWARE_ADMIN_PASSWORD }}
           KLOAKWARE_STEWARD_CLIENT_SECRET: ${{ secrets.KLOAKWARE_STEWARD_CLIENT_SECRET }}

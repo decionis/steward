@@ -71,6 +71,11 @@ export class TypeOrmIdentityStore implements IdentityStore {
     return toUser(record);
   }
 
+  async findUserBySsoSubject(ssoSubject: string): Promise<SignedInUser | null> {
+    const record = await this.users.findOneBy({ ssoSubject });
+    return record ? toUser(record) : null;
+  }
+
   async createSession(input: NewSession): Promise<ActiveSession> {
     const user = await this.users.findOneByOrFail({ id: input.userId });
     const record: SessionRecord = {

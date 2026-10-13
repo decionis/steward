@@ -76,7 +76,7 @@ class SignInSmokeTest {
     assertTrue(has(steward.get("roles"), "approver"), "assigned directly");
     assertTrue(has(steward.get("roles"), "viewer"), "the floor, through the default role");
     assertEquals(3, steward.get("roles").size());
-    assertTrue(has(steward.get("markets"), "SE"), "market from /markets/SE");
+    assertTrue(has(steward.get("markets"), "DE"), "market from /markets/DE");
     assertEquals(1, steward.get("markets").size());
     assertTrue(claims.get("realm_access") == null, "full scope is off: no realm_access");
 
