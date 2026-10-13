@@ -1,0 +1,39 @@
+# Findings trivy reports in this tree that are accepted, each with its
+# reason; everything else at high or critical fails the check job.
+misconfigurations:
+  # Reported inside the EKS registry module, which makes the endpoint on our
+  # behalf; no path, since the module's own file is where trivy sees it.
+  - id: AVD-AWS-0040
+    statement: "The EKS API server is reachable from the runner that applies this, which has no fixed address; narrowed to the organisation's addresses once there is a fixed egress to name."
+  - id: AVD-AWS-0104
+    statement: "The EKS module's node security group allows all egress: the nodes pull images and call AWS APIs through the NAT gateway. VPC endpoints for ECR, STS, Secrets Manager and S3 would let this close; a later hardening."
+  - id: AVD-AWS-0041
+    statement: "The same trade-off as AVD-AWS-0040: the public endpoint's allowed CIDRs follow the fixed egress."
+  - id: AVD-AZU-0041
+    paths:
+      - "modules/platform-azure/main.tf"
+    statement: "The API server is reachable from the runner that applies this, which has no fixed address; narrowed to the organisation's addresses once there is a fixed egress to name, as the EKS endpoint will be."
+  - id: AVD-AZU-0013
+    paths:
+      - "modules/platform-azure/main.tf"
+    statement: "The vault holds the generated passwords behind RBAC; a network ACL that denies by default would block the runner that writes them. A private endpoint or a self-hosted runner lifts this."
+  - id: AVD-AWS-0132
+    paths:
+      - "bootstrap/aws/main.tf"
+    statement: "The state bucket is encrypted with SSE-S3. A customer-managed key would add key management for a file whose secrets Terraform already marks sensitive; revisit when the account has a KMS key policy of its own."
+  - id: AVD-KSV-0041
+    paths:
+      - "modules/kloakware/operator/*"
+    statement: "The Keycloak Operator's own manifests, vendored at 26.8.0: it manages the Secrets it creates for the servers it runs."
+  - id: AVD-KSV-0056
+    paths:
+      - "modules/kloakware/operator/*"
+    statement: "The Keycloak Operator creates the Services, Ingresses and NetworkPolicies for the servers it runs; that is its job."
+  - id: AVD-KSV-0118
+    paths:
+      - "modules/kloakware/operator/*"
+    statement: "Upstream's Operator Deployment runs as the image's non-root user without declaring a securityContext; tracked upstream, not patched here."
+  - id: AVD-KSV-0014
+    paths:
+      - "modules/kloakware/operator/*"
+    statement: "Upstream's Operator Deployment does not mount its root filesystem read-only; tracked upstream, not patched here."

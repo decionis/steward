@@ -1,0 +1,272 @@
+name: Kloakware terraform
+
+# The platforms kloakware runs on, as code (K8). On every pull request that
+# touches them: format, validate, tflint, trivy, and a plan of dev when the
+# plan role is configured. On merge to master: dev applied. On a kloakware
+# tag: QA, staging and production applied in turn, each behind its GitHub
+# environment's approval. CI authenticates with GitHub's OIDC token to a
+# role in each cloud; nothing long-lived is stored. The bootstrap stacks
+# under kloakware/deploy/terraform/bootstrap create those roles once, by
+# hand; until their outputs are set as the variables below, the apply and
+# plan jobs report "not configured" and pass.
+#
+#   repository variables: KLOAKWARE_TERRAFORM_STATE_BUCKET, KLOAKWARE_TERRAFORM_STATE_REGION,
+#                         KLOAKWARE_TERRAFORM_PLAN_ROLE_ARN
+#   environment variables (kloakware-dev/qa/staging/prod): KLOAKWARE_TERRAFORM_ROLE_ARN,
+#                         KLOAKWARE_IMAGE (optional, else the tfvars' tag)
+#   environment secrets:  KLOAKWARE_REALM_SECRETS (a JSON map), KLOAKWARE_AUDIT_WEBHOOK_SECRET
+
+on:
+  push:
+    branches: [master]
+    tags: ["kloakware-v*"]
+    paths:
+      - "kloakware/deploy/terraform/**"
+      - "kloakware/config/realms/*.json"
+      - ".github/workflows/kloakware-terraform.yml"
+  pull_request:
+    paths:
+      - "kloakware/deploy/terraform/**"
+      - "kloakware/config/realms/*.json"
+      - ".github/workflows/kloakware-terraform.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: kloakware-terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TERRAFORM_VERSION: "1.16.5"
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+
+jobs:
+  check:
+    name: check (fmt, validate, tflint, trivy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: kloakware/deploy/terraform
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -diff -recursive .
+
+      - name: Validate every root and module
+        env:
+          TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/terraform-plugins
+        run: |
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+          for root in environments/dev environments/qa environments/staging environments/prod \
+                      bootstrap/aws bootstrap/azure \
+                      modules/platform-aws modules/platform-azure modules/addons-aws modules/addons-azure \
+                      modules/kloakware; do
+            echo "::group::$root"
+            (cd "$root" && terraform init -backend=false && terraform validate)
+            echo "::endgroup::"
+          done
+
+      - name: Set up tflint
+        uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v0.64.0
+
+      - name: tflint
+        run: |
+          tflint --init
+          tflint --recursive --format compact
+
+      - name: trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: kloakware/deploy/terraform
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          # Our own code: the registry modules validate downloaded under
+          # .terraform are theirs to scan, and their examples are not deployed.
+          skip-dirs: "**/.terraform"
+          trivyignores: kloakware/deploy/terraform/.trivyignore.yaml
+
+  plan-dev:
+    name: plan dev
+    needs: check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kloakware/deploy/terraform/environments/dev
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configured?
+        id: configured
+        env:
+          ROLE: ${{ vars.KLOAKWARE_TERRAFORM_PLAN_ROLE_ARN }}
+          BUCKET: ${{ vars.KLOAKWARE_TERRAFORM_STATE_BUCKET }}
+        run: |
+          if [ -n "$ROLE" ] && [ -n "$BUCKET" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::KLOAKWARE_TERRAFORM_PLAN_ROLE_ARN or KLOAKWARE_TERRAFORM_STATE_BUCKET is not set: the bootstrap stack has not been applied, nothing to plan against"
+            echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Set up Terraform
+        if: steps.configured.outputs.ok == 'true'
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: AWS credentials from the OIDC token
+        if: steps.configured.outputs.ok == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.KLOAKWARE_TERRAFORM_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.KLOAKWARE_TERRAFORM_STATE_REGION || 'eu-north-1' }}
+
+      - name: Plan
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          TF_VAR_realm_secrets: "{}"
+          TF_VAR_audit_webhook_secret: "plan-only"
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.KLOAKWARE_TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="region=${{ vars.KLOAKWARE_TERRAFORM_STATE_REGION || 'eu-north-1' }}" \
+            -backend-config="key=kloakware/dev.tfstate"
+          terraform plan -lock=false -input=false
+
+  apply-dev:
+    name: apply dev
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    environment: kloakware-dev
+    defaults:
+      run:
+        working-directory: kloakware/deploy/terraform/environments/dev
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configured?
+        id: configured
+        env:
+          ROLE: ${{ vars.KLOAKWARE_TERRAFORM_ROLE_ARN }}
+          BUCKET: ${{ vars.KLOAKWARE_TERRAFORM_STATE_BUCKET }}
+        run: |
+          if [ -n "$ROLE" ] && [ -n "$BUCKET" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::KLOAKWARE_TERRAFORM_ROLE_ARN or KLOAKWARE_TERRAFORM_STATE_BUCKET is not set for kloakware-dev: nothing applied"
+            echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Set up Terraform
+        if: steps.configured.outputs.ok == 'true'
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: AWS credentials from the OIDC token
+        if: steps.configured.outputs.ok == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.KLOAKWARE_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.KLOAKWARE_TERRAFORM_STATE_REGION || 'eu-north-1' }}
+
+      - name: Apply
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          TF_VAR_realm_secrets: ${{ secrets.KLOAKWARE_REALM_SECRETS }}
+          TF_VAR_audit_webhook_secret: ${{ secrets.KLOAKWARE_AUDIT_WEBHOOK_SECRET }}
+          IMAGE: ${{ vars.KLOAKWARE_IMAGE }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.KLOAKWARE_TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="region=${{ vars.KLOAKWARE_TERRAFORM_STATE_REGION || 'eu-north-1' }}" \
+            -backend-config="key=kloakware/dev.tfstate"
+          args=()
+          [ -n "$IMAGE" ] && args+=(-var "image=$IMAGE")
+          terraform apply -input=false -auto-approve "${args[@]}"
+
+  promote:
+    name: apply ${{ matrix.environment }}
+    needs: check
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/kloakware-v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    # In turn: a failure stops the chain before the next environment.
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+      matrix:
+        environment: [qa, staging, prod]
+    environment: kloakware-${{ matrix.environment }}
+    defaults:
+      run:
+        working-directory: kloakware/deploy/terraform/environments/${{ matrix.environment }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configured?
+        id: configured
+        env:
+          ROLE: ${{ vars.KLOAKWARE_TERRAFORM_ROLE_ARN }}
+          BUCKET: ${{ vars.KLOAKWARE_TERRAFORM_STATE_BUCKET }}
+        run: |
+          if [ -n "$ROLE" ] && [ -n "$BUCKET" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::KLOAKWARE_TERRAFORM_ROLE_ARN or KLOAKWARE_TERRAFORM_STATE_BUCKET is not set for kloakware-${{ matrix.environment }}: nothing applied"
+            echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Set up Terraform
+        if: steps.configured.outputs.ok == 'true'
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: AWS credentials from the OIDC token
+        if: steps.configured.outputs.ok == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.KLOAKWARE_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.KLOAKWARE_TERRAFORM_STATE_REGION || 'eu-north-1' }}
+
+      - name: Apply
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          TF_VAR_realm_secrets: ${{ secrets.KLOAKWARE_REALM_SECRETS }}
+          TF_VAR_audit_webhook_secret: ${{ secrets.KLOAKWARE_AUDIT_WEBHOOK_SECRET }}
+          IMAGE: ${{ vars.KLOAKWARE_IMAGE }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.KLOAKWARE_TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="region=${{ vars.KLOAKWARE_TERRAFORM_STATE_REGION || 'eu-north-1' }}" \
+            -backend-config="key=kloakware/${{ matrix.environment }}.tfstate"
+          # The image the Kloakware image workflow published for this tag,
+          # unless the environment pins another.
+          image="${IMAGE:-ghcr.io/decionis/kloakware:${TAG#kloakware-v}}"
+          terraform apply -input=false -auto-approve -var "image=$image"

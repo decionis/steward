@@ -1,0 +1,7 @@
+environment = "qa"
+cloud       = "aws"
+tier        = "basic"
+dns_zone    = "qa.kloakware.decionis.ai"
+hostname    = "auth.qa.kloakware.decionis.ai"
+steward_url = "https://steward.qa.kloakware.decionis.ai"
+image       = "ghcr.io/decionis/kloakware:master"

@@ -10,3 +10,8 @@ examples/ruian-preview
 # Terraform state is local to the drift check and ignored by Git; Prettier reads only this root ignore file
 *.tfstate
 *.tfstate.backup
+
+# Vendored upstream files under kloakware's Terraform, kept byte-identical to their checksums:
+# the Keycloak Operator's manifests and the load balancer controller's IAM policy.
+kloakware/deploy/terraform/modules/kloakware/operator/
+kloakware/deploy/terraform/modules/platform-aws/iam/

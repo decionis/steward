@@ -1,0 +1,7 @@
+environment = "prod"
+cloud       = "aws"
+tier        = "production"
+dns_zone    = "kloakware.decionis.ai"
+hostname    = "auth.kloakware.decionis.ai"
+steward_url = "https://steward.decionis.ai"
+image       = "ghcr.io/decionis/kloakware:master"

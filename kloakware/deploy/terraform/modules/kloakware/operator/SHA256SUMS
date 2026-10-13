@@ -1,0 +1,3 @@
+8d552e1864d78117a07e535479ddb36e16a42b2695726c875f44828e1323edd4  26.8.0-keycloakrealmimports.k8s.keycloak.org-v1.yml
+20c51247cb6cbc6158098caabeaf6b429dc8c016e35829f5ddd9c468b7582667  26.8.0-keycloaks.k8s.keycloak.org-v1.yml
+0b33e74a6aa9f0109744a58e05e1e62e497fa2639f47c32e8c37914bea42fd4e  26.8.0-kubernetes.yml

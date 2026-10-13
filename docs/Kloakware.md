@@ -304,7 +304,7 @@ OpenID Connect provider, a SAML example, broker mappers that set `market` from t
 claims, and the first-login flow with account linking. Entra ID and Google documented as the
 production equivalents. _Guide: Federation._ _Answers: Q19, Q20._
 
-#### K7 — Clustering and high availability
+#### K7 — Clustering and high availability ✅ Done, [#132](https://github.com/decionis/steward/pull/132)
 
 Two kloakware nodes in the compose file sharing PostgreSQL, discovered through `jdbc-ping`
 (Keycloak's default since 26.1: a JGroups table in the database, no multicast, nothing extra to
