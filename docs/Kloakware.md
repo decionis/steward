@@ -1,6 +1,6 @@
 # Kloakware: Keycloak as the access service for Steward
 
-**Status: proposed 13 October 2026; awaiting approval; nothing built.** Kloakware is the access
+**Status: decided 13 October 2026; the decisions below are taken; implementation begins with K0 and K1.** Kloakware is the access
 service operators sign in to Steward through: a Keycloak distribution the operator runs, extended in
 Java where Keycloak's defaults stop, configured from Git rather than from the Admin UI, and deployed
 to AWS by Terraform with a switch to Azure. Each workstream below is one pull request off `master`,
@@ -8,7 +8,7 @@ and each pull request carries three things: the code, a guide to the Keycloak co
 and the written answers to the interview questions that concept is examined on. The guides and the
 answers are deliverables, not commentary; the code is the evidence behind them.
 
-Two assumptions this plan is written under, to be corrected on approval if either is wrong:
+Two assumptions this plan is written under, confirmed with the decisions:
 
 - **"Written in Java" means kloakware.** Keycloak is a Java server and its extensions, the Service
   Provider Interfaces, are Java; that is where the Java lives. Steward stays what it is, a Next.js
@@ -30,9 +30,13 @@ provider, market-specific multi-factor rules or a legacy user store, it is the o
   against the issuer's published keys, creates or updates the user in its own `users` table by SSO
   subject, and keeps a server-side session in its own `sessions` table behind an HttpOnly cookie.
   The browser never holds an access token.
-- Steward's roles (`VIEWER`, `OPERATOR`, `APPROVER`, `ADMIN`) are assigned in kloakware as realm
-  roles and read from the token; markets are groups and a user attribute. Enforcement stays where it
-  is, in `application/`, and the platform still re-authorises every write with the org API key.
+- Steward's roles are assigned in kloakware as realm roles and read from the token; markets are
+  groups and a user attribute. Two roles join the four Steward has today. `OPERATIONS` is the
+  technical team that runs Steward for the operator: it manages signal sources and collections, the
+  workspace connection and the database status, and records no review. `AUDITS` reads every record
+  Steward keeps, activities, reviews, decisions and collections, and changes nothing. Enforcement
+  stays where it is, in `application/`, and the platform still re-authorises every write with the
+  org API key.
 - Kloakware is extended in Java where an enterprise needs it: an audit event listener, a
   market-aware authentication step, a legacy password hash for migration, and Steward's own user
   table as a federated store.
@@ -55,6 +59,7 @@ actor.
 | Changes                                                                                                                                              | Does not change                                                                                                        |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | A third sign-in method on `/sign-in`: through the operator's kloakware                                                                               | The Decionis handoff and local accounts (P3 of the persistence plan)                                                   |
+| Two roles join Steward's four: `OPERATIONS` for the technical team, `AUDITS` for read-only access to every record                                    | `VIEWER`, `OPERATOR`, `APPROVER` and `ADMIN` keep their meaning and their gates                                        |
 | Steward sets one cookie of its own, `steward_session`, an opaque id into `sessions`                                                                  | Steward never holds a kloakware access or refresh token in the browser                                                 |
 | `middleware.ts` accepts a Steward session in live mode as well as the Decionis cookies                                                               | The `VIEWER` floor, the role parsing, the 401-vs-redirect behaviour, the health-probe exemption                        |
 | A new trust boundary in [ThreatModel.md](../ThreatModel.md): Steward's server to the token issuer                                                    | Policy, execution, dossiers and the audit record stay in the platform; roles still gate the interface only             |
@@ -86,8 +91,8 @@ kloakware/
   docs/                            the guides, one per concept, each ending in its interview questions
 ```
 
-Keycloak's current line is 26.7 (July 2026); there is no long-term-support line, only the newest
-version receives fixes, so the version is pinned in one place, by digest in the image, and moved by
+Keycloak's current line is 26.8 (released 1 October 2026); there is no long-term-support line,
+only the newest version receives fixes, so the version is pinned in one place, by digest in the image, and moved by
 Dependabot like every other base image here (K-D8). The image is built once and promoted; what
 differs between environments is runtime configuration and realm variables, never the bytes.
 
@@ -120,8 +125,8 @@ sequenceDiagram
   Steward keeps nothing of them past the callback except what it needs to log out; the browser gets
   one opaque session id.
 - **Who the user is in Steward** is decided by the token's realm roles, mapped `steward-viewer`,
-  `steward-operator`, `steward-approver`, `steward-admin` onto Steward's four, with the same `VIEWER`
-  floor as today. The org scope is the configured Decionis workspace (environment, then the
+  `steward-operator`, `steward-approver`, `steward-admin`, `steward-operations` and `steward-audits`
+  onto Steward's six, with the same `VIEWER` floor as today. The org scope is the configured Decionis workspace (environment, then the
   `workspaces` row), never a claim from the token.
 - **Logout is instant in both directions.** Steward's sign-out ends its session and redirects to
   kloakware's end-session endpoint; kloakware's logout, from any application or the admin console,
@@ -218,10 +223,10 @@ discovery entry in `llms.txt`. No guide; the answers start with K1.
 
 #### K1 — The server
 
-The Maven parent and `server/`: a Dockerfile that builds Keycloak 26.7 (pinned by digest) with
+The Maven parent and `server/`: a Dockerfile that builds Keycloak 26.8 (pinned by digest) with
 `kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true --cache=ispn` and starts it
 `--optimized`; the local compose file with PostgreSQL and keycloak-config-cli applying a minimal
-`steward` realm (the `steward` confidential client, the four realm roles, PKCE required, a dev-only
+`steward` realm (the `steward` confidential client, the six realm roles, PKCE required, a dev-only
 seeded user); a Testcontainers smoke test that signs that user in at the token endpoint and reads the
 roles back; the path-filtered workflow `kloakware.yml` (Maven verify, the license allowlist, the
 smoke test). _Guide: Architecture_ (realms, clients, scopes, the single-realm and realm-per-market
@@ -248,7 +253,9 @@ the issuer's JWKS, the session store over `sessions`, the role mapper), the rout
 `app/api/auth/oidc/{start,callback,backchannel-logout,sign-out}`, the resolver branch that turns a
 `steward_session` cookie into a `StewardSession`, `middleware.ts` accepting it in live mode, the
 third path on `/sign-in`, the configuration `STEWARD_OIDC_ISSUER_URL`, `STEWARD_OIDC_CLIENT_ID`,
-`STEWARD_OIDC_CLIENT_SECRET`, `STEWARD_SESSION_COOKIE`, and the user upsert by `sso_subject`. Tests
+`STEWARD_OIDC_CLIENT_SECRET`, `STEWARD_SESSION_COOKIE`, the user upsert by `sso_subject`, and the two
+new roles in `domain/auth/StewardSession.ts` with their gates in `application/` (sources and the
+workspace connection open to `OPERATIONS`; every record readable by `AUDITS`, nothing writable). Tests
 against a fake issuer in-process (no container in `pnpm verify`) plus one end-to-end test in the
 kloakware workflow against K1's container. README, Docker guide and the evidence pack updated
 (Steward now sets one cookie of its own). In kloakware: the client's backchannel logout URL and
@@ -321,9 +328,12 @@ Keycloak Operator, the `Keycloak` custom resource pointing at K1's image, the re
 config-cli Job, a HorizontalPodAutoscaler, a PodDisruptionBudget, a NetworkPolicy, a
 ServiceMonitor; `environments/<env>/` selecting `cloud = "aws"` or `"azure"` with one remote state
 each (S3 with locking, or Azure Storage). CI authenticates with GitHub's OIDC token to a role in
-each cloud, runs `fmt`, `validate`, the policy checker and `plan` on every pull request; `apply` is
-run by the owner, by hand, from a tagged commit, because it creates billable resources. The
-Deployment guide carries the monthly cost of the smallest real environment. _Guide: Deployment._
+each cloud, runs `fmt`, `validate`, the policy checker and `plan` on every pull request, applies
+`dev` on merge to `master`, and applies QA, staging and production from a tag behind a GitHub
+environment approval. Environments are sized by a `tier` variable: `basic` first, one node, the
+smallest database, one availability zone, no autoscaling, and `production` once the pipeline has
+proven itself, multi-AZ, autoscaling, backups, deletion protection. The Deployment guide carries the
+monthly cost of each tier. _Guide: Deployment._
 _Answers: Q22, Q23._
 
 #### K9 — Zero-downtime upgrades and the promotion pipeline
@@ -369,7 +379,7 @@ one-page summary of what was built. No code.
 
 | Stage          | Work         | Gate                                                                                                              |
 | -------------- | ------------ | ----------------------------------------------------------------------------------------------------------------- |
-| **1. Decide**  | K-D1 to K-D9 | Answered                                                                                                          |
+| **1. Decide**  | K-D1 to K-D9 | Taken, 13 October 2026                                                                                            |
 | **2. Server**  | K0, K1       | The image builds, the seeded user signs in at the token endpoint in CI, the workflow is green                     |
 | **3. Config**  | K2           | The realm is reproducible from Git; the drift job fails on a hand-made change                                     |
 | **4. Steward** | K3, K4       | An operator signs in through kloakware, holds the right roles, is logged out from both sides; tokens measured     |
@@ -382,19 +392,22 @@ K3 can be built in parallel with K2 because its tests use an in-process issuer; 
 K6 and K7 follow K1 and are independent of each other; K8 follows K1 and K2; K9 and K10 follow K8;
 K11 follows K3; K12 is last.
 
-## Decisions needed
+## Decisions taken
 
-| #    | Question                                                   | Recommendation                                                                                                                                                                                                  |
-| ---- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| K-D1 | Where does kloakware live?                                 | `kloakware/` in this repository: self-contained, path-filtered CI, extractable later. A separate repository means a second PR bot, second CODEOWNERS and cross-repository links from day one.                   |
-| K-D2 | Kubernetes, or a container service?                        | Kubernetes with the Keycloak Operator: EKS and AKS run the same `Keycloak` resource, so the Azure switch is the platform module only. ECS and Container Apps would mean two deployment models and no Operator.  |
-| K-D3 | One realm with markets, or a realm per market, by default? | One realm, markets as groups and an attribute; the per-market template shipped and tested beside it; Organizations evaluated in the Architecture guide.                                                         |
-| K-D4 | How does Steward authenticate to kloakware?                | A client secret from the environment in K3; `private_key_jwt` added in K11 with the FAPI profile.                                                                                                               |
-| K-D5 | Which legacy hash does the migration demonstrate?          | Salted SHA-256, the common pre-Keycloak Java case, rehashed to argon2id on first sign-in.                                                                                                                       |
-| K-D6 | Where do audit events go?                                  | Stdout and Steward's activities endpoint in K5; Kafka behind a Maven profile, off by default, so the image carries no broker client unless asked.                                                               |
-| K-D7 | Who applies Terraform?                                     | CI plans with GitHub OIDC credentials; the owner applies by hand from a tag. Nothing billable is created by a merge.                                                                                            |
-| K-D8 | Which Keycloak version, and how is it moved?               | The current 26.x line, pinned by digest in one place, moved by Dependabot; a minor update is a K9 rehearsal before it is merged.                                                                                |
-| K-D9 | How are Steward's roles represented in kloakware?          | Realm roles `steward-viewer`, `steward-operator`, `steward-approver`, `steward-admin`; markets as groups under `/markets/`; the default role `steward-viewer` so an unmapped user lands on the floor, as today. |
+Answered by the owner on 13 October 2026: K-D7 and K-D9 changed from the recommendation, the
+rest accepted as recommended.
+
+| #    | Question                                                   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| K-D1 | Where does kloakware live?                                 | `kloakware/` in this repository: self-contained, path-filtered CI, extractable later. A separate repository means a second PR bot, second CODEOWNERS and cross-repository links from day one.                                                                                                                                                                                                                              |
+| K-D2 | Kubernetes, or a container service?                        | Kubernetes with the Keycloak Operator: EKS and AKS run the same `Keycloak` resource, so the Azure switch is the platform module only. ECS and Container Apps would mean two deployment models and no Operator.                                                                                                                                                                                                             |
+| K-D3 | One realm with markets, or a realm per market, by default? | One realm, markets as groups and an attribute; the per-market template shipped and tested beside it; Organizations evaluated in the Architecture guide.                                                                                                                                                                                                                                                                    |
+| K-D4 | How does Steward authenticate to kloakware?                | A client secret from the environment in K3; `private_key_jwt` added in K11 with the FAPI profile.                                                                                                                                                                                                                                                                                                                          |
+| K-D5 | Which legacy hash does the migration demonstrate?          | Salted SHA-256, the common pre-Keycloak Java case, rehashed to argon2id on first sign-in.                                                                                                                                                                                                                                                                                                                                  |
+| K-D6 | Where do audit events go?                                  | Stdout and Steward's activities endpoint in K5; Kafka behind a Maven profile, off by default, so the image carries no broker client unless asked.                                                                                                                                                                                                                                                                          |
+| K-D7 | Who applies Terraform?                                     | CI, with GitHub OIDC credentials: `plan` on every pull request, `apply` for dev on merge and for the higher environments from a tag behind an environment approval. Billable resources are fine. Environments start at the `basic` tier and move to production grade.                                                                                                                                                      |
+| K-D8 | Which Keycloak version, and how is it moved?               | The current 26.x line, pinned by digest in one place, moved by Dependabot; a minor update is a K9 rehearsal before it is merged.                                                                                                                                                                                                                                                                                           |
+| K-D9 | How are Steward's roles represented in kloakware?          | Six realm roles: `steward-viewer`, `steward-operator`, `steward-approver`, `steward-admin`, and two added by the owner, `steward-operations` (the technical team: sources, collections, the workspace connection, health; no reviews) and `steward-audits` (reads every record, changes nothing); markets as groups under `/markets/`; the default role `steward-viewer` so an unmapped user lands on the floor, as today. |
 
 ## The boundary documents that change
 
@@ -414,9 +427,8 @@ K11 follows K3; K12 is last.
 
 ## Not in this plan
 
-- Provisioning users into kloakware over SCIM. Keycloak 26.7 ships a native SCIM endpoint as a
-  preview behind a feature flag; it is noted in the Federation guide and picked up when it leaves
-  preview.
+- Provisioning users into kloakware over SCIM. Keycloak 26.8 makes its SCIM API supported; it is
+  noted in the Federation guide and is a workstream of its own after K6.
 - Deploying Steward itself from the kloakware Terraform. Steward's deployment stays as the Docker
   guide describes it; the Terraform outputs the issuer URL Steward needs, and a Steward module is a
   later addition.

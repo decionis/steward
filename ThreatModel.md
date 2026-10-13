@@ -39,6 +39,9 @@ reduction in this tier's blast radius.
                               │
                               └──►  [4] Signal sources: CRM, ERP, MCP servers, documents, file servers
                                         the operator's own systems, reached with mounted credentials
+                              │
+                              └──►  [5] Kloakware: the Keycloak access service the operator runs
+                                        the token issuer; verified by Steward's server, never by the browser
 ```
 
 **Boundary 1 → 2** is the one this repository enforces. Everything from the browser is untrusted:
@@ -53,6 +56,12 @@ through the `CapturedSignal` schema, forwarded across boundary 3, never stored a
 compromised source can feed a wrong signal; it cannot make a decision, because the platform resolves
 and weighs every signal it receives and can reject it. [docs/SignalConnectors.md](docs/SignalConnectors.md)
 records the decision that put this boundary here.
+
+**Boundary 2 → 5** is the one [docs/Kloakware.md](docs/Kloakware.md) adds, with its sign-in
+workstream. Kloakware is the Keycloak access service the operator runs beside Steward; Steward's
+server sends the browser there to sign in and, on return, verifies the ID token against the issuer's
+published keys before it creates a session of its own. The browser never holds a kloakware token, and
+a kloakware token never reaches the platform: boundary 2 → 3 is unchanged by it.
 
 ## Threats and mitigations
 
@@ -198,6 +207,28 @@ of it.
 _Verify:_ `Persistence.test.ts` asserts the migration creates every table from empty and re-applies as
 a no-op, that every record type round-trips through its table, that a schema behind with migrations
 off refuses to serve, and that a dialect this build does not wire names the issue tracking it.
+
+### T10 — A compromised or misconfigured identity provider
+
+Kloakware, or any OpenID Connect issuer Steward is configured to trust, is taken over or
+misconfigured: it issues a token carrying any role its realm grants, or an attacker steers the
+sign-in to an issuer of their own.
+
+**Mitigated when the sign-in workstream of [docs/Kloakware.md](docs/Kloakware.md) merges; until
+then, live mode signs in only through the Decionis handoff.** Steward trusts exactly one issuer,
+`STEWARD_OIDC_ISSUER_URL`, and verifies every ID token on the server against that issuer's published
+keys: issuer, audience, nonce, signature, expiry. The authorisation code travels with PKCE, so an
+intercepted redirect yields nothing. Roles are read from the token and mapped onto Steward's six with
+the `VIEWER` floor; a claim the mapper does not recognise grants nothing. What a compromised issuer
+can do is mint a Steward session with any role its realm grants, which is what any identity provider
+can do to any application that trusts it. What it cannot do is reach the platform: Steward's server
+presents the org API key, the platform re-authorises every write, and a kloakware token never leaves
+Steward's server. Sessions are server-side rows, revoked on backchannel logout and on sign-out, so an
+operator who discovers a compromise ends every session from one place.
+
+_Verify:_ the sign-in workstream's tests: an ID token from another issuer, for another audience, with
+a wrong nonce, expired, or signed with an unknown key is refused; a backchannel logout revokes the
+session; a role the mapper does not know resolves to `VIEWER`.
 
 ## The container
 

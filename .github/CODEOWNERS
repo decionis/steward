@@ -51,3 +51,15 @@
 /SECURITY.md                @ocularminds
 /ThreatModel.md             @ocularminds
 /ThirdPartyLicenses.md      @ocularminds
+
+# --- Kloakware, the access service (docs/Kloakware.md) -----------------------
+
+# Realm configuration: who may sign in, with which roles, under which policies.
+/kloakware/config/          @ocularminds
+
+# Java extensions compiled into the server: authenticators, event listeners,
+# user storage, password hashing. Code that runs inside the identity provider.
+/kloakware/extensions/      @ocularminds
+
+# Terraform and the Kubernetes resources that run it in each cloud.
+/kloakware/deploy/          @ocularminds
