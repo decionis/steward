@@ -1,0 +1,161 @@
+package com.decionis.kloakware.smoke;
+
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.ImageFromDockerfile;
+import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
+
+/**
+ * The local kloakware stack as the smoke test sees it: PostgreSQL, the server
+ * image built from {@code server/Dockerfile}, and keycloak-config-cli applying
+ * the realm and then the dev overlay, exactly as the compose file does.
+ *
+ * <p>Every credential is generated for the run and discarded with it. Nothing
+ * is read from a file or from the environment, so the test proves the image
+ * and the realm, not a developer's machine.
+ */
+final class KloakwareStack implements AutoCloseable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(KloakwareStack.class);
+
+  /** The same images the compose file runs, pinned by digest there and here. */
+  static final DockerImageName POSTGRES =
+      DockerImageName.parse(
+              "public.ecr.aws/docker/library/postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24")
+          .asCompatibleSubstituteFor("postgres");
+
+  static final DockerImageName CONFIG_CLI =
+      DockerImageName.parse(
+          "docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274");
+
+  static final String REALM = "steward";
+  static final String DEV_USER = "erin.example";
+
+  /** The Steward origin the realm's redirect and logout URIs are built from. */
+  static final String STEWARD_URL = "http://localhost:3000";
+
+  private final Path root;
+  private final Network network = Network.newNetwork();
+  private final PostgreSQLContainer<?> database;
+  private final GenericContainer<?> server;
+
+  private final String databasePassword = secret();
+  final String adminPassword = secret();
+  final String clientSecret = secret();
+  final String devUserPassword = secret();
+
+  KloakwareStack(Path root) {
+    this.root = root.toAbsolutePath().normalize();
+
+    database =
+        new PostgreSQLContainer<>(POSTGRES)
+            .withNetwork(network)
+            .withNetworkAliases("db")
+            .withDatabaseName("kloakware")
+            .withUsername("kloakware")
+            .withPassword(databasePassword);
+
+    Map<String, String> runtime = new HashMap<>();
+    runtime.put("KC_DB_URL", "jdbc:postgresql://db:5432/kloakware");
+    runtime.put("KC_DB_USERNAME", "kloakware");
+    runtime.put("KC_DB_PASSWORD", databasePassword);
+    runtime.put("KC_BOOTSTRAP_ADMIN_USERNAME", "admin");
+    runtime.put("KC_BOOTSTRAP_ADMIN_PASSWORD", adminPassword);
+    // No hostname is configured: URLs derive from each request, which is what
+    // a test reaching a mapped port needs. A deployment sets KC_HOSTNAME.
+    runtime.put("KC_HOSTNAME_STRICT", "false");
+    runtime.put("KC_HTTP_ENABLED", "true");
+
+    server =
+        new GenericContainer<>(
+                new ImageFromDockerfile("kloakware/server:smoke", false)
+                    .withDockerfile(this.root.resolve("server/Dockerfile")))
+            .withNetwork(network)
+            .withNetworkAliases("kloakware")
+            .withEnv(runtime)
+            .withExposedPorts(8080, 9000)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("kloakware"))
+            .waitingFor(
+                Wait.forHttp("/health/ready")
+                    .forPort(9000)
+                    .forStatusCode(200)
+                    .withStartupTimeout(Duration.ofMinutes(4)))
+            .dependsOn(database);
+  }
+
+  void start() {
+    database.start();
+    server.start();
+    // The realm first, with config-cli's defaults: what it created before and
+    // no longer finds in the file, it removes. Then the dev overlay, which
+    // must not remove the realm's clients it does not mention.
+    applyRealm(root.resolve("config/realms/steward.json"), Map.of());
+    applyRealm(
+        root.resolve("config/realms/dev/steward-dev.json"),
+        Map.of("IMPORT_MANAGED_CLIENT", "no-delete"));
+  }
+
+  private void applyRealm(Path file, Map<String, String> overrides) {
+    String target = "/config/" + file.getFileName();
+    Map<String, String> environment = new HashMap<>();
+    environment.put("KEYCLOAK_URL", "http://kloakware:8080");
+    environment.put("KEYCLOAK_USER", "admin");
+    environment.put("KEYCLOAK_PASSWORD", adminPassword);
+    environment.put("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true");
+    environment.put("KEYCLOAK_AVAILABILITYCHECK_TIMEOUT", "120s");
+    environment.put("IMPORT_FILES_LOCATIONS", target);
+    environment.put("IMPORT_VARSUBSTITUTION_ENABLED", "true");
+    environment.put("STEWARD_URL", STEWARD_URL);
+    environment.put("KLOAKWARE_STEWARD_CLIENT_SECRET", clientSecret);
+    environment.put("KLOAKWARE_DEV_USER_PASSWORD", devUserPassword);
+    environment.putAll(overrides);
+
+    try (GenericContainer<?> cli =
+        new GenericContainer<>(CONFIG_CLI)
+            .withNetwork(network)
+            .withCopyFileToContainer(MountableFile.forHostPath(file), target)
+            .withEnv(environment)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("config-cli"))
+            .withStartupCheckStrategy(
+                new OneShotStartupCheckStrategy().withTimeout(Duration.ofMinutes(4)))) {
+      // A one-shot container: start() returns when it has exited with 0 and
+      // throws when it has not, so a realm that fails to apply fails here.
+      cli.start();
+    }
+  }
+
+  String baseUrl() {
+    return "http://" + server.getHost() + ":" + server.getMappedPort(8080);
+  }
+
+  String managementUrl() {
+    return "http://" + server.getHost() + ":" + server.getMappedPort(9000);
+  }
+
+  String realmUrl() {
+    return baseUrl() + "/realms/" + REALM;
+  }
+
+  @Override
+  public void close() {
+    server.stop();
+    database.stop();
+    network.close();
+  }
+
+  private static String secret() {
+    return UUID.randomUUID().toString();
+  }
+}

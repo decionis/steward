@@ -23,3 +23,6 @@ test
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+
+# Kloakware, the access service: its own image, its own CI, nothing of it in this one
+kloakware

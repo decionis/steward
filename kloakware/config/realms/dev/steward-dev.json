@@ -1,0 +1,37 @@
+{
+  "realm": "steward",
+  "clients": [
+    {
+      "clientId": "kloakware-smoke",
+      "name": "Smoke test (dev and CI only)",
+      "description": "Dev and CI only: the password grant the smoke test signs in with. Never applied to a deployed realm; a deployment applies steward.json alone.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [],
+      "webOrigins": []
+    }
+  ],
+  "users": [
+    {
+      "username": "erin.example",
+      "email": "erin@example.test",
+      "firstName": "Erin",
+      "lastName": "Example",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["steward-admin", "steward-approver"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "$(env:KLOAKWARE_DEV_USER_PASSWORD)",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
