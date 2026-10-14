@@ -14,6 +14,9 @@
 #                                    password goes back to the vault
 #   KLOAKWARE_STEWARD_CLIENT_SECRET  the steward client's secret there
 #   KLOAKWARE_STEWARD_API_SECRET     the steward-api resource server's secret there
+#   KLOAKWARE_LEGACY_CLIENT_SECRET   the legacy dashboard's secret, the application behind the
+#                                    SiteMinder agent now an OIDC client (K13)
+#   LEGACY_URL                       where that application answers, for its redirect URI
 #   KLOAKWARE_FAPI_CLIENT_CERTIFICATE
 #                                    the financial-grade client's certificate from that
 #                                    environment's PKI, DER as base64 on one line (K11)
@@ -74,6 +77,8 @@ apply() {
     -e KLOAKWARE_STEWARD_CLIENT_SECRET \
     -e KLOAKWARE_STEWARD_API_SECRET \
     -e KLOAKWARE_FAPI_CLIENT_CERTIFICATE \
+    -e KLOAKWARE_LEGACY_CLIENT_SECRET \
+    -e LEGACY_URL="${LEGACY_URL:-http://localhost:8082}" \
     -e KLOAKWARE_CI_CLIENT_SECRET \
     -e KLOAKWARE_BANKID_URL="${KLOAKWARE_BANKID_URL:-http://bankid:8090}" \
     -e KLOAKWARE_PUBLIC_URL="${KLOAKWARE_PUBLIC_URL:-$KLOAKWARE_URL}" \

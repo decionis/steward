@@ -35,6 +35,7 @@
 
   <modules>
     <module>extensions</module>
+    <module>migration</module>
     <module>smoke</module>
   </modules>
 

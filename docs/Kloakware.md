@@ -173,8 +173,8 @@ added.
 | Observability  | K10  | Q10, Q25                                                |
 | Security       | K11  | Q4, Q26, Q27, and Q5 again with revocation end to end   |
 | InterviewGuide | K12  | all of them, consolidated, with the strategy comparison |
-| Theming        | K13  | Q28, Q29                                                |
-| Migration      | K14  | Q30, Q31, and Q8 again with the whole population moved  |
+| Migration      | K13  | Q30, Q31, Q32, and Q8 again with the population moved   |
+| Theming        | K14  | Q28, Q29                                                |
 
 The added questions:
 
@@ -217,6 +217,8 @@ The added questions:
   through moving them to Keycloak with no password reset.
 - **Q31.** Cutover and rollback: how do you run the legacy sign-in and the new issuer side by side,
   what do you measure, and when do you turn the old one off?
+- **Q32.** The legacy is SiteMinder. The applications read `SM_USER` from the agent and never saw a
+  token. How do you move them without rewriting every application first?
 
 ## Workstreams
 
@@ -378,7 +380,7 @@ at the API for high-value operations); rate limits on `/token` and the login pag
 WebAuthn passkeys as the second factor; the admin API behind a least-privilege service account for
 CI. _Guide: Security._ _Answers: Q4, Q26, Q27, Q5 revisited._
 
-#### K12 — The interview guide
+#### K12 — The interview guide ✅ Done, [#137](https://github.com/decionis/steward/pull/137)
 
 `kloakware/docs/InterviewGuide.md`: every question, Q1 to Q27, answered in one place with the file
 that proves it; the junior-versus-senior comparison from the brief, each row pointing at the step
@@ -386,7 +388,32 @@ that evidences the senior column; a sixty-second story per topic; a mock-intervi
 one-page summary of what was built. No code. The full answers stay in the generated
 `InterviewQuestions.md` (K10); the guide is the map over them, in one line per question.
 
-#### K13 — Theming
+#### K13 — Migrating a legacy identity system
+
+The legacy identity system being migrated away from is a SiteMinder, by default, with the strategies
+for an old LDAP, an Oracle user store and an in-house SQL table beside it: where identities and
+passwords live in each, whether the hashes can leave, and so whether they are imported, federated
+until the cut, or reset at the deadline. SiteMinder keeps no passwords, so its user directory is
+exported; its web agents are stood in by a shim that sets the headers the applications read from
+the realm's token; the realm brokers to it during the overlap. The runbook for moving the users in
+with no password reset, run as code:
+`kloakware/migration/`, a small Java command over the admin API that reads a legacy export (one
+JSON object per user: username, email, name, market, roles, the salted SHA-256 hash and its salt)
+and imports it in batches through the realm's partial import, each user with a credential naming
+the legacy hash provider from K5, roles and markets mapped, duplicates by email reported and
+skipped, idempotent on re-run, with counts at the end. The first sign-in rehashes the password to
+argon2 in the same request, which K5 proved; a counter from the audit listener says how far the
+population has moved. The long tail: a deadline after which the unmigrated hashes are revoked and a
+reset is forced. The alternative for a system that cannot export hashes, the user storage provider
+with import on first login, is K6's pattern and the guide says when it is the right one. Cutover:
+the legacy application becomes an OIDC client of kloakware, both sign-ins run side by side behind a
+flag, the measures that decide (sign-ins through the new issuer, failures by error, rehashes), and
+the rollback, which is the flag, until the day the legacy store is read-only and then gone. Tests:
+the export fixture imported, a migrated user signing in with the legacy password and holding the
+mapped role and market, the credential read back as argon2 after, a second run changing nothing,
+a duplicate reported. _Guide: Migration._ _Answers: Q30, Q31, Q32, Q8 revisited._
+
+#### K14 — Theming
 
 A `steward` login theme as a Maven module compiled into the image like the extensions, extending
 Keycloak's own `keycloak.v2` rather than copying its templates: `theme.properties`, the stylesheet
@@ -402,25 +429,6 @@ what an upgrade does to a theme (templates change between minors, stylesheets an
 not) and when Keycloakify's React themes are worth their build. _Guide: Theming._ _Answers: Q28,
 Q29._
 
-#### K14 — Migrating a legacy system
-
-The runbook for moving a legacy system's users into kloakware with no password reset, run as code:
-`kloakware/migration/`, a small Java command over the admin API that reads a legacy export (one
-JSON object per user: username, email, name, market, roles, the salted SHA-256 hash and its salt)
-and imports it in batches through the realm's partial import, each user with a credential naming
-the legacy hash provider from K5, roles and markets mapped, duplicates by email reported and
-skipped, idempotent on re-run, with counts at the end. The first sign-in rehashes the password to
-argon2 in the same request, which K5 proved; a counter from the audit listener says how far the
-population has moved. The long tail: a deadline after which the unmigrated hashes are revoked and a
-reset is forced. The alternative for a system that cannot export hashes, the user storage provider
-with import on first login, is K6's pattern and the guide says when it is the right one. Cutover:
-the legacy application becomes an OIDC client of kloakware, both sign-ins run side by side behind a
-flag, the measures that decide (sign-ins through the new issuer, failures by error, rehashes), and
-the rollback, which is the flag, until the day the legacy store is read-only and then gone. Tests:
-the export fixture imported, a migrated user signing in with the legacy password and holding the
-mapped role and market, the credential read back as argon2 after, a second run changing nothing,
-a duplicate reported. _Guide: Migration._ _Answers: Q30, Q31, Q8 revisited._
-
 ## Sequencing
 
 | Stage          | Work         | Gate                                                                                                              |
@@ -433,13 +441,14 @@ a duplicate reported. _Guide: Migration._ _Answers: Q30, Q31, Q8 revisited._
 | **6. Run**     | K7, K8       | A cluster of two in compose; `terraform plan` clean for AWS and Azure; a dev environment applied by hand          |
 | **7. Operate** | K9, K10, K11 | A rolling patch update with zero failed requests; the dashboard and alerts live; FAPI 2 tests green               |
 | **8. Prepare** | K12          | Every question answered with its evidence                                                                         |
-| **9. Extend**  | K13, K14     | The themed login in three languages; the fixture's users moved with no reset and rehashed on first sign-in        |
+| **9. Extend**  | K13, K14     | The fixture's users moved with no reset and rehashed on first sign-in; the themed login in three languages        |
 
 K3 can be built in parallel with K2 because its tests use an in-process issuer; K4 follows K3; K5,
 K6 and K7 follow K1 and are independent of each other; K8 follows K1 and K2; K9 and K10 follow K8;
 K11 follows K3; K12 closes the brief's scope. K13 and K14 were added on 14 October 2026 after it:
-K13 follows K5 (the BankID template moves into the theme); K14 follows K5 and K6; each updates the
-interview guide and the aggregate with its questions.
+K13 follows K5 and K6 and was asked for first, with SiteMinder as the legacy example; K14 follows
+K5 (the BankID template moves into the theme); each updates the interview guide and the aggregate
+with its questions.
 
 ## Decisions taken
 

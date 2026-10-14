@@ -248,6 +248,26 @@ _Evidence in this repository:_ [`extensions/password-hash-legacy`](../extensions
 `LegacySha256Test` with its vector, the seeded `legacy.example` in the dev overlay,
 `LegacyPasswordTest` reading argon2 back through the admin API.
 
+### Q8, revisited. "If we need to integrate a legacy, proprietary hashing algorithm for existing user passwords during a migration, how would you achieve this in Keycloak?"
+
+_Answered in [Migration](Migration.md)._
+
+The Extensions guide answered this with the provider: verify the legacy hash, never pass the
+policy, let the first sign-in rehash. K13 moves a whole population through it and adds what the
+provider alone does not answer. Two providers now, because legacy systems have families, not one
+algorithm: the directory's salted SHA, told apart by digest length, and the application's own
+salted SHA-256. The import is the part that makes it a migration: the export converted into the
+credential's shape, digest and salt base64 with the algorithm the provider is registered under,
+imported in idempotent batches with the source recorded. And the end is the part the provider
+cannot do: a status that counts who is still on the old hash, a metric that shows the rehashes as
+they happen, and a deadline that removes what is left and asks for the one reset the long tail
+gets. A proprietary algorithm the vendor will not disclose is the case where none of this applies,
+and the honest answer is federation to the legacy store until each user has signed in once, then
+the same deadline.
+
+_Evidence in this repository:_ `LegacySsha` with its vectors and `LegacySha256`;
+`Migration.importUsers`, `status` and `revoke`; `LegacyMigrationTest`.
+
 ### Q9. "How do you ensure environment consistency between Dev, Staging and Production in Keycloak? Describe your CI/CD pipeline for Keycloak realm configurations."
 
 _Answered in [Configuration](Configuration.md)._
@@ -701,10 +721,87 @@ _Evidence in this repository:_ `kloakware/config/realms/master.json`; the two mo
 `kloakware/config/promote/ApplyRealm.sh`; the admin events in
 `kloakware/config/realms/steward.json`; `ServiceAccountAdminTest`.
 
-### Q28. _Not yet answered: Theming, K13._
+### Q28. _Not yet answered: Theming, K14._
 
-### Q29. _Not yet answered: Theming, K13._
+### Q29. _Not yet answered: Theming, K14._
 
-### Q30. _Not yet answered: Migration, K14._
+### Q30. "You inherit two million users in a legacy system with its own password hashing. Walk me through moving them to Keycloak with no password reset."
 
-### Q31. _Not yet answered: Migration, K14._
+_Answered in [Migration](Migration.md)._
+
+First find where the passwords are and whether they can leave, because that decides everything;
+then import the hashes with a provider that verifies them once and lets Keycloak replace them.
+
+Two million users is a batch job, not a login-time trick. The legacy system's store is exported
+with its hashes, the algorithm is identified from the application's code or the directory's
+scheme, and a `PasswordHashProvider` for it is compiled into the server: it verifies the legacy hash
+and answers that it never satisfies the realm's policy, so the first successful sign-in rehashes
+the password with argon2 in the same request, and the legacy hash is gone the moment it was last
+needed. The users are imported through the admin API's partial import in batches, each with a
+credential naming that provider, their roles mapped to the realm's, their market as a group, the
+address marked verified since the old system verified it, and the source recorded on the user; the
+import is idempotent, skips what the realm has, reports what the export repeats and what it could
+not use. Then the population moves itself: a metric counts legacy-hash validations as they happen,
+a status command counts who is still on the old hash, and a deadline revokes the long tail and
+asks them to reset, which is the only reset anyone gets. Where the hashes cannot leave, Active
+Directory or a vendor store, the same outcome comes from federation: the store validates the
+password on the first sign-in, Keycloak imports the user, and the deadline handles the rest.
+
+_Evidence in this repository:_ `kloakware/migration/` with `Migrate.sh` and its converters;
+`legacy-ssha` and `legacy-sha256` in `extensions/password-hash-legacy`; the fixtures under
+`migration/fixtures/`; `LegacyMigrationTest`, step by step.
+
+### Q31. "Cutover and rollback: how do you run the legacy sign-in and the new issuer side by side, what do you measure, and when do you turn the old one off?"
+
+_Answered in [Migration](Migration.md)._
+
+Side by side behind a flag per application, with the two systems agreeing on identity through a
+broker, measured by sign-ins and failures per client, and turned off only after the deadline has
+passed and nothing has crossed the broker for a month.
+
+Coexistence needs the two to agree on who a user is: the new issuer brokers to the legacy one, SAML
+or OIDC, and links an incoming identity to the imported account by email, since the legacy
+directory is the source of truth for addresses, so a user who signs in the old way during the
+overlap lands on the same account. Then one flag per application, or per market, sends its sign-in
+to the new issuer; the flag is also the rollback, because the legacy store still holds the
+passwords and rehashing in the new issuer changed their storage, not their value. The measures are
+the event metrics by client, logins and failures by error, so a flip that produces
+`invalid_user_credentials` is seen within minutes; the legacy-hash validations rising with each
+flip and falling as users rehash; the status command's pending count; and support tickets, which
+are the measure that reaches the people the metrics do not. The old one goes off in two steps: the
+deadline, when the long tail is revoked and asked to reset, and read-only, when the legacy store
+stops accepting writes and the broker is removed; decommissioning follows a month in which nothing
+has crossed the broker. What rollback cannot undo is a password changed in the new issuer during
+the overlap, which is why the overlap is short and a writable federation can carry changes back
+while it lasts.
+
+_Evidence in this repository:_ the phases table and the flag in this guide; the broker and the
+first-login flow in K6; `status` and `revoke` in `migration/`; the event metrics by client in K10.
+
+### Q32. "The legacy is SiteMinder. The applications read `SM_USER` from the agent and never saw a token. How do you move them without rewriting every application first?"
+
+_Answered in [Migration](Migration.md)._
+
+Stand the agent in: a shim in front of each application verifies the new issuer's token and sets
+the same headers, so the applications move without a change and are rewritten last, at their own
+pace.
+
+SiteMinder's contract with an application is headers set by the web agent after it validated the
+`SMSESSION` cookie: `SM_USER`, `SM_USERDN`, and whatever the policy server's responses added, roles
+and attributes among them. That contract is reproducible: a reverse proxy that performs the OpenID
+Connect login, or verifies a bearer token, and writes the same headers from the token's claims
+gives the application exactly what it had. The claims are the realm's to shape, so a response that
+used to set `SM_ROLES` is a mapper writing the roles claim, and the proxy copies it into the header.
+The proxy must do what the agent did about trust: verify the signature against the issuer's keys
+and follow their rotation, refuse an expired token and one issued for another application, and
+strip the headers from the incoming request so nobody sets `SM_USER` themselves. For a
+browser-facing application the proxy also holds the session the agent held and runs the login; an
+OIDC-aware proxy or the ingress's own authentication does that. The repository's shim is the
+contract proven in the smallest form: HAProxy verifying the realm's RS256 token with the realm's
+key and echoing the headers it set, with the refusals tested. SiteMinder itself stays in the
+picture through the overlap as a broker target, so the applications not yet behind a shim keep
+their sign-in, and comes out when the last shim is in.
+
+_Evidence in this repository:_ `deploy/compose/legacy-agent/haproxy.cfg` and its entrypoint; the
+`legacy-dashboard` client with its own audience in `config/realms/steward.json`;
+`LegacyAgentTest`.

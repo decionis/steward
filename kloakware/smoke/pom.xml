@@ -52,6 +52,13 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- The migration command (K13), run in-process against the stack with the fixtures. -->
+    <dependency>
+      <groupId>com.decionis.kloakware</groupId>
+      <artifactId>kloakware-migration</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <!-- The Steward user storage's argon2id, to seed a Steward user with a password of the run's own. -->
     <dependency>
       <groupId>com.decionis.kloakware</groupId>

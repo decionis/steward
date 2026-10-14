@@ -1,0 +1,7 @@
+# The in-house SQL (or Oracle) users table, as one SELECT exports it: the
+# salted SHA-256 the application computed over salt then password, base64,
+# with roles as a semicolon list. Dev fixture: every password is
+# Oracle-Sign-In-2026!.
+username,email,first_name,last_name,market,roles,algorithm,salt,hash
+pavel.legacy,pavel.legacy@example.test,Pavel,Legacy,NG,operator,legacy-sha256,cGF2ZWwtc2FsdC0wMDAx,cA7gOLk+X4uMNjcNiIlEdl4HME40rLyoe5q+3lyhEyo=
+ida.legacy,ida.legacy@example.test,Ida,Legacy,SE,audits;viewer,legacy-sha256,aWRhLXNhbHQtMDAwMQ==,T0uBuM3wfJWd+oGjbojtv1Uy+7RlboMq8kvSSWrzOMM=
