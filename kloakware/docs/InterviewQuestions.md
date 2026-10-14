@@ -700,3 +700,11 @@ applies the realms as the pipeline would, and is refused everything master's.
 _Evidence in this repository:_ `kloakware/config/realms/master.json`; the two modes in
 `kloakware/config/promote/ApplyRealm.sh`; the admin events in
 `kloakware/config/realms/steward.json`; `ServiceAccountAdminTest`.
+
+### Q28. _Not yet answered: Theming, K13._
+
+### Q29. _Not yet answered: Theming, K13._
+
+### Q30. _Not yet answered: Migration, K14._
+
+### Q31. _Not yet answered: Migration, K14._

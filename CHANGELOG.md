@@ -12,6 +12,11 @@ you integrate against these types.
 
 ### Added
 
+- The kloakware plan gains two workstreams after the brief's scope: K13, theming (a `steward` login
+  theme compiled into the image, three languages, the BankID template moved into it) and K14,
+  migrating a legacy system (a Java command importing a legacy export with its hashes through the
+  partial import, the first sign-in rehashing, the cutover and rollback runbook), with questions
+  Q28 to Q31; the aggregate lists them as pending.
 - Kloakware K11, security: the FAPI 2 Security Profile bound by two client policies to
   `steward-fapi` (the token bound to the client certificate) and `steward-fapi-dpop` (bound to a key
   the client proves), both authenticating with `private_key_jwt` through a certificate registered
