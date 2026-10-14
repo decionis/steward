@@ -27,6 +27,7 @@ twelve pull requests, one per concept.
 | K9   | Zero-downtime upgrades rehearsed: a patch rolled under load with zero failed requests, a minor with the schema migrated, the manual SQL path, the rollback                                                              | [#134](https://github.com/decionis/steward/pull/134) |
 | K10  | Observability: metrics, health, tracing and JSON logs; Prometheus, Grafana and a collector in the stack; seven alerts with reasons; the load that finds the first bottleneck                                            | [#135](https://github.com/decionis/steward/pull/135) |
 | K11  | Financial-grade hardening: the FAPI 2 profiles bound to two clients, mutual TLS at a terminator, DPoP, the revocation runbook as a test, edge rate limits, passkeys, a least-privilege service account for the pipeline | [#136](https://github.com/decionis/steward/pull/136) |
+| K13  | Migrating a legacy identity system, SiteMinder first: the directory's export converted and imported with its hashes, the first sign-in rehashing, status and deadline, the agent stood in by a shim                     | [#139](https://github.com/decionis/steward/pull/139) |
 | K12  | This guide                                                                                                                                                                                                              |                                                      |
 
 The numbers worth remembering: the access token lives 300 seconds; the lean token is 930 bytes and
@@ -47,12 +48,13 @@ The brief's table, with a column the brief did not have: where the senior column
 
 Four rows the walkthrough added, because the interview will:
 
-| Focus area | Junior or mid-level view                                      | Senior consultant view                                                                              | Evidenced by                                                                                     |
-| ---------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Sign-in    | Tokens in the browser, roles read from the JWT on the client. | A confidential client behind the server, PKCE anyway, one opaque cookie, backchannel logout.        | K3: `infra/auth/oidc/`, the session row, `test/e2e/KloakwareSignIn.test.mjs`                     |
-| Upgrades   | Bumps the image and hopes.                                    | Rehearses the roll under load, snapshots before a minor, hands the SQL to a DBA, has a rollback.    | K9: `upgrade/Rehearse.sh` and the weekly workflow                                                |
-| Operations | Watches CPU.                                                  | Watches the pool's wait time and the token endpoint's p95 first, with the reason for every alert.   | K10: `observability/alerts.yml`, the dashboard, `FindTheKnee.sh`                                 |
-| Security   | A client secret and HTTPS.                                    | The FAPI 2 profile where money moves, sender-constrained tokens, a revocation runbook that was run. | K11: the client policies, the terminator, `FinancialGradeTest`, `RevocationTest`, `kloakware-ci` |
+| Focus area | Junior or mid-level view                                      | Senior consultant view                                                                                         | Evidenced by                                                                                               |
+| ---------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Sign-in    | Tokens in the browser, roles read from the JWT on the client. | A confidential client behind the server, PKCE anyway, one opaque cookie, backchannel logout.                   | K3: `infra/auth/oidc/`, the session row, `test/e2e/KloakwareSignIn.test.mjs`                               |
+| Upgrades   | Bumps the image and hopes.                                    | Rehearses the roll under load, snapshots before a minor, hands the SQL to a DBA, has a rollback.               | K9: `upgrade/Rehearse.sh` and the weekly workflow                                                          |
+| Operations | Watches CPU.                                                  | Watches the pool's wait time and the token endpoint's p95 first, with the reason for every alert.              | K10: `observability/alerts.yml`, the dashboard, `FindTheKnee.sh`                                           |
+| Migration  | A password reset for everyone, a big-bang weekend.            | Hashes imported with a provider that rehashes on first sign-in, coexistence behind a flag, the agent stood in. | K13: `migration/`, `legacy-ssha`, `deploy/compose/legacy-agent/`, `LegacyMigrationTest`, `LegacyAgentTest` |
+| Security   | A client secret and HTTPS.                                    | The FAPI 2 profile where money moves, sender-constrained tokens, a revocation runbook that was run.            | K11: the client policies, the terminator, `FinancialGradeTest`, `RevocationTest`, `kloakware-ci`           |
 
 ## Every question, in one line
 
@@ -86,6 +88,9 @@ The question as asked, the answer's spine, and the file to open. The brief's ten
 | Q24 | Rollback after a minor's migration                         | Restore the snapshot and start the old image; the cost is the sessions created since, and the snapshot is kept until the new version outlives the longest session.                               | `upgrade/Rehearse.sh`, the rollback step                                            | [Upgrades](Upgrades.md)                                    |
 | Q25 | Sizing for a login rate                                    | Size from the measured cost of one login, argon2 and the pool; the pool's wait time says the database is short, the p95 rising with the pool idle says the nodes are.                            | `observability/FindTheKnee.sh`                                                      | [Observability](Observability.md)                          |
 | Q26 | DPoP versus mTLS-bound tokens                              | Both make a stolen token inert; mTLS proves in the transport and needs a PKI and a proxy that passes certificates, DPoP proves per request and crosses any ingress.                              | `steward-fapi` and `steward-fapi-dpop`, `FinancialGradeTest`                        | [Security](Security.md)                                    |
+| Q30 | Two million users, their own hashing, no reset             | Export the hashes, a provider that verifies them and never passes the policy so the first sign-in rehashes, idempotent batches with the source recorded, a metric, a deadline.                   | `migration/`, `LegacyMigrationTest`                                                 | [Migration](Migration.md)                                  |
+| Q31 | Cutover, measures, rollback, when the old one goes         | A flag per application with a broker keeping identity whole, sign-ins and failures by client, the flag as the rollback, off after the deadline and a quiet month.                                | the phases table in Migration                                                       | [Migration](Migration.md)                                  |
+| Q32 | SiteMinder: applications read `SM_USER`, never saw a token | Stand the agent in: a shim verifies the token and sets the same headers, so applications move unchanged and are rewritten last.                                                                  | `deploy/compose/legacy-agent/`, `LegacyAgentTest`                                   | [Migration](Migration.md)                                  |
 | Q27 | Least-privilege admin API and service accounts             | Never automate as the administrator: a master-realm service account with the managed realms' roles and nothing of master's, one account per automation, admin events on.                         | `config/realms/master.json`, `ServiceAccountAdminTest`                              | [Security](Security.md)                                    |
 
 ## Sixty seconds per topic
@@ -166,6 +171,14 @@ cannot be forged. The revocation runbook was run as a test, step by step; the ed
 endpoint and the login post per source; passkeys sit beside the OTP; and the pipeline signs in as a
 service account that can manage two realms and nothing of master's.
 
+**Migration.** Four migrations in one: identities, passwords, authorisation, applications. Where
+the hashes can leave, they are imported with a provider that verifies them and never passes the
+policy, so the first sign-in rehashes and nobody resets; where they cannot, federation imports on
+first sign-in. SiteMinder keeps no passwords, so its directory is exported; its agents are stood
+in by a shim that sets `SM_USER` from the token, so the applications move unchanged; the realm
+brokers to it through the overlap. A flag per application is the cutover and the rollback, the
+status and a metric say who has moved, and a deadline gives the long tail its one reset.
+
 ## A mock interview
 
 Eight exchanges in the order an interviewer tends to take, each with the likely follow-up. The
@@ -235,6 +248,15 @@ _Follow-up: who runs the pipeline's admin calls?_ A service account in the maste
 two realms' management roles and nothing else; the administrator created it once and went back in
 the vault.
 
+**Interviewer: We are on SiteMinder with two million users in its directory. Where do you start?**
+With where the passwords are. SiteMinder has none; its directory does, in the salted SHA family an
+LDAP keeps, and those can be exported and imported with a provider that verifies them and lets the
+first sign-in rehash, so nobody resets. The agents are the second question: the applications read
+`SM_USER`, so a shim in front of each sets the same headers from the token and they move
+unchanged. The realm brokers to SiteMinder through the overlap so both sign-ins land on one account.
+_Follow-up: and the ones who never sign in?_ A deadline. The status command counts them, the
+revoke removes their legacy hash and asks for the one reset the long tail gets.
+
 ## Where to look while talking
 
 - The realm, in one file: [`config/realms/steward.json`](../config/realms/steward.json).
@@ -242,5 +264,7 @@ the vault.
 - The extensions: [`extensions/`](../extensions/).
 - The stack on a laptop: [`deploy/compose/`](../deploy/compose/).
 - The platforms: [`deploy/terraform/`](../deploy/terraform/).
+- The migration: [`migration/`](../migration/) with its fixtures and the shim in
+  [`deploy/compose/legacy-agent/`](../deploy/compose/legacy-agent/).
 - The tests, one per claim: `smoke/src/test/java/com/decionis/kloakware/smoke/`.
 - The answers in full: [InterviewQuestions.md](InterviewQuestions.md).

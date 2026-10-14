@@ -8,6 +8,7 @@
 # Admin console: http://localhost:8080/admin (the bootstrap admin from .env)
 # Realm:         http://localhost:8080/realms/steward
 # Mutual TLS:    https://localhost:8443/realms/steward (the terminator, K11; its CA is in the mtls volume)
+# Legacy agent:  http://localhost:8082/ (the SiteMinder agent stood in, K13: a bearer token in, SM_USER out)
 # Health:        http://localhost:9000/health/ready
 # Metrics:       http://localhost:9000/metrics
 #
@@ -277,10 +278,44 @@ services:
       STEWARD_DB_PASSWORD: ${STEWARD_DB_PASSWORD:?set it in .env (see .env.example)}
       KLOAKWARE_STEWARD_CLIENT_SECRET: ${KLOAKWARE_STEWARD_CLIENT_SECRET:?set it in .env (see .env.example)}
       KLOAKWARE_STEWARD_API_SECRET: ${KLOAKWARE_STEWARD_API_SECRET:?set it in .env (see .env.example)}
+      KLOAKWARE_LEGACY_CLIENT_SECRET: ${KLOAKWARE_LEGACY_CLIENT_SECRET:?set it in .env (see .env.example)}
     volumes:
       - ../../config/realms/corp.json:/config/corp.json:ro
       - ../../config/realms/steward.json:/config/steward.json:ro
       - mtls:/certs:ro
+
+  # The SiteMinder agent, stood in (K13): the applications that read the
+  # agent's headers keep reading them, now set from kloakware's token by this
+  # shim on 8082, which also stands in for the application and echoes them.
+  # Its entrypoint waits for the realm, since it fetches the realm's signing
+  # key; it depends on the proxy only, because depending on the one-shot
+  # config service would run that again on every `up` of this one.
+  legacy-agent:
+    image: docker.io/library/haproxy:3.2-alpine@sha256:5d97434a423c2533cfeb42874d45cf6d69a840b60334582dfbfd5008e94c80be
+    depends_on:
+      kloakware:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/usr/local/etc/haproxy/Entrypoint.sh"]
+    environment:
+      KLOAKWARE_REALM_URL: http://kloakware:8080/realms/steward
+    volumes:
+      - ./legacy-agent/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./legacy-agent/Entrypoint.sh:/usr/local/etc/haproxy/Entrypoint.sh:ro
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:8082/agent/health",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 24
 
   # The master realm's one addition (K11): the kloakware-ci service account
   # the promotion pipeline applies the realms as, with the two realms'

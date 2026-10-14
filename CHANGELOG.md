@@ -12,6 +12,16 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K13, migrating a legacy identity system, SiteMinder as the worked example with an old
+  LDAP, an Oracle user store and an in-house SQL table beside it: `kloakware/migration/`, a Java
+  command over the admin API that converts the directory's LDIF or the table's CSV into one record
+  per user, imports them in idempotent batches through the partial import with a credential the
+  legacy hash providers verify, reports who has rehashed by signing in, and revokes the long tail
+  past the deadline with a reset required; `legacy-ssha`, the directory's salted SHA family,
+  beside `legacy-sha256`; the SiteMinder agent stood in by an HAProxy shim that verifies the
+  realm's token and sets `SM_USER` and the other headers; the `legacy-dashboard` client; the
+  fixtures; `LegacyMigrationTest` and `LegacyAgentTest`. The guide: `kloakware/docs/Migration.md`,
+  answering Q30, Q31, Q32 and Q8 again. The plan's K13 and K14 swap places, migration first.
 - The kloakware plan gains two workstreams after the brief's scope: K13, theming (a `steward` login
   theme compiled into the image, three languages, the BankID template moved into it) and K14,
   migrating a legacy system (a Java command importing a legacy export with its hashes through the

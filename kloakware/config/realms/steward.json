@@ -117,7 +117,7 @@
         "subComponents": {},
         "config": {
           "kc.user.profile.config": [
-            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}, {\"name\": \"personalNumber\", \"displayName\": \"Personal number\", \"validations\": {\"pattern\": {\"pattern\": \"^[0-9]{12}$\", \"error-message\": \"Twelve digits, YYYYMMDDNNNN\"}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false, \"annotations\": {\"inputType\": \"text\"}}, {\"name\": \"stewardId\", \"displayName\": \"Steward id\", \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"market\", \"displayName\": \"Market\", \"validations\": {\"options\": {\"options\": [\"SE\", \"NG\", \"GB\", \"DE\"]}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": true, \"annotations\": {\"inputType\": \"multiselect\"}}, {\"name\": \"personalNumber\", \"displayName\": \"Personal number\", \"validations\": {\"pattern\": {\"pattern\": \"^[0-9]{12}$\", \"error-message\": \"Twelve digits, YYYYMMDDNNNN\"}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false, \"annotations\": {\"inputType\": \"text\"}}, {\"name\": \"stewardId\", \"displayName\": \"Steward id\", \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"legacySource\", \"displayName\": \"Migrated from\", \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
           ]
         }
       }
@@ -776,6 +776,50 @@
       "defaultClientScopes": ["basic", "steward", "profile", "email", "acr"],
       "optionalClientScopes": [],
       "fullScopeAllowed": false
+    },
+    {
+      "clientId": "legacy-dashboard",
+      "name": "The legacy dashboard",
+      "description": "The application that stood behind the SiteMinder agent, now an OIDC client (K13): the code flow with PKCE, the full profile in the access token, since the agent shim sets SM_USER from it. Retired with the legacy system.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "$(env:KLOAKWARE_LEGACY_CLIENT_SECRET)",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": false,
+      "frontchannelLogout": false,
+      "rootUrl": "$(env:LEGACY_URL:-http://localhost:8082)",
+      "redirectUris": ["$(env:LEGACY_URL:-http://localhost:8082)/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "$(env:LEGACY_URL:-http://localhost:8082)/",
+        "use.refresh.tokens": "true",
+        "client.use.lightweight.access.token.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      },
+      "defaultClientScopes": ["basic", "steward", "profile", "email", "acr"],
+      "optionalClientScopes": [],
+      "fullScopeAllowed": false,
+      "protocolMappers": [
+        {
+          "name": "own audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "legacy-dashboard",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "authenticationFlows": [

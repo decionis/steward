@@ -1,0 +1,63 @@
+# The SiteMinder user directory, as `ldapsearch -LLL` exports it from the
+# policy server's user store (an OpenLDAP here; eDirectory and Active Directory
+# differ in attribute names, not in shape). SiteMinder keeps no passwords of
+# its own: they are the directory's userPassword values, salted SHA-1, SHA-256
+# and SHA-512 in the {SSHA} family, which the legacy-ssha provider verifies.
+# Roles are group memberships, the market is the country attribute. Dev
+# fixture: every password is Siteminder-Sign-In-2026!. erin.example exists in
+# the realm already and is skipped; dup.legacy carries maria's email and is
+# reported as a duplicate.
+
+dn: uid=maria.legacy,ou=people,dc=legacy,dc=example
+objectClass: inetOrgPerson
+uid: maria.legacy
+cn: Maria Legacy
+givenName: Maria
+sn: Legacy
+mail: maria.legacy@example.test
+c: SE
+memberOf: cn=steward-operator,ou=groups,dc=legacy,dc=example
+userPassword:: e1NTSEF9VEJxR2M5SlJuOHc3SVZRNHhrSGVZNXVyazcxdFlYSnBZUzF6WVd4MExUQXg=
+
+dn: uid=omar.legacy,ou=people,dc=legacy,dc=example
+objectClass: inetOrgPerson
+uid: omar.legacy
+cn: Omar Legacy
+givenName: Omar
+sn: Legacy
+mail: omar.legacy@example.test
+c: DE
+memberOf: cn=steward-approver,ou=groups,dc=legacy,dc=example
+memberOf: cn=steward-operator,ou=groups,dc=legacy,dc=example
+userPassword:: e1NTSEEyNTZ9UkFsRkFoWUU4UE5rMy9abFFtSFhacHBYVGkyaXdaMVFjaG1XRmRZR1RyOXZiV0Z5TFhOaGJIUXRNREF3TWc9PQ==
+
+dn: uid=nina.legacy,ou=people,dc=legacy,dc=example
+objectClass: inetOrgPerson
+uid: nina.legacy
+cn: Nina Legacy
+givenName: Nina
+sn: Legacy
+mail: nina.legacy@example.test
+c: GB
+userPassword:: e1NTSEE1MTJ9ZnNMUUovaEdzd2ZpMTYzRDQwNnl6V3IvdU0vL1cwZEd1L0hHSUdPZUc4M21mUWZ0NXJhRXlzNzdsT1dvR1Zxamx0YkZuSVZFU3NQcVZaeEszS1lrNEc1cGJtRXRjMkZzZEMwd01EQXdNRE09
+
+dn: uid=erin.example,ou=people,dc=legacy,dc=example
+objectClass: inetOrgPerson
+uid: erin.example
+cn: Erin Example
+givenName: Erin
+sn: Example
+mail: erin@example.test
+c: SE
+memberOf: cn=steward-admin,ou=groups,dc=legacy,dc=example
+userPassword:: e1NTSEF9WDhDRWZxaVh4ejNQaWFFSDBaT3BRWFBzU005bGNtbHVMWE5oYkhRdE1EUT0=
+
+dn: uid=dup.legacy,ou=people,dc=legacy,dc=example
+objectClass: inetOrgPerson
+uid: dup.legacy
+cn: Dup Legacy
+givenName: Dup
+sn: Legacy
+mail: maria.legacy@example.test
+c: SE
+userPassword:: e1NTSEF9UUM0aHQ2OWRjWlBuZEFBZmFZV3BwcjcrVWJsa2RYQXRjMkZzZEMwd05RPT0=

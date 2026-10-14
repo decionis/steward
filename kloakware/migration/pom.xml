@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The migration command (K13): moves a legacy identity system's users into
+  the realm with no password reset. Converts what the legacy exports, an LDIF
+  from a SiteMinder user directory or a CSV from an in-house SQL or Oracle
+  table, into one record per user, imports them in batches through the
+  realm's partial import with a credential the legacy hash providers verify,
+  reports how far the population has moved, and revokes what is left past the
+  deadline. A command run from a laptop or the pipeline, not part of the image.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.decionis.kloakware</groupId>
+    <artifactId>kloakware</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>kloakware-migration</artifactId>
+  <name>Kloakware: the legacy migration command</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- The directory's salted SHA, parsed into the credential the provider verifies. -->
+    <dependency>
+      <groupId>com.decionis.kloakware</groupId>
+      <artifactId>kloakware-password-hash-legacy</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>kloakware-migration</finalName>
+    <plugins>
+      <!-- An executable JAR with its dependencies beside it: java -jar target/kloakware-migration.jar -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.9.0</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+              <includeScope>runtime</includeScope>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.2</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.decionis.kloakware.migration.Migrate</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

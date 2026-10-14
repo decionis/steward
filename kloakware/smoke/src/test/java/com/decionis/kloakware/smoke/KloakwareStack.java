@@ -82,6 +82,8 @@ final class KloakwareStack implements AutoCloseable {
   private final GenericContainer<?> second;
   private final GenericContainer<?> proxy;
   private final GenericContainer<?> terminator;
+  /** The SiteMinder agent stood in (K13): started once the realm is applied, since it fetches the realm's key. */
+  private GenericContainer<?> agent;
   /** What the certificate maker produced, read out of its container before the terminator starts. */
   private Pki pki;
   /** The kloakware-ci service account's secret in the master realm (K11). */
@@ -92,6 +94,8 @@ final class KloakwareStack implements AutoCloseable {
   final String adminPassword = secret();
   final String clientSecret = secret();
   final String stewardApiSecret = secret();
+  /** The legacy dashboard's secret (K13): the application behind the SiteMinder agent, now a client. */
+  final String legacyClientSecret = secret();
   final String devUserPassword = secret();
   final String auditSecret = secret();
   final String brokerClientSecret = secret();
@@ -312,6 +316,43 @@ final class KloakwareStack implements AutoCloseable {
     applyRealm(realmFiles(), Map.of());
     applyMaster();
     applyDevOverlay();
+    startAgent();
+  }
+
+  /**
+   * The legacy agent shim, as the compose file runs it: HAProxy verifying the
+   * realm's token with the key its entrypoint fetched, setting the headers the
+   * applications behind a SiteMinder agent read, and echoing them.
+   */
+  private void startAgent() {
+    agent =
+        new GenericContainer<>(HAPROXY)
+            .withNetwork(network)
+            .withNetworkAliases("legacy-agent")
+            .withEnv("KLOAKWARE_REALM_URL", "http://kloakware:8080/realms/steward")
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/legacy-agent/haproxy.cfg")),
+                "/usr/local/etc/haproxy/haproxy.cfg")
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/legacy-agent/Entrypoint.sh")),
+                "/usr/local/etc/haproxy/Entrypoint.sh")
+            .withCreateContainerCmdModifier(
+                cmd -> cmd.withEntrypoint("/bin/sh", "/usr/local/etc/haproxy/Entrypoint.sh"))
+            .withExposedPorts(8082)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("legacy-agent"))
+            .waitingFor(
+                Wait.forHttp("/agent/health").forPort(8082).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(2)));
+    agent.start();
+  }
+
+  /** The kloakware directory, for the fixtures the migration test reads. */
+  Path root() {
+    return root;
+  }
+
+  /** The legacy application behind the agent shim, as a client reaches it. */
+  String agentBaseUrl() {
+    return "http://" + host() + ":" + agent.getMappedPort(8082);
   }
 
   private List<Path> realmFiles() {
@@ -397,6 +438,7 @@ final class KloakwareStack implements AutoCloseable {
     environment.put("KLOAKWARE_BANKID_URL", "http://bankid:8090");
     environment.put("KLOAKWARE_STEWARD_CLIENT_SECRET", clientSecret);
     environment.put("KLOAKWARE_STEWARD_API_SECRET", stewardApiSecret);
+    environment.put("KLOAKWARE_LEGACY_CLIENT_SECRET", legacyClientSecret);
     environment.put("KLOAKWARE_DEV_USER_PASSWORD", devUserPassword);
     // The brokers (K6): the browser, this JVM, reaches the corp realm at the
     // mapped port; the server reaches it at its own. The ldap URL and the
@@ -541,6 +583,7 @@ final class KloakwareStack implements AutoCloseable {
 
   @Override
   public void close() {
+    if (agent != null) agent.stop();
     terminator.stop();
     proxy.stop();
     second.stop();

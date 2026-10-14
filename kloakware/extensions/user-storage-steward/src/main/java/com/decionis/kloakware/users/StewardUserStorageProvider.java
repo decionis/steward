@@ -93,9 +93,19 @@ public final class StewardUserStorageProvider
     return read(() -> users.byEmail(email)).flatMap(row -> row).map(row -> copyOf(realm, row)).orElse(null);
   }
 
+  /** The parameters a search here understands; any other narrows the search to nothing of ours. */
+  private static final java.util.Set<String> SEARCHABLE =
+      java.util.Set.of(UserModel.SEARCH, UserModel.EMAIL, UserModel.USERNAME, UserModel.FIRST_NAME, UserModel.LAST_NAME, UserModel.EXACT, UserModel.INCLUDE_SERVICE_ACCOUNT, UserModel.EMAIL_VERIFIED, UserModel.ENABLED);
+
   @Override
   public Stream<UserModel> searchForUserStream(
       RealmModel realm, Map<String, String> params, Integer firstResult, Integer maxResults) {
+    // A search by an attribute this store does not have (`q=legacySource:x`,
+    // K13) or by a field it cannot filter on is not a search for everyone:
+    // answer nothing, so the realm's own users are the only matches.
+    for (String key : params.keySet()) {
+      if (!SEARCHABLE.contains(key)) return Stream.empty();
+    }
     String text =
         Optional.ofNullable(params.get(UserModel.SEARCH))
             .or(() -> Optional.ofNullable(params.get(UserModel.EMAIL)))

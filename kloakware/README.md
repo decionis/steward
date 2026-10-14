@@ -14,7 +14,7 @@ directory is built one workstream at a time, and each workstream's guide is unde
 kloakware/
   pom.xml                   the Maven parent: Java level, Keycloak version, the license gate
   Dockerfile                the image: the extensions compiled in by a Maven stage, then Keycloak 26.8, pinned by digest, built once, started --optimized
-  extensions/               the Java extensions, one module each: the steward claim (K4), the audit listener, the market second factor, the legacy password hash (K5), the Steward user storage (K6)
+  extensions/               the Java extensions, one module each: the steward claim (K4), the audit listener, the market second factor, the legacy password hashes (K5, the directory's salted SHA in K13), the Steward user storage (K6)
   deploy/compose/bankid/    the BankID Relying Party API in shape only, for the second factor on a laptop
   deploy/compose/ldap/      OpenLDAP from Debian's slapd, seeded at start: the directory the ldap federation reads (K6)
   deploy/compose/steward-db/ Steward's own database stood in beside kloakware's, one local account seeded, for the user storage (K6)
@@ -24,6 +24,8 @@ kloakware/
   config/drift/             the drift check: apply, change by hand, detect, converge
   config/promote/           the realm applied to one environment; the promotion workflow runs it per environment
   observability/            the collector, Prometheus with the alert rules, the Grafana dashboard, the load that finds the first bottleneck (K10)
+  migration/                the legacy migration command (K13): the SiteMinder directory's or a SQL table's export converted, imported with its hashes, the status, the deadline; the fixtures
+  deploy/compose/legacy-agent/ the SiteMinder agent stood in (K13): the realm's token verified, SM_USER and the other headers set, echoed
   upgrade/                  the upgrade runbook rehearsed (K9): a patch rolled under k6 load with the proxy draining, a minor recreated with the schema migrated, the manual SQL export, the rollback
   deploy/terraform/         the platforms as code (K8): a module per cloud with one output contract, the kloakware module on either, an environment per stage, the bootstrap applied once
   deploy/compose/           PostgreSQL, two kloakware nodes behind HAProxy, config-cli: the stack on a laptop (K7)
