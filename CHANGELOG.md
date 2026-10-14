@@ -12,6 +12,12 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K12, the interview guide: `kloakware/docs/InterviewGuide.md`, a one-page summary of
+  the twelve steps with their pull requests and the numbers worth remembering, the brief's
+  strategy comparison with the step that evidences each senior-column claim and four rows the
+  walkthrough added, every question Q1 to Q27 in one line with its proof and its guide, a
+  sixty-second story per topic, a mock interview with follow-ups, and where to look while talking.
+  The full answers stay in the generated `InterviewQuestions.md`.
 - Kloakware K11, security: the FAPI 2 Security Profile bound by two client policies to
   `steward-fapi` (the token bound to the client certificate) and `steward-fapi-dpop` (bound to a key
   the client proves), both authenticating with `private_key_jwt` through a certificate registered

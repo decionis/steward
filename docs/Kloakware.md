@@ -357,7 +357,7 @@ their thresholds and the reason for each: connection-pool wait time, token-endpo
 sign-in rate, cluster size dropping, GC pause, 5xx. A k6 profile from the Keycloak benchmark project
 to find the first bottleneck on purpose. _Guide: Observability._ _Answers: Q10, Q25._
 
-#### K11 — Financial-grade hardening
+#### K11 — Financial-grade hardening ✅ Done, [#136](https://github.com/decionis/steward/pull/136)
 
 Client policies and profiles: the FAPI 2 Security Profile applied to a `steward-fapi` client
 (`private_key_jwt` client authentication, pushed authorisation requests, PKCE S256 mandated,
@@ -373,7 +373,8 @@ CI. _Guide: Security._ _Answers: Q4, Q26, Q27, Q5 revisited._
 `kloakware/docs/InterviewGuide.md`: every question, Q1 to Q27, answered in one place with the file
 that proves it; the junior-versus-senior comparison from the brief, each row pointing at the step
 that evidences the senior column; a sixty-second story per topic; a mock-interview script; and a
-one-page summary of what was built. No code.
+one-page summary of what was built. No code. The full answers stay in the generated
+`InterviewQuestions.md` (K10); the guide is the map over them, in one line per question.
 
 ## Sequencing
 
