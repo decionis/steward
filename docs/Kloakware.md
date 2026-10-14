@@ -347,7 +347,7 @@ the SQL to a DBA; what to do when a custom SPI fails the new version; rollback w
 run. The realm-config promotion pipeline from K2 run end to end, dev to production. _Guide:
 Upgrades._ _Answers: Q3, Q24, Q9 revisited._
 
-#### K10 — Observability
+#### K10 — Observability ✅ Done, [#135](https://github.com/decionis/steward/pull/135)
 
 The management port: `/metrics` for Prometheus (JVM, HTTP, the Agroal connection pool, Infinispan,
 JGroups), `/health/live`, `/health/ready`, `/health/started`; user event metrics with their tags;

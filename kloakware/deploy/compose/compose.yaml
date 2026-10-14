@@ -7,6 +7,7 @@
 #
 # Admin console: http://localhost:8080/admin (the bootstrap admin from .env)
 # Realm:         http://localhost:8080/realms/steward
+# Mutual TLS:    https://localhost:8443/realms/steward (the terminator, K11; its CA is in the mtls volume)
 # Health:        http://localhost:9000/health/ready
 # Metrics:       http://localhost:9000/metrics
 #
@@ -122,6 +123,11 @@ services:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - "8080:8080"
+    environment:
+      # The edge rate limits (K11), per source per ten seconds: the token
+      # endpoint and the login form's post. The load scripts lift them.
+      KLOAKWARE_EDGE_TOKEN_RATE: ${KLOAKWARE_EDGE_TOKEN_RATE:-300}
+      KLOAKWARE_EDGE_LOGIN_RATE: ${KLOAKWARE_EDGE_LOGIN_RATE:-60}
     healthcheck:
       test:
         [
@@ -131,6 +137,47 @@ services:
           "-O",
           "/dev/null",
           "http://127.0.0.1:8080/haproxy/health",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # The certificates for mutual TLS (K11), made once into the mtls volume:
+  # the stack's own authority, nginx's certificate and the steward-fapi
+  # client's key pair. A deployment's come from its PKI.
+  certs:
+    image: docker.io/alpine/openssl:3.5.9@sha256:e8a2319d15637db5296c0ff540bb028cfabc480b22fcdd4a020582393d32673f
+    entrypoint: ["/bin/sh", "/mtls/MakeCerts.sh", "/certs"]
+    volumes:
+      - ./mtls/MakeCerts.sh:/mtls/MakeCerts.sh:ro
+      - mtls:/certs
+
+  # The mutual-TLS terminator (K11): nginx on 8443 verifies the client's
+  # certificate against the authority above and passes it to HAProxy's
+  # second entry in the header kloakware's nginx lookup reads. The
+  # financial-grade client's sender-constrained token is bound to it.
+  kloakware-mtls:
+    image: docker.io/library/nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+      kloakware:
+        condition: service_healthy
+    volumes:
+      - ./mtls/nginx.conf:/etc/nginx/nginx.conf:ro
+      - mtls:/certs:ro
+    ports:
+      - "8443:8443"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--no-check-certificate",
+          "-O",
+          "/dev/null",
+          "https://127.0.0.1:8443/haproxy/health",
         ]
       interval: 5s
       timeout: 3s
@@ -196,6 +243,18 @@ services:
     depends_on:
       kloakware:
         condition: service_healthy
+      certs:
+        condition: service_completed_successfully
+    # The steward-fapi client's certificate, as made into the mtls volume,
+    # is the one value the realm file takes from a file rather than from
+    # the environment; a deployment passes KLOAKWARE_FAPI_CLIENT_CERTIFICATE
+    # from its secret store like the rest.
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "export KLOAKWARE_FAPI_CLIENT_CERTIFICATE=$$(cat /certs/steward-fapi.der.b64) && exec java $$JAVA_OPTS -jar /app/keycloak-config-cli.jar",
+      ]
     environment:
       KEYCLOAK_URL: http://kloakware:8080
       KEYCLOAK_USER: admin
@@ -221,6 +280,30 @@ services:
     volumes:
       - ../../config/realms/corp.json:/config/corp.json:ro
       - ../../config/realms/steward.json:/config/steward.json:ro
+      - mtls:/certs:ro
+
+  # The master realm's one addition (K11): the kloakware-ci service account
+  # the promotion pipeline applies the realms as, with the two realms'
+  # management roles and nothing of master's. Applied after the realms,
+  # since master's per-realm clients exist only once the realms do, and
+  # without deleting what else master holds.
+  config-master:
+    image: docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274
+    depends_on:
+      config:
+        condition: service_completed_successfully
+    environment:
+      KEYCLOAK_URL: http://kloakware:8080
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: ${KLOAKWARE_BOOTSTRAP_ADMIN_PASSWORD:?set it in .env (see .env.example)}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      IMPORT_FILES_LOCATIONS: /config/master.json
+      IMPORT_VARSUBSTITUTION_ENABLED: "true"
+      IMPORT_CACHE_ENABLED: "false"
+      IMPORT_MANAGED_CLIENT: no-delete
+      KLOAKWARE_CI_CLIENT_SECRET: ${KLOAKWARE_CI_CLIENT_SECRET:?set it in .env (see .env.example)}
+    volumes:
+      - ../../config/realms/master.json:/config/master.json:ro
 
   # The dev overlay: plain HTTP accepted on the master and steward realms (a
   # laptop has no TLS, and Docker Desktop may present the host's traffic from
@@ -231,7 +314,7 @@ services:
   config-dev:
     image: docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274
     depends_on:
-      config:
+      config-master:
         condition: service_completed_successfully
     environment:
       KEYCLOAK_URL: http://kloakware:8080
@@ -249,3 +332,4 @@ services:
 
 volumes:
   db: {}
+  mtls: {}

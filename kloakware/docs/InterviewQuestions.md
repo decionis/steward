@@ -96,7 +96,35 @@ is governed, the manual strategy writes the SQL to a file for a DBA to run in th
 server starts after it on a schema it finds current. A snapshot precedes every minor; the next
 question is what it is for.
 
-### Q4. _Not yet answered: Security, K11._
+### Q4. "In your previous payment dashboard project, how did you secure financial transactions? Did you utilize advanced OAuth profiles like FAPI (Financial-grade API) or Mutual TLS (mTLS)?"
+
+_Answered in [Security](Security.md)._
+
+With the FAPI 2 Security Profile where the transactions were, and the plain profile everywhere else,
+because the profile is expensive to carry and only worth it where the token moves money.
+
+FAPI is a set of constraints on OAuth that close the gaps a plain code flow leaves: the client
+proves itself with a signed assertion (`private_key_jwt`) or a certificate instead of a shared
+secret, the authorisation request is pushed to the issuer first so nothing about it travels through
+the browser, PKCE is mandatory, every URI is https, tokens are signed with PS256 or ES256, and the
+access token is bound to its sender, either to the certificate presented over mutual TLS or to a
+key the client proves with each request (DPoP). The binding is what makes a token taken off a
+log, a proxy or a browser worthless on its own. Keycloak ships the profile as a client profile and
+the work is binding it: a client policy with a condition that selects the clients and the profile
+as its action, the issuer's own PS256 key, the client's certificate registered for the assertion,
+and a proxy that terminates mutual TLS and passes the certificate in the header Keycloak's lookup
+reads, with the plain entry stripping that header so it cannot be forged. Then the tests that show
+the refusals, which is the part a reviewer wants to see: a request without the certificate, a
+certificate forged in the header, an assertion signed with the wrong algorithm, a request that was
+not pushed, a DPoP request without its proof. Mutual TLS also authenticates the client
+(`client-x509`), which the profile allows, but the assertion is the better default because it
+survives an ingress that cannot pass certificates, and the certificate is then only the binding.
+
+_Evidence in this repository:_ the two policies, the two clients and the PS256 key in
+`kloakware/config/realms/steward.json`; the terminator in `kloakware/deploy/compose/mtls/`; the
+header stripped on the plain entry in `kloakware/deploy/compose/haproxy/haproxy.cfg`; the lookup
+provider in `kloakware/Dockerfile`; the whole flow with its refusals in `FinancialGradeTest`;
+Steward's own `private_key_jwt` in `infra/auth/oidc/OidcClient.ts` and `OidcClient.test.ts`.
 
 ### Q5. "If a user's token is compromised on the payment dashboard, how does your architecture handle immediate revocation across multiple microservices?"
 
@@ -120,6 +148,29 @@ refusal of a reused refresh token in `SignInSmokeTest`; the session row and its 
 `application/auth/IdentityStore.ts` and `TypeOrmIdentityStore.test.ts`; the backchannel logout in
 `app/api/auth/oidc/backchannel-logout/route.ts`, proven end to end by
 `test/e2e/KloakwareSignIn.test.mjs`.
+
+### Q5, revisited. "If a user's token is compromised on the payment dashboard, how does your architecture handle immediate revocation across multiple microservices?"
+
+_Answered in [Security](Security.md)._
+
+The SignIn guide answered this by design: five-minute tokens, rotating refresh tokens with reuse
+detection, the session as the kill switch, backchannel logout joining the issuer's session to
+Steward's, introspection before the operations that cannot wait. K11 runs that runbook as a test
+and adds the piece that makes revocation unnecessary for the common theft: with the token bound to
+the client's certificate or to a key the client proves, a token taken on its own cannot be used,
+so the revocation is for the case where the client itself is compromised, and then it is the
+client's credential that is rotated in the realm file. The test revokes a refresh token and sees it
+dead, ends a session and sees introspection turn inactive inside the signature's five minutes,
+sees Steward's endpoint receive the logout token naming the session, and moves the realm's
+not-before with logout-all and sees everything issued before it refused while a fresh sign-in works.
+Across services that is the whole mechanism: the gateway verifies signatures and the not-before
+locally, introspects for the high-value operations, and every service behind it trusts the
+gateway; nothing has to be told about one token, because the session is what is ended and the
+token binding is what makes a stray token inert.
+
+_Evidence in this repository:_ `RevocationTest`, step by step; the audience mapper on the
+`steward` scope in `kloakware/config/realms/steward.json`; the backchannel logout endpoint in
+`app/api/auth/oidc/backchannel-logout/route.ts`; the binding in `FinancialGradeTest`.
 
 ### Q6. "How did you prevent token bloat in your RBAC solution? If a user has hundreds of roles across different markets, how do you keep the JWT size manageable?"
 
@@ -594,6 +645,58 @@ one stage, with the hash counter flattening beside it. Pool wait rising with CPU
 or the database is short; the p95 rising with the pool idle means the hashing bound, and the nodes
 are short.
 
-### Q26. _Not yet answered: Security, K11._
+### Q26. "DPoP versus mTLS-bound tokens: what each protects against, and when you pick which."
 
-### Q27. _Not yet answered: Security, K11._
+_Answered in [Security](Security.md)._
+
+Both bind the token to something only the legitimate client has, so both protect against the same
+thing, a token used by whoever got hold of it; they differ in where the proof lives and what the
+infrastructure must carry.
+
+Mutual TLS binds the token to the client certificate presented at the TLS layer: the token carries
+the certificate's thumbprint, and the issuer and every resource server check the certificate on
+the connection against it. The proof is in the transport, free per request once the connection is
+up, and it is verified by the proxy, which must then pass the certificate to the server in a header
+and must be the only path on which that header can arrive. It needs a PKI for clients, and an
+ingress that terminates mutual TLS and passes certificates, which a managed one may not. DPoP binds
+the token to a key pair the client made itself: each request carries a proof signed with it,
+naming the method, the URL, the time and the token's hash, and the token carries the key's
+thumbprint. The proof is at the application layer, so it crosses any proxy, needs no PKI and no
+certificate on the ingress, and works for a native or single-page application that could never hold
+a client certificate; its cost is a signature per request and the replay checks on the proof's id
+and time. Pick mutual TLS between services that already have certificates and a proxy you control,
+which is the bank-to-bank case; pick DPoP for clients outside your PKI and for ingresses that will
+not pass certificates, which is most public clouds by default. The realm here carries both, each
+bound to one client by its own policy, and the choice is the attribute on the client.
+
+_Evidence in this repository:_ `steward-fapi` with `tls.client.certificate.bound.access.tokens` and
+`steward-fapi-dpop` with `dpop.bound.access.tokens` in `kloakware/config/realms/steward.json`; the
+`cnf.x5t#S256` and `cnf.jkt` claims and the refusals in `FinancialGradeTest`; the proof built in
+`smoke/.../Jws.java`.
+
+### Q27. "How do you keep the admin API, and the services accounts that automate it, least privilege?"
+
+_Answered in [Security](Security.md)._
+
+By never automating as the administrator, and by making every account that automates a client in
+the master realm with the roles of the realms it manages and nothing of master's own.
+
+The master realm's `admin` is every realm and every user, and a pipeline that signs in as it has a
+secret that is the whole installation. Keycloak keeps a client per realm inside the master realm
+(`steward-realm`, `corp-realm`) with that realm's management roles, so a service account in master
+can be given exactly the realms it applies, and a service account in a realm can be given that
+realm's `realm-management` roles and nothing beyond it. The pipeline's account is a client with
+service accounts on and every other flow off, authenticated with client credentials, its secret in
+the environment's secret store and not in any file; its roles are the two realms' management
+roles, so it can apply the realm files and cannot read master's users, cannot create a realm and
+cannot touch its own client. The administrator creates it once, from a file, and the
+administrator's password goes back to the vault. The remaining practices are the ordinary ones:
+one account per automation rather than one for all of them, so a leaked secret has one blast
+radius and one rotation; admin events on, with the details, so what the account did is a record;
+short access tokens for the account; and the admin console itself behind the organisation's
+identity provider with a second factor, not local passwords. The test signs in as the account,
+applies the realms as the pipeline would, and is refused everything master's.
+
+_Evidence in this repository:_ `kloakware/config/realms/master.json`; the two modes in
+`kloakware/config/promote/ApplyRealm.sh`; the admin events in
+`kloakware/config/realms/steward.json`; `ServiceAccountAdminTest`.

@@ -28,6 +28,17 @@
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,
   "browserFlow": "steward-browser",
+  "webAuthnPolicyRpEntityName": "Kloakware",
+  "webAuthnPolicySignatureAlgorithms": ["ES256", "RS256"],
+  "webAuthnPolicyRpId": "",
+  "webAuthnPolicyAttestationConveyancePreference": "none",
+  "webAuthnPolicyAuthenticatorAttachment": "not specified",
+  "webAuthnPolicyRequireResidentKey": "not specified",
+  "webAuthnPolicyUserVerificationRequirement": "preferred",
+  "webAuthnPolicyCreateTimeout": 0,
+  "webAuthnPolicyAvoidSameAuthenticatorRegister": false,
+  "webAuthnPolicyAcceptableAaguids": [],
+  "webAuthnPolicyExtraOrigins": [],
   "roles": {
     "realm": [
       {
@@ -271,6 +282,52 @@
           "maxLifespan": ["300000"]
         }
       }
+    ],
+    "org.keycloak.keys.KeyProvider": [
+      {
+        "name": "rsa-generated",
+        "providerId": "rsa-generated",
+        "subComponents": {},
+        "config": {
+          "priority": ["100"]
+        }
+      },
+      {
+        "name": "rsa-enc-generated",
+        "providerId": "rsa-enc-generated",
+        "subComponents": {},
+        "config": {
+          "priority": ["100"],
+          "algorithm": ["RSA-OAEP"]
+        }
+      },
+      {
+        "name": "hmac-generated-hs512",
+        "providerId": "hmac-generated",
+        "subComponents": {},
+        "config": {
+          "priority": ["100"],
+          "algorithm": ["HS512"]
+        }
+      },
+      {
+        "name": "aes-generated",
+        "providerId": "aes-generated",
+        "subComponents": {},
+        "config": {
+          "priority": ["100"]
+        }
+      },
+      {
+        "name": "rsa-ps256-generated",
+        "providerId": "rsa-generated",
+        "subComponents": {},
+        "config": {
+          "priority": ["100"],
+          "algorithm": ["PS256"],
+          "keySize": ["2048"]
+        }
+      }
     ]
   },
   "clientScopes": [
@@ -304,7 +361,7 @@
     },
     {
       "name": "steward",
-      "description": "What Steward needs and nothing else: the user's Steward roles and markets as one claim, from the steward claim mapper compiled into this server.",
+      "description": "What Steward needs and nothing else: the user's Steward roles and markets as one claim, from the steward claim mapper compiled into this server; and the API named as the audience, which is what lets it introspect the token (K11).",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",
@@ -337,6 +394,19 @@
             "access.token.claim": "true",
             "introspection.token.claim": "true",
             "lightweight.claim": "true"
+          }
+        },
+        {
+          "name": "api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "steward-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "true",
+            "introspection.token.claim": "true"
           }
         }
       ]
@@ -626,6 +696,86 @@
           }
         ]
       }
+    },
+    {
+      "clientId": "steward-fapi",
+      "name": "Steward, financial grade (mTLS)",
+      "description": "Steward under the FAPI 2 Security Profile (policy steward-fapi-mtls): private_key_jwt with the certificate registered here, PAR, PKCE S256, https URIs, consent, and the access token bound to the client certificate (K11).",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-jwt",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": true,
+      "frontchannelLogout": false,
+      "rootUrl": "$(env:STEWARD_FAPI_URL:-https://steward.example)",
+      "redirectUris": [
+        "$(env:STEWARD_FAPI_URL:-https://steward.example)/api/auth/oidc/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "steward.fapi": "mtls",
+        "jwt.credential.certificate": "$(env:KLOAKWARE_FAPI_CLIENT_CERTIFICATE)",
+        "token.endpoint.auth.signing.alg": "PS256",
+        "access.token.signed.response.alg": "PS256",
+        "id.token.signed.response.alg": "PS256",
+        "pkce.code.challenge.method": "S256",
+        "require.pushed.authorization.requests": "true",
+        "tls.client.certificate.bound.access.tokens": "true",
+        "dpop.bound.access.tokens": "false",
+        "use.refresh.tokens": "true",
+        "backchannel.logout.url": "$(env:STEWARD_FAPI_URL:-https://steward.example)/api/auth/oidc/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "$(env:STEWARD_FAPI_URL:-https://steward.example)/sign-in",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      },
+      "defaultClientScopes": ["basic", "steward", "profile", "email", "acr"],
+      "optionalClientScopes": [],
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "steward-fapi-dpop",
+      "name": "Steward, financial grade (DPoP)",
+      "description": "The same profile with DPoP as the sender constraint: the client proves possession of a key on every request, which an ingress that cannot pass a certificate still allows (K11).",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-jwt",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": true,
+      "frontchannelLogout": false,
+      "rootUrl": "$(env:STEWARD_FAPI_URL:-https://steward.example)",
+      "redirectUris": [
+        "$(env:STEWARD_FAPI_URL:-https://steward.example)/api/auth/oidc/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "steward.fapi": "dpop",
+        "jwt.credential.certificate": "$(env:KLOAKWARE_FAPI_CLIENT_CERTIFICATE)",
+        "token.endpoint.auth.signing.alg": "PS256",
+        "access.token.signed.response.alg": "PS256",
+        "id.token.signed.response.alg": "PS256",
+        "pkce.code.challenge.method": "S256",
+        "require.pushed.authorization.requests": "true",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "dpop.bound.access.tokens": "true",
+        "use.refresh.tokens": "true",
+        "backchannel.logout.url": "$(env:STEWARD_FAPI_URL:-https://steward.example)/api/auth/oidc/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "$(env:STEWARD_FAPI_URL:-https://steward.example)/sign-in",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      },
+      "defaultClientScopes": ["basic", "steward", "profile", "email", "acr"],
+      "optionalClientScopes": [],
+      "fullScopeAllowed": false
     }
   ],
   "authenticationFlows": [
@@ -692,7 +842,7 @@
     },
     {
       "alias": "steward-browser second factor",
-      "description": "OTP when the user has configured one. K5 adds the market-conditioned step here.",
+      "description": "A second factor when the user has one: a passkey (WebAuthn) or an OTP, either; K5's market step is beside this.",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
@@ -705,8 +855,15 @@
           "authenticatorFlow": false
         },
         {
+          "authenticator": "webauthn-authenticator",
+          "requirement": "ALTERNATIVE",
+          "priority": 15,
+          "userSetupAllowed": false,
+          "authenticatorFlow": false
+        },
+        {
           "authenticator": "auth-otp-form",
-          "requirement": "REQUIRED",
+          "requirement": "ALTERNATIVE",
           "priority": 20,
           "userSetupAllowed": false,
           "authenticatorFlow": false
@@ -1092,5 +1249,37 @@
         "syncMode": "FORCE"
       }
     }
-  ]
+  ],
+  "clientPolicies": {
+    "policies": [
+      {
+        "name": "steward-fapi-mtls",
+        "description": "The FAPI 2 Security Profile, holder-of-key through the client certificate, for every client marked steward.fapi=mtls. The profile is Keycloak's own; what is ours is which clients it binds.",
+        "enabled": true,
+        "conditions": [
+          {
+            "condition": "client-attributes",
+            "configuration": {
+              "attributes": "[{\"key\":\"steward.fapi\",\"value\":\"mtls\"}]"
+            }
+          }
+        ],
+        "profiles": ["fapi-2-security-profile"]
+      },
+      {
+        "name": "steward-fapi-dpop",
+        "description": "The FAPI 2 Security Profile with DPoP as the sender constraint, for every client marked steward.fapi=dpop.",
+        "enabled": true,
+        "conditions": [
+          {
+            "condition": "client-attributes",
+            "configuration": {
+              "attributes": "[{\"key\":\"steward.fapi\",\"value\":\"dpop\"}]"
+            }
+          }
+        ],
+        "profiles": ["fapi-2-dpop-security-profile"]
+      }
+    ]
+  }
 }

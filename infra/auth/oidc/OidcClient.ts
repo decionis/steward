@@ -1,4 +1,5 @@
-import { createHash, randomBytes } from "node:crypto";
+import { SignJWT } from "jose";
+import { createHash, createPrivateKey, randomBytes } from "node:crypto";
 import type { OidcConfig } from "@/infra/config/StewardRuntimeConfig";
 import {
   OidcError,
@@ -80,8 +81,8 @@ export class OidcClient {
       code: input.code,
       redirect_uri: input.redirectUri,
       client_id: this.config.clientId,
-      client_secret: this.config.clientSecret,
       code_verifier: input.flow.codeVerifier,
+      ...(await this.clientAuthentication()),
     });
     const response = await this.fetchImpl(token_endpoint, {
       method: "POST",
@@ -119,6 +120,36 @@ export class OidcClient {
       accessToken: payload.access_token,
       claims,
     };
+  }
+
+  /**
+   * How the client proves itself at the token endpoint: the secret, posted,
+   * or a client assertion signed with the private key (private_key_jwt, as
+   * the FAPI profile requires): the client as issuer and subject, the issuer
+   * as audience, a minute to live, PS256 for an RSA key and ES256 for an EC
+   * one, which are the algorithms the profile allows.
+   */
+  private async clientAuthentication(): Promise<Record<string, string>> {
+    if (this.config.clientPrivateKey) {
+      const key = createPrivateKey(this.config.clientPrivateKey);
+      const alg = key.asymmetricKeyType === "ec" ? "ES256" : "PS256";
+      const now = Math.floor(this.clock().getTime() / 1000);
+      const assertion = await new SignJWT({})
+        .setProtectedHeader({ alg, typ: "JWT" })
+        .setIssuer(this.config.clientId)
+        .setSubject(this.config.clientId)
+        .setAudience(this.config.issuerUrl)
+        .setJti(this.random(16).toString("base64url"))
+        .setIssuedAt(now)
+        .setExpirationTime(now + 60)
+        .sign(key);
+      return {
+        client_assertion_type:
+          "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        client_assertion: assertion,
+      };
+    }
+    return { client_secret: this.config.clientSecret ?? "" };
   }
 
   /**

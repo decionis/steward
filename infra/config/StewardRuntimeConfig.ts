@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 
 const RuntimeEnvironmentSchema = z.object({
@@ -28,6 +29,8 @@ const RuntimeEnvironmentSchema = z.object({
   STEWARD_OIDC_ISSUER_URL: z.string().url().optional(),
   STEWARD_OIDC_CLIENT_ID: z.string().min(1).optional(),
   STEWARD_OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+  STEWARD_OIDC_CLIENT_PRIVATE_KEY: z.string().min(1).optional(),
+  STEWARD_OIDC_CLIENT_PRIVATE_KEY_FILE: z.string().min(1).optional(),
   STEWARD_OIDC_SCOPES: z.string().min(1).default("openid profile email"),
   STEWARD_PUBLIC_URL: z.string().url().optional(),
   STEWARD_SESSION_COOKIE: z.string().min(1).default("steward_session"),
@@ -44,7 +47,10 @@ const RuntimeEnvironmentSchema = z.object({
 export interface OidcConfig {
   issuerUrl: string;
   clientId: string;
-  clientSecret: string;
+  /** The client secret, for client_secret_post; null when a private key authenticates instead. */
+  clientSecret: string | null;
+  /** A PKCS#8 PEM private key, for private_key_jwt (the FAPI profile); null when a secret authenticates. */
+  clientPrivateKey: string | null;
   scopes: string;
   /** Steward's origin as the browser and the issuer see it; null derives it from each request. */
   publicUrl: string | null;
@@ -205,11 +211,18 @@ export class StewardRuntimeConfig {
     if (dataMode === "demo") return null;
     const issuerUrl = parsed.STEWARD_OIDC_ISSUER_URL;
     const clientId = parsed.STEWARD_OIDC_CLIENT_ID;
-    const clientSecret = parsed.STEWARD_OIDC_CLIENT_SECRET;
-    if (!issuerUrl && !clientId && !clientSecret) return null;
-    if (!issuerUrl || !clientId || !clientSecret) {
+    const clientSecret = parsed.STEWARD_OIDC_CLIENT_SECRET ?? null;
+    const clientPrivateKey = StewardRuntimeConfig.readPrivateKey(parsed);
+    if (!issuerUrl && !clientId && !clientSecret && !clientPrivateKey)
+      return null;
+    if (!issuerUrl || !clientId || (!clientSecret && !clientPrivateKey)) {
       throw new Error(
-        "STEWARD_OIDC_ISSUER_URL, STEWARD_OIDC_CLIENT_ID and STEWARD_OIDC_CLIENT_SECRET go together; set all three or none",
+        "STEWARD_OIDC_ISSUER_URL, STEWARD_OIDC_CLIENT_ID and one of STEWARD_OIDC_CLIENT_SECRET or STEWARD_OIDC_CLIENT_PRIVATE_KEY(_FILE) go together; set them or none",
+      );
+    }
+    if (clientSecret && clientPrivateKey) {
+      throw new Error(
+        "STEWARD_OIDC_CLIENT_SECRET and STEWARD_OIDC_CLIENT_PRIVATE_KEY(_FILE) are two ways to authenticate the client; set one",
       );
     }
     if (!decionisWorkspace) {
@@ -221,9 +234,26 @@ export class StewardRuntimeConfig {
       issuerUrl: issuerUrl.replace(/\/+$/, ""),
       clientId,
       clientSecret,
+      clientPrivateKey,
       scopes: parsed.STEWARD_OIDC_SCOPES,
       publicUrl: parsed.STEWARD_PUBLIC_URL?.replace(/\/+$/, "") ?? null,
     };
+  }
+
+  /**
+   * The client's private key for private_key_jwt: the PEM itself, or the
+   * path of a mounted file holding it, as a Kubernetes Secret is mounted.
+   */
+  private static readPrivateKey(
+    parsed: z.infer<typeof RuntimeEnvironmentSchema>,
+  ): string | null {
+    if (parsed.STEWARD_OIDC_CLIENT_PRIVATE_KEY) {
+      return parsed.STEWARD_OIDC_CLIENT_PRIVATE_KEY.replace(/\\n/g, "\n");
+    }
+    if (parsed.STEWARD_OIDC_CLIENT_PRIVATE_KEY_FILE) {
+      return readFileSync(parsed.STEWARD_OIDC_CLIENT_PRIVATE_KEY_FILE, "utf8");
+    }
+    return null;
   }
 
   private static readDecionisWorkspace(

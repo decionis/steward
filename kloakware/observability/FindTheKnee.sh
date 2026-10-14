@@ -43,6 +43,13 @@ sample() {
     "$(query 'max(process_cpu_usage)')"
 }
 
+# The edge rate limits (K11) are per source, and this load is one source
+# pretending to be many: the proxy is brought up with them lifted, and put
+# back as the compose file has it when the run ends.
+(cd "$compose" && KLOAKWARE_EDGE_TOKEN_RATE=1000000 KLOAKWARE_EDGE_LOGIN_RATE=1000000 docker compose --env-file .env.example up -d --no-deps --wait kloakware >/dev/null)
+restore_proxy() { (cd "$compose" && docker compose --env-file .env.example up -d --no-deps --wait kloakware >/dev/null); }
+trap restore_proxy EXIT
+
 printf '%-10s %-12s %-12s %-10s %-10s %-10s\n' stage logins/s token-p95 pool-wait waiting cpu > "$run/knee.txt"
 docker run -d --name kloakware-knee --add-host host.docker.internal:host-gateway \
   -v "$here/FindTheKnee.js:/scripts/FindTheKnee.js:ro" -v "$run:/out" \

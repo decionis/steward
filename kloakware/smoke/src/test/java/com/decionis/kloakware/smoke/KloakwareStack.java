@@ -17,6 +17,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -55,6 +56,14 @@ final class KloakwareStack implements AutoCloseable {
       DockerImageName.parse(
           "docker.io/library/haproxy:3.2-alpine@sha256:5d97434a423c2533cfeb42874d45cf6d69a840b60334582dfbfd5008e94c80be");
 
+  /** The certificate maker (K11): the stack's authority, the terminator's and the steward-fapi client's key pairs. */
+  private static final DockerImageName OPENSSL =
+      DockerImageName.parse(
+          "docker.io/alpine/openssl:3.5.9@sha256:e8a2319d15637db5296c0ff540bb028cfabc480b22fcdd4a020582393d32673f");
+  /** The mutual-TLS terminator (K11) in front of the proxy's second entry, as the compose file runs it. */
+  private static final DockerImageName NGINX =
+      DockerImageName.parse(
+          "docker.io/library/nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de");
   /** The collector the nodes trace to, printing what arrives; the observability test reads it. */
   static final DockerImageName OTEL_COLLECTOR =
       DockerImageName.parse(
@@ -72,6 +81,11 @@ final class KloakwareStack implements AutoCloseable {
   private final GenericContainer<?> server;
   private final GenericContainer<?> second;
   private final GenericContainer<?> proxy;
+  private final GenericContainer<?> terminator;
+  /** What the certificate maker produced, read out of its container before the terminator starts. */
+  private Pki pki;
+  /** The kloakware-ci service account's secret in the master realm (K11). */
+  final String ciClientSecret = secret();
   private final AuditReceiver auditReceiver = new AuditReceiver();
 
   private final String databasePassword = secret();
@@ -156,6 +170,9 @@ final class KloakwareStack implements AutoCloseable {
     // a test reaching a mapped port needs. A deployment sets KC_HOSTNAME.
     runtime.put("KC_HOSTNAME_STRICT", "false");
     runtime.put("KC_HTTP_ENABLED", "true");
+    // The proxies say what the client saw: plain http on the proxy's first
+    // entry, https behind the terminator (K11), and the issuer follows.
+    runtime.put("KC_PROXY_HEADERS", "xforwarded");
     // Observability (K10), as the compose file runs it: every trace to the
     // collector, JSON on standard output.
     runtime.put("KC_TRACING_ENDPOINT", "http://otel-collector:4317");
@@ -192,10 +209,73 @@ final class KloakwareStack implements AutoCloseable {
             .withCopyFileToContainer(
                 MountableFile.forHostPath(this.root.resolve("deploy/compose/haproxy/haproxy.cfg")),
                 "/usr/local/etc/haproxy/haproxy.cfg")
+            // The edge rate limits (K11), the compose file's defaults: per
+            // source per ten seconds, the token endpoint and the login post.
+            .withEnv("KLOAKWARE_EDGE_TOKEN_RATE", String.valueOf(EDGE_TOKEN_RATE))
+            .withEnv("KLOAKWARE_EDGE_LOGIN_RATE", String.valueOf(EDGE_LOGIN_RATE))
             .withExposedPorts(8080)
             .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("haproxy"))
             .waitingFor(
                 Wait.forHttp("/haproxy/health").forPort(8080).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(1)));
+
+    // The terminator (K11): nginx verifying the client certificate against
+    // the stack's authority and passing it to the proxy's second entry in the
+    // header the nodes' nginx lookup reads. Its files come from the maker,
+    // once that has run, so they are copied in at start.
+    terminator =
+        new GenericContainer<>(NGINX)
+            .withNetwork(network)
+            .withNetworkAliases("kloakware-mtls")
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/mtls/nginx.conf")),
+                "/etc/nginx/nginx.conf")
+            .withExposedPorts(8443)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("nginx"))
+            .waitingFor(
+                Wait.forHttp("/haproxy/health")
+                    .forPort(8443)
+                    .usingTls()
+                    .allowInsecure()
+                    .forStatusCode(200)
+                    .withStartupTimeout(Duration.ofMinutes(1)));
+  }
+
+  /** The compose file's defaults for the edge limits; the rate-limit test counts against them. */
+  static final int EDGE_TOKEN_RATE = 300;
+
+  static final int EDGE_LOGIN_RATE = 60;
+
+  /**
+   * Runs the certificate maker as the compose file does and reads what it
+   * made: the terminator gets its certificate and key and the authority, the
+   * realm gets the client's certificate, the tests get the client's key.
+   */
+  private void makeCertificates() {
+    try (GenericContainer<?> maker =
+        new GenericContainer<>(OPENSSL)
+            .withNetwork(network)
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/mtls/MakeCerts.sh")),
+                "/mtls/MakeCerts.sh")
+            .withCreateContainerCmdModifier(
+                cmd -> cmd.withEntrypoint("/bin/sh", "/mtls/MakeCerts.sh", "/certs"))
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("mtls"))
+            .withStartupCheckStrategy(
+                new OneShotStartupCheckStrategy().withTimeout(Duration.ofMinutes(2)))) {
+      maker.start();
+      pki =
+          new Pki(
+              maker.copyFileFromContainer("/certs/ca.crt", Pki::read),
+              maker.copyFileFromContainer("/certs/server.crt", Pki::read),
+              maker.copyFileFromContainer("/certs/server.key", Pki::read),
+              maker.copyFileFromContainer("/certs/steward-fapi.crt", Pki::read),
+              maker.copyFileFromContainer("/certs/steward-fapi.key", Pki::read),
+              maker.copyFileFromContainer("/certs/steward-fapi.der.b64", Pki::read));
+    }
+    terminator
+        .withCopyToContainer(Transferable.of(pki.caCertificatePem), "/certs/ca.crt")
+        .withCopyToContainer(Transferable.of(pki.serverCertificatePem), "/certs/server.crt")
+        .withCopyToContainer(Transferable.of(pki.serverKeyPem), "/certs/server.key");
   }
 
   private GenericContainer<?> node(ImageFromDockerfile image, Map<String, String> runtime, String name) {
@@ -218,16 +298,19 @@ final class KloakwareStack implements AutoCloseable {
     bankId.start();
     ldap.start();
     collector.start();
+    makeCertificates();
     server.start();
     // The second node after the first: on an empty database both would race
     // to create the schema, and the loser exits.
     second.start();
     proxy.start();
+    terminator.start();
     // The realms first, with config-cli's defaults: what it created before
     // and no longer finds in the file, it removes. Corp before steward, since
     // steward's brokers point at it. Then the dev overlay, which must not
     // remove the realm's clients it does not mention.
     applyRealm(realmFiles(), Map.of());
+    applyMaster();
     applyDevOverlay();
   }
 
@@ -241,6 +324,36 @@ final class KloakwareStack implements AutoCloseable {
    */
   void reapplyRealm() {
     applyRealm(realmFiles(), Map.of());
+    applyMaster();
+    applyDevOverlay();
+  }
+
+  /**
+   * The master realm's one addition (K11): the kloakware-ci service account,
+   * after the realms since master's per-realm clients exist only once the
+   * realms do, and without deleting what else master holds.
+   */
+  private void applyMaster() {
+    applyRealm(
+        List.of(root.resolve("config/realms/master.json")),
+        Map.of("IMPORT_MANAGED_CLIENT", "no-delete"));
+  }
+
+  /**
+   * The realm files applied as the kloakware-ci service account would apply
+   * them from the promotion pipeline: client credentials against the master
+   * realm, no administrator password anywhere. Throws when it does not
+   * converge.
+   */
+  void applyRealmAsCi() {
+    Map<String, String> login = new HashMap<>();
+    login.put("KEYCLOAK_GRANT_TYPE", "client_credentials");
+    login.put("KEYCLOAK_CLIENT_ID", "kloakware-ci");
+    login.put("KEYCLOAK_CLIENT_SECRET", ciClientSecret);
+    login.put("KEYCLOAK_LOGIN_REALM", "master");
+    applyRealm(realmFiles(), login, false);
+    // The dev overlay again, as the compose file runs it: the pipeline's
+    // apply removed the dev clients the next test classes sign in with.
     applyDevOverlay();
   }
 
@@ -261,12 +374,18 @@ final class KloakwareStack implements AutoCloseable {
   }
 
   private void applyRealm(List<Path> files, Map<String, String> overrides) {
+    applyRealm(files, overrides, true);
+  }
+
+  private void applyRealm(List<Path> files, Map<String, String> overrides, boolean asAdmin) {
     String target =
         files.stream().map(f -> "/config/" + f.getFileName()).collect(Collectors.joining(","));
     Map<String, String> environment = new HashMap<>();
     environment.put("KEYCLOAK_URL", "http://kloakware:8080");
-    environment.put("KEYCLOAK_USER", "admin");
-    environment.put("KEYCLOAK_PASSWORD", adminPassword);
+    if (asAdmin) {
+      environment.put("KEYCLOAK_USER", "admin");
+      environment.put("KEYCLOAK_PASSWORD", adminPassword);
+    }
     environment.put("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true");
     environment.put("KEYCLOAK_AVAILABILITYCHECK_TIMEOUT", "120s");
     environment.put("IMPORT_FILES_LOCATIONS", target);
@@ -288,6 +407,10 @@ final class KloakwareStack implements AutoCloseable {
     environment.put("KLOAKWARE_BROKER_CLIENT_SECRET", brokerClientSecret);
     environment.put("KLOAKWARE_LDAP_BIND_PASSWORD", ldapBindPassword);
     environment.put("STEWARD_DB_PASSWORD", stewardDbPassword);
+    // The financial-grade client's certificate (K11), from the maker, and
+    // the CI service account's secret for the master realm's file.
+    environment.put("KLOAKWARE_FAPI_CLIENT_CERTIFICATE", pki.clientCertificateBase64Der);
+    environment.put("KLOAKWARE_CI_CLIENT_SECRET", ciClientSecret);
     environment.putAll(overrides);
 
     GenericContainer<?> container = new GenericContainer<>(CONFIG_CLI).withNetwork(network);
@@ -311,6 +434,20 @@ final class KloakwareStack implements AutoCloseable {
   /** The cluster as its clients see it: the proxy, round-robin over both nodes. */
   String baseUrl() {
     return "http://" + host() + ":" + proxy.getMappedPort(8080);
+  }
+
+  /** The cluster through the mutual-TLS terminator (K11): https, the client certificate verified. */
+  String mtlsBaseUrl() {
+    return "https://" + host() + ":" + terminator.getMappedPort(8443);
+  }
+
+  String mtlsRealmUrl() {
+    return mtlsBaseUrl() + "/realms/steward";
+  }
+
+  /** The authority, the terminator's and the client's material the maker produced. */
+  Pki pki() {
+    return pki;
   }
 
   /** The first node on its own address; its issuer is that address, so tokens are not for sharing. */
@@ -404,6 +541,7 @@ final class KloakwareStack implements AutoCloseable {
 
   @Override
   public void close() {
+    terminator.stop();
     proxy.stop();
     second.stop();
     server.stop();

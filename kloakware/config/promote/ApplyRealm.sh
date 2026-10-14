@@ -6,9 +6,18 @@
 #
 #   KLOAKWARE_URL                    where kloakware answers (empty: not deployed yet, skip)
 #   STEWARD_URL                      where Steward runs there
-#   KEYCLOAK_USER, KEYCLOAK_PASSWORD the administrator config-cli signs in as
+#   KLOAKWARE_CI_CLIENT_SECRET       the kloakware-ci service account's secret (K11): config-cli
+#                                    signs in with client credentials against the master realm,
+#                                    with the two realms' management roles and nothing of master's
+#   KEYCLOAK_USER, KEYCLOAK_PASSWORD the bootstrap administrator instead, for the first run only:
+#                                    it creates the service account from master.json, and the
+#                                    password goes back to the vault
 #   KLOAKWARE_STEWARD_CLIENT_SECRET  the steward client's secret there
 #   KLOAKWARE_STEWARD_API_SECRET     the steward-api resource server's secret there
+#   KLOAKWARE_FAPI_CLIENT_CERTIFICATE
+#                                    the financial-grade client's certificate from that
+#                                    environment's PKI, DER as base64 on one line (K11)
+#   STEWARD_FAPI_URL                 Steward's https origin for the financial-grade clients' URIs
 #   KLOAKWARE_BANKID_URL             where the BankID Relying Party API answers for that environment
 #   KLOAKWARE_PUBLIC_URL             kloakware as the browser reaches it (the brokers' redirect base)
 #   KLOAKWARE_INTERNAL_URL           kloakware as it reaches itself (the brokers' token and metadata base)
@@ -33,30 +42,59 @@ realms=$(cd "$here/../realms" && pwd)
 # The same image, by digest, as deploy/compose/compose.yaml.
 image="docker.io/adorsys/keycloak-config-cli:6.5.1-26.5.5@sha256:0955d98c8a341898b7aa177477edf8a1e90569ae50bbe7598141c1270b773274"
 
+# As whom: the service account when its secret is given, else the
+# administrator. The master realm's file, which creates the account, needs
+# the administrator; the account cannot manage the realm it lives in.
+login=()
+if [ -n "${KLOAKWARE_CI_CLIENT_SECRET:-}" ]; then
+  login=(-e KEYCLOAK_GRANT_TYPE=client_credentials -e KEYCLOAK_CLIENT_ID=kloakware-ci
+    -e KEYCLOAK_CLIENT_SECRET="$KLOAKWARE_CI_CLIENT_SECRET" -e KEYCLOAK_LOGIN_REALM=master)
+else
+  login=(-e KEYCLOAK_USER -e KEYCLOAK_PASSWORD)
+fi
+
 # host.docker.internal reaches the machine this runs on, for a rehearsal
 # against a laptop or CI stack; a deployment's KLOAKWARE_URL is a real name.
-docker run --rm \
-  --add-host host.docker.internal:host-gateway \
-  -v "$realms/corp.json:/config/corp.json:ro" \
-  -v "$realms/steward.json:/config/steward.json:ro" \
-  -e KEYCLOAK_URL="$KLOAKWARE_URL" \
-  -e KEYCLOAK_USER \
-  -e KEYCLOAK_PASSWORD \
-  -e KEYCLOAK_AVAILABILITYCHECK_ENABLED=true \
-  -e KEYCLOAK_AVAILABILITYCHECK_TIMEOUT=120s \
-  -e IMPORT_FILES_LOCATIONS=/config/corp.json,/config/steward.json \
-  -e IMPORT_VARSUBSTITUTION_ENABLED=true \
-  -e IMPORT_CACHE_ENABLED=false \
-  -e STEWARD_URL \
-  -e KLOAKWARE_STEWARD_CLIENT_SECRET \
-  -e KLOAKWARE_STEWARD_API_SECRET \
-  -e KLOAKWARE_BANKID_URL="${KLOAKWARE_BANKID_URL:-http://bankid:8090}" \
-  -e KLOAKWARE_PUBLIC_URL="${KLOAKWARE_PUBLIC_URL:-$KLOAKWARE_URL}" \
-  -e KLOAKWARE_INTERNAL_URL="${KLOAKWARE_INTERNAL_URL:-$KLOAKWARE_URL}" \
-  -e KLOAKWARE_BROKER_CLIENT_SECRET \
-  -e KLOAKWARE_LDAP_URL="${KLOAKWARE_LDAP_URL:-ldap://ldap:389}" \
-  -e KLOAKWARE_LDAP_BIND_PASSWORD \
-  -e STEWARD_DB_JDBC_URL="${STEWARD_DB_JDBC_URL:-jdbc:postgresql://db:5432/steward}" \
-  -e STEWARD_DB_USER="${STEWARD_DB_USER:-steward}" \
-  -e STEWARD_DB_PASSWORD \
-  "$image"
+apply() {
+  docker run --rm \
+    --add-host host.docker.internal:host-gateway \
+    -v "$realms/corp.json:/config/corp.json:ro" \
+    -v "$realms/steward.json:/config/steward.json:ro" \
+    -v "$realms/master.json:/config/master.json:ro" \
+    -e KEYCLOAK_URL="$KLOAKWARE_URL" \
+    "${login[@]}" \
+    -e KEYCLOAK_AVAILABILITYCHECK_ENABLED=true \
+    -e KEYCLOAK_AVAILABILITYCHECK_TIMEOUT=120s \
+    -e IMPORT_FILES_LOCATIONS="$1" \
+    -e IMPORT_MANAGED_CLIENT="$2" \
+    -e IMPORT_VARSUBSTITUTION_ENABLED=true \
+    -e IMPORT_CACHE_ENABLED=false \
+    -e STEWARD_URL \
+    -e STEWARD_FAPI_URL="${STEWARD_FAPI_URL:-https://steward.example}" \
+    -e KLOAKWARE_STEWARD_CLIENT_SECRET \
+    -e KLOAKWARE_STEWARD_API_SECRET \
+    -e KLOAKWARE_FAPI_CLIENT_CERTIFICATE \
+    -e KLOAKWARE_CI_CLIENT_SECRET \
+    -e KLOAKWARE_BANKID_URL="${KLOAKWARE_BANKID_URL:-http://bankid:8090}" \
+    -e KLOAKWARE_PUBLIC_URL="${KLOAKWARE_PUBLIC_URL:-$KLOAKWARE_URL}" \
+    -e KLOAKWARE_INTERNAL_URL="${KLOAKWARE_INTERNAL_URL:-$KLOAKWARE_URL}" \
+    -e KLOAKWARE_BROKER_CLIENT_SECRET \
+    -e KLOAKWARE_LDAP_URL="${KLOAKWARE_LDAP_URL:-ldap://ldap:389}" \
+    -e KLOAKWARE_LDAP_BIND_PASSWORD \
+    -e STEWARD_DB_JDBC_URL="${STEWARD_DB_JDBC_URL:-jdbc:postgresql://db:5432/steward}" \
+    -e STEWARD_DB_USER="${STEWARD_DB_USER:-steward}" \
+    -e STEWARD_DB_PASSWORD \
+    "$image"
+}
+
+# The realms, fully managed: what the files no longer name is removed.
+apply /config/corp.json,/config/steward.json full
+
+# The master realm's one addition, the service account, as the administrator
+# only, and without touching what else master holds.
+if [ -n "${KEYCLOAK_PASSWORD:-}" ]; then
+  login=(-e KEYCLOAK_USER -e KEYCLOAK_PASSWORD)
+  apply /config/master.json no-delete
+else
+  echo "::notice::applied as the kloakware-ci service account; master.json is the administrator's and was not applied"
+fi

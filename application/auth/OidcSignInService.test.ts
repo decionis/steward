@@ -27,6 +27,7 @@ beforeEach(() => {
         issuerUrl: issuer.issuerUrl,
         clientId: "steward",
         clientSecret: "secret",
+        clientPrivateKey: null,
         scopes: "openid profile email",
         publicUrl: null,
       },
