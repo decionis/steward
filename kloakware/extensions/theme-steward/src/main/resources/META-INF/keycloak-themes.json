@@ -1,0 +1,8 @@
+{
+  "themes": [
+    {
+      "name": "steward",
+      "types": ["login", "email", "account"]
+    }
+  ]
+}

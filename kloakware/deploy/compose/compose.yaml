@@ -9,6 +9,7 @@
 # Realm:         http://localhost:8080/realms/steward
 # Mutual TLS:    https://localhost:8443/realms/steward (the terminator, K11; its CA is in the mtls volume)
 # Legacy agent:  http://localhost:8082/ (the SiteMinder agent stood in, K13: a bearer token in, SM_USER out)
+# Mail:          http://localhost:8025/ (every mail the realm sent, K14)
 # Health:        http://localhost:9000/health/ready
 # Metrics:       http://localhost:9000/metrics
 #
@@ -283,6 +284,17 @@ services:
       - ../../config/realms/corp.json:/config/corp.json:ro
       - ../../config/realms/steward.json:/config/steward.json:ro
       - mtls:/certs:ro
+
+  # The mail sink (K14): every mail the realm sends, kept, and listed at
+  # http://localhost:8025/ for a person or the test. A deployment names its
+  # mail server in KLOAKWARE_SMTP_HOST instead.
+  mail:
+    image: docker.io/library/python:3-alpine@sha256:15de367b7dfee010efaa3072f82cefc560f4544a11f620943d2a4705d04a2a4f
+    command: ["python3", "-I", "/mail/Sink.py"]
+    volumes:
+      - ./mail/Sink.py:/mail/Sink.py:ro
+    ports:
+      - "8025:8025"
 
   # The SiteMinder agent, stood in (K13): the applications that read the
   # agent's headers keep reading them, now set from kloakware's token by this

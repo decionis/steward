@@ -34,7 +34,14 @@ final class Browser {
   }
 
   static HttpResponse<String> get(HttpClient client, String url) throws IOException, InterruptedException {
-    return client.send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.ofString());
+    return get(client, url, Map.of());
+  }
+
+  static HttpResponse<String> get(HttpClient client, String url, Map<String, String> headers)
+      throws IOException, InterruptedException {
+    HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url)).GET();
+    headers.forEach(request::header);
+    return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
   }
 
   static HttpResponse<String> postForm(HttpClient client, String url, Map<String, String> fields)

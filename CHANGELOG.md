@@ -12,6 +12,15 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K14, theming: `extensions/theme-steward`, the login, email and account console themed
+  for Steward as a JAR compiled into the image, extending Keycloak's own `keycloak.v2`, `keycloak`
+  and `keycloak.v3` with a stylesheet, a wordmark and messages in English, Swedish and German,
+  the BankID step's words among them; the realm speaks the three languages, the market sets the
+  user's locale (seeded in the dev overlay, set by the migration command), the mails' subjects and
+  the console's title follow; the theme on the `steward` client, the mail and account themes on
+  the realm; the realm's mail server from the environment with a laptop sink,
+  `deploy/compose/mail/Sink.py`, in the compose stack and the test stack; `ThemeTest`. The guide:
+  `kloakware/docs/Theming.md`, answering Q28 and Q29; every question the plan lists is answered.
 - Kloakware K13, migrating a legacy identity system, SiteMinder as the worked example with an old
   LDAP, an Oracle user store and an in-house SQL table beside it: `kloakware/migration/`, a Java
   command over the admin API that converts the directory's LDIF or the table's CSV into one record

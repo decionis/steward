@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" role="img" aria-label="Steward">
+  <rect x="2" y="8" width="40" height="40" rx="8" fill="#1f4e79"/>
+  <path d="M12 30 l8 8 l14 -16" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="54" y="38" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="700" fill="#1f4e79">Steward</text>
+</svg>

@@ -27,6 +27,20 @@
   "ssoSessionMaxLifespan": 36000,
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "sv", "de"],
+  "defaultLocale": "en",
+  "emailTheme": "steward",
+  "accountTheme": "steward",
+  "smtpServer": {
+    "host": "$(env:KLOAKWARE_SMTP_HOST:-mail)",
+    "port": "$(env:KLOAKWARE_SMTP_PORT:-1025)",
+    "from": "$(env:KLOAKWARE_SMTP_FROM:-no-reply@steward.example)",
+    "fromDisplayName": "Steward",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
   "browserFlow": "steward-browser",
   "webAuthnPolicyRpEntityName": "Kloakware",
   "webAuthnPolicySignatureAlgorithms": ["ES256", "RS256"],
@@ -441,7 +455,8 @@
         "use.refresh.tokens": "true",
         "oauth2.device.authorization.grant.enabled": "false",
         "oidc.ciba.grant.enabled": "false",
-        "client.use.lightweight.access.token.enabled": "true"
+        "client.use.lightweight.access.token.enabled": "true",
+        "login_theme": "steward"
       },
       "defaultClientScopes": [
         "basic",

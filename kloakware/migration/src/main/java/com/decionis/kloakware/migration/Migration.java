@@ -116,6 +116,8 @@ public final class Migration {
     if (user.market() != null) {
       rep.putArray("groups").add("/markets/" + user.market());
       attributes.putArray("market").add(user.market());
+      // The market chooses the language the realm speaks to the user in (K14).
+      attributes.putArray("locale").add(localeFor(user.market()));
     }
     ObjectNode credential = rep.putArray("credentials").addObject();
     credential.put("type", "password");
@@ -129,6 +131,15 @@ public final class Migration {
     secretData.put("salt", user.password().salt());
     credential.put("secretData", Export.JSON.writeValueAsString(secretData));
     return rep;
+  }
+
+  /** The language a market's users are addressed in: Swedish in Sweden, German in Germany, English elsewhere. */
+  static String localeFor(String market) {
+    return switch (market.toUpperCase(Locale.ROOT)) {
+      case "SE" -> "sv";
+      case "DE" -> "de";
+      default -> "en";
+    };
   }
 
   /** Every imported user, by the source attribute, with whether the legacy hash is still what they sign in with. */
