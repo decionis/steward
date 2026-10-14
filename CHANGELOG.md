@@ -12,6 +12,11 @@ you integrate against these types.
 
 ### Added
 
+- The kloakware plan gains two workstreams after the brief's scope: K13, theming (a `steward` login
+  theme compiled into the image, three languages, the BankID template moved into it) and K14,
+  migrating a legacy system (a Java command importing a legacy export with its hashes through the
+  partial import, the first sign-in rehashing, the cutover and rollback runbook), with questions
+  Q28 to Q31; the aggregate lists them as pending.
 - Kloakware K12, the interview guide: `kloakware/docs/InterviewGuide.md`, a one-page summary of
   the twelve steps with their pull requests and the numbers worth remembering, the brief's
   strategy comparison with the step that evidences each senior-column claim and four rows the
