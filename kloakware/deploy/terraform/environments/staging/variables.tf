@@ -56,7 +56,7 @@ variable "acme_email" {
 }
 
 variable "realm_secrets" {
-  description = "The secrets the realm files take as $(env:...): KLOAKWARE_STEWARD_CLIENT_SECRET, KLOAKWARE_STEWARD_API_SECRET, KLOAKWARE_BROKER_CLIENT_SECRET, KLOAKWARE_LDAP_BIND_PASSWORD, STEWARD_DB_PASSWORD. From the GitHub environment's secret, as a JSON map."
+  description = "The secrets the realm files take as $(env:...): KLOAKWARE_STEWARD_CLIENT_SECRET, KLOAKWARE_STEWARD_API_SECRET, KLOAKWARE_BROKER_CLIENT_SECRET, KLOAKWARE_LDAP_BIND_PASSWORD, STEWARD_DB_PASSWORD, and KLOAKWARE_FAPI_CLIENT_CERTIFICATE, the financial-grade client's certificate from the deployment's PKI as base64 DER (K11). From the GitHub environment's secret, as a JSON map."
   type        = map(string)
   sensitive   = true
 }

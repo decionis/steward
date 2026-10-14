@@ -46,7 +46,10 @@ export class OidcSignInService {
     private readonly options: OidcSignInOptions,
   ) {
     this.clock = options.clock ?? (() => new Date());
-    this.flows = new OidcFlowCookie(client.config.clientSecret, this.clock);
+    this.flows = new OidcFlowCookie(
+      client.config.clientSecret ?? client.config.clientPrivateKey ?? "",
+      this.clock,
+    );
   }
 
   static redirectUri(origin: string): string {

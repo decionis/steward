@@ -104,6 +104,10 @@ jobs:
           docker compose --env-file .env.example up --build --wait --wait-timeout 600
           docker wait "$(docker compose --env-file .env.example ps -aq config-dev)"
           set -a; . ./.env.example; set +a
+          # The financial-grade client's certificate (K11), as the maker put
+          # it in the mtls volume; a deployment's comes from its PKI.
+          KLOAKWARE_FAPI_CLIENT_CERTIFICATE="$(docker compose --env-file .env.example run --rm -T --no-deps --entrypoint cat certs /certs/steward-fapi.der.b64)"
+          export KLOAKWARE_FAPI_CLIENT_CERTIFICATE
           for environment in dev qa; do
             echo "::group::promote to $environment"
             KLOAKWARE_URL=http://host.docker.internal:8080 KEYCLOAK_USER=admin \

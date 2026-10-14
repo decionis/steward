@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { OidcConfig } from "@/infra/config/StewardRuntimeConfig";
+import { exportPKCS8, generateKeyPair } from "jose";
 import { FakeIssuer } from "./FakeIssuer";
 import { OidcClient } from "./OidcClient";
 import { OidcError } from "./OidcProvider";
@@ -20,6 +21,7 @@ function client(overrides: Partial<OidcConfig> = {}) {
     issuerUrl: issuer.issuerUrl,
     clientId: "steward",
     clientSecret: "secret-1",
+    clientPrivateKey: null,
     scopes: "openid profile email",
     publicUrl: null,
     ...overrides,
@@ -128,5 +130,56 @@ describe("OidcClient — the code exchange", () => {
       "https://steward.example/sign-in",
     );
     expect(url.searchParams.get("id_token_hint")).toBe("id.tok.en");
+  });
+});
+
+describe("private_key_jwt, the FAPI profile's client authentication", () => {
+  it("signs a client assertion with the private key instead of posting a secret", async () => {
+    const { privateKey, publicKey } = await generateKeyPair("PS256", {
+      extractable: true,
+    });
+    issuer.trustClientKey(publicKey);
+    const pem = (await exportPKCS8(privateKey)).trim();
+    const oidc = client({ clientSecret: null, clientPrivateKey: pem });
+    const { flow } = await oidc.beginSignIn({
+      redirectUri: REDIRECT,
+      returnTo: "/",
+    });
+    const code = issuer.issueCode({ nonce: flow.nonce, sub: "u-1" });
+    const tokens = await oidc.completeSignIn({
+      code,
+      redirectUri: REDIRECT,
+      flow,
+    });
+    expect(tokens.claims.sub).toBe("u-1");
+    const request = issuer.tokenRequests.at(-1)!;
+    expect(request.get("client_secret")).toBeNull();
+    expect(request.get("client_assertion_type")).toBe(
+      "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    );
+    const assertion = issuer.clientAssertions.at(-1)!;
+    expect(assertion.iss).toBe("steward");
+    expect(assertion.sub).toBe("steward");
+    expect(assertion.aud).toBe(issuer.issuerUrl);
+    expect(typeof assertion.jti).toBe("string");
+    expect((assertion.exp ?? 0) - (assertion.iat ?? 0)).toBe(60);
+  });
+
+  it("is refused when the assertion is signed with a key the issuer does not trust", async () => {
+    const trusted = await generateKeyPair("PS256", { extractable: true });
+    issuer.trustClientKey(trusted.publicKey);
+    const other = await generateKeyPair("PS256", { extractable: true });
+    const oidc = client({
+      clientSecret: null,
+      clientPrivateKey: (await exportPKCS8(other.privateKey)).trim(),
+    });
+    const { flow } = await oidc.beginSignIn({
+      redirectUri: REDIRECT,
+      returnTo: "/",
+    });
+    const code = issuer.issueCode({ nonce: flow.nonce, sub: "u-2" });
+    await expect(
+      oidc.completeSignIn({ code, redirectUri: REDIRECT, flow }),
+    ).rejects.toBeInstanceOf(OidcError);
   });
 });

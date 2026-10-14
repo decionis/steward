@@ -60,6 +60,11 @@ ENV KC_TRACING_SAMPLER_TYPE=parentbased_traceidratio
 # and on AKS. The Operator switches this to the kubernetes stack where it runs.
 ENV KC_CACHE=ispn
 ENV KC_CACHE_STACK=jdbc-ping
+# The client certificate a sender-constrained token is bound to arrives
+# from the nginx that terminated mutual TLS, in a header (K11). The provider
+# is chosen here; the header's name and the trust in the proxy's
+# verification are run-time options below.
+ENV KC_SPI_X509CERT_LOOKUP__PROVIDER=nginx
 
 # The extensions, compiled in: Keycloak's build wires providers it finds here.
 COPY --from=extensions /providers/ /opt/keycloak/providers/
@@ -92,6 +97,12 @@ ENV KC_EVENT_METRICS_USER_TAGS=realm,clientId,idp
 ENV KC_HTTP_METRICS_HISTOGRAMS_ENABLED=true
 ENV KC_HTTP_METRICS_SLOS=5,10,25,50,100,250,500,1000,2500,5000
 ENV KC_CACHE_METRICS_HISTOGRAMS_ENABLED=true
+# The mutual-TLS terminator's header (K11): nginx verified the certificate
+# against its authority and passes it URL-encoded; the plain entry strips
+# the header, so nothing unverified arrives under this name.
+ENV KC_SPI_X509CERT_LOOKUP__PROVIDER=nginx
+ENV KC_SPI_X509CERT_LOOKUP__NGINX__SSL_CLIENT_CERT=ssl-client-cert
+ENV KC_SPI_X509CERT_LOOKUP__NGINX__TRUST_PROXY_VERIFICATION=true
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 CMD ["start", "--optimized"]

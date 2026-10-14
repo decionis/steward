@@ -37,7 +37,9 @@ set -a
 . "$compose/.env.example"
 set +a
 
-dc() { (cd "$compose" && STEWARD_URL=http://host.docker.internal:3000 docker compose --env-file .env.example "$@"); }
+# The edge rate limits (K11) are per source, and the load here is one
+# source pretending to be many: lifted for the rehearsal's proxy.
+dc() { (cd "$compose" && STEWARD_URL=http://host.docker.internal:3000 KLOAKWARE_EDGE_TOKEN_RATE=1000000 KLOAKWARE_EDGE_LOGIN_RATE=1000000 docker compose --env-file .env.example "$@"); }
 
 build() {
   log "Building $1 on $2"

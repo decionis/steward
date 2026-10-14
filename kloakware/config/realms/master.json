@@ -1,0 +1,72 @@
+{
+  "realm": "master",
+  "clients": [
+    {
+      "clientId": "kloakware-ci",
+      "name": "Kloakware CI",
+      "description": "The promotion pipeline's service account (K11): client credentials, no browser flow, and only the steward and corp realms' management roles, never master's admin. Made once by the bootstrap administrator.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "$(env:KLOAKWARE_CI_CLIENT_SECRET)",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["basic"],
+      "optionalClientScopes": [],
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-kloakware-ci",
+      "serviceAccountClientId": "kloakware-ci",
+      "enabled": true,
+      "clientRoles": {
+        "steward-realm": [
+          "manage-realm",
+          "manage-clients",
+          "manage-users",
+          "manage-authorization",
+          "manage-identity-providers",
+          "manage-events",
+          "create-client",
+          "view-realm",
+          "view-clients",
+          "view-users",
+          "view-authorization",
+          "view-identity-providers",
+          "view-events",
+          "query-clients",
+          "query-users",
+          "query-groups"
+        ],
+        "corp-realm": [
+          "manage-realm",
+          "manage-clients",
+          "manage-users",
+          "manage-authorization",
+          "manage-identity-providers",
+          "manage-events",
+          "create-client",
+          "view-realm",
+          "view-clients",
+          "view-users",
+          "view-authorization",
+          "view-identity-providers",
+          "view-events",
+          "query-clients",
+          "query-users",
+          "query-groups"
+        ]
+      }
+    }
+  ]
+}

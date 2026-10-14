@@ -12,6 +12,22 @@ you integrate against these types.
 
 ### Added
 
+- Kloakware K11, security: the FAPI 2 Security Profile bound by two client policies to
+  `steward-fapi` (the token bound to the client certificate) and `steward-fapi-dpop` (bound to a key
+  the client proves), both authenticating with `private_key_jwt` through a certificate registered
+  on the client, pushed authorisation requests, PKCE S256, https URIs and consent; the realm's keys
+  as code with the PS256 key the profile needs beside the four Keycloak made; a mutual-TLS
+  terminator (nginx, 8443) in the laptop stack and the test stack, passing the verified certificate
+  to HAProxy's second entry while the plain entry strips the header; rate limits at the edge for the
+  token endpoint and the login post, per source per ten seconds, lifted by the load scripts;
+  WebAuthn as an alternative to the OTP in the second-factor subflow with the realm's WebAuthn
+  policy; the `kloakware-ci` service account in the master realm with the two realms' management
+  roles and nothing of master's, which `ApplyRealm.sh` signs in as; Steward's OIDC client signs a
+  client assertion when given `STEWARD_OIDC_CLIENT_PRIVATE_KEY` or `_FILE` instead of the secret;
+  `FinancialGradeTest`, `RevocationTest` (revoke, end the session, introspect inside the five
+  minutes, backchannel logout, logout-all), `EdgeRateLimitTest`, `PasskeySecondFactorTest` and
+  `ServiceAccountAdminTest`. The guide: `kloakware/docs/Security.md`, answering Q4, Q26, Q27 and
+  Q5 again.
 - Kloakware K10, observability: tracing and the user-event metrics compiled into the image, with
   HTTP and cache histograms, the event tags `realm,clientId,idp`, and JSON logs at run time; the
   laptop stack gains an OpenTelemetry collector the nodes trace to, Prometheus scraping both

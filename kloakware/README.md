@@ -18,7 +18,7 @@ kloakware/
   deploy/compose/bankid/    the BankID Relying Party API in shape only, for the second factor on a laptop
   deploy/compose/ldap/      OpenLDAP from Debian's slapd, seeded at start: the directory the ldap federation reads (K6)
   deploy/compose/steward-db/ Steward's own database stood in beside kloakware's, one local account seeded, for the user storage (K6)
-  config/realms/            the steward realm, as keycloak-config-cli applies it: policies, roles, markets, scopes, flows, storages, brokers; and corp, the corporate identity provider stood in (K6)
+  config/realms/            the steward realm, as keycloak-config-cli applies it: policies, roles, markets, scopes, flows, storages, brokers, keys, the financial-grade clients and their client policies (K11); corp, the corporate identity provider stood in (K6); master's one addition, the kloakware-ci service account (K11)
   config/realms/dev/        the dev overlay: the seeded operators, the smoke client, Corp's people; laptop and CI only
   config/terraform/         the market realms, one per entry in `markets`, through the Keycloak provider
   config/drift/             the drift check: apply, change by hand, detect, converge
@@ -27,8 +27,9 @@ kloakware/
   upgrade/                  the upgrade runbook rehearsed (K9): a patch rolled under k6 load with the proxy draining, a minor recreated with the schema migrated, the manual SQL export, the rollback
   deploy/terraform/         the platforms as code (K8): a module per cloud with one output contract, the kloakware module on either, an environment per stage, the bootstrap applied once
   deploy/compose/           PostgreSQL, two kloakware nodes behind HAProxy, config-cli: the stack on a laptop (K7)
-  deploy/compose/haproxy/   the entry on 8080: round-robin over the nodes, no stickiness, health on each node's management port
-  smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser, the cluster of two
+  deploy/compose/haproxy/   the entry on 8080: round-robin over the nodes, no stickiness, health on each node's management port; the rate limits at the edge and the second entry the terminator uses (K11)
+  deploy/compose/mtls/      the mutual-TLS terminator on 8443 and the certificate maker: the stack's authority, nginx's and the steward-fapi client's key pairs (K11)
+  smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser, the cluster of two, the financial-grade profile with its refusals, the revocation runbook, the edge limits, the passkey step and the CI account (K11)
   docs/                     one guide per Keycloak concept, each ending in the interview questions it answers; InterviewQuestions.md aggregates them all
   ../test/e2e/              Steward signing in through this stack, end to end (K3), run by the sign-in job
 ```
@@ -40,8 +41,10 @@ cd kloakware/deploy/compose && cp .env.example .env && docker compose up --build
 ```
 
 The admin console is at `http://localhost:8080/admin`, the realm at
-`http://localhost:8080/realms/steward`, health at `http://localhost:9000/health/ready` and metrics
-at `http://localhost:9000/metrics`. The bootstrap admin and the seeded operator, `erin.example`,
+`http://localhost:8080/realms/steward`, the same realm behind the mutual-TLS terminator at
+`https://localhost:8443/realms/steward` (its authority and the `steward-fapi` client's certificate
+are in the `mtls` volume), health at `http://localhost:9000/health/ready` and metrics at
+`http://localhost:9000/metrics`. The bootstrap admin and the seeded operator, `erin.example`,
 take their passwords from `.env`; the values in `.env.example` are for a laptop and nothing else.
 The realm's `steward` client is the one Steward will sign in through from K3; its redirect and
 logout URIs are built from `STEWARD_URL`.

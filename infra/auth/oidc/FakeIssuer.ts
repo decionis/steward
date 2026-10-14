@@ -1,5 +1,7 @@
+import type { KeyObject } from "node:crypto";
 import {
   SignJWT,
+  jwtVerify,
   exportJWK,
   generateKeyPair,
   type CryptoKey,
@@ -37,11 +39,21 @@ export class FakeIssuer {
   >();
   private sequence = 0;
 
+  /** The client's public key, when the client authenticates with private_key_jwt instead of a secret. */
+  private clientKey: CryptoKey | KeyObject | null = null;
+  /** The client assertions the token endpoint accepted, decoded. */
+  readonly clientAssertions: JWTPayload[] = [];
+
   private constructor(
     readonly issuerUrl: string,
     readonly clientId: string,
   ) {
     this.fetch = (input, init) => this.handle(input, init);
+  }
+
+  /** Trusts this public key for client assertions, as a registered JWKS would. */
+  trustClientKey(publicKey: CryptoKey | KeyObject): void {
+    this.clientKey = publicKey;
   }
 
   static async create(
@@ -178,7 +190,7 @@ export class FakeIssuer {
         !code ||
         form.get("grant_type") !== "authorization_code" ||
         form.get("client_id") !== this.clientId ||
-        !form.get("client_secret") ||
+        !(await this.clientAuthenticated(form)) ||
         !form.get("code_verifier")
       ) {
         return json(
@@ -201,6 +213,36 @@ export class FakeIssuer {
       });
     }
     return json({ error: "not_found" }, 404);
+  }
+
+  /**
+   * A secret, or a client assertion that verifies against the trusted key
+   * and names the client as issuer and subject and this issuer (or its
+   * token endpoint) as audience, with PS256 or ES256 as the FAPI profile
+   * requires.
+   */
+  private async clientAuthenticated(form: URLSearchParams): Promise<boolean> {
+    const assertion = form.get("client_assertion");
+    if (!assertion) return Boolean(form.get("client_secret"));
+    if (
+      form.get("client_assertion_type") !==
+        "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" ||
+      !this.clientKey
+    ) {
+      return false;
+    }
+    try {
+      const { payload } = await jwtVerify(assertion, this.clientKey, {
+        issuer: this.clientId,
+        subject: this.clientId,
+        audience: [this.issuerUrl, this.metadata.token_endpoint],
+        algorithms: ["PS256", "ES256"],
+      });
+      this.clientAssertions.push(payload);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
