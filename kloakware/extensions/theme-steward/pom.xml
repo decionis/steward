@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The steward theme (K14): the login, email and account console themed for
+  Steward, as a JAR Keycloak reads from providers/ like the extensions. It
+  extends Keycloak's own themes rather than copying their templates, so a
+  release's template changes arrive with the release: a stylesheet, a logo,
+  the messages in English, Swedish and German, and the BankID step's words.
+  Resources only; no Java.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.decionis.kloakware</groupId>
+    <artifactId>kloakware</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>kloakware-theme-steward</artifactId>
+  <name>Kloakware: the steward theme</name>
+
+  <build>
+    <finalName>kloakware-theme-steward</finalName>
+  </build>
+</project>

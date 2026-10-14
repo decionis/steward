@@ -388,7 +388,7 @@ that evidences the senior column; a sixty-second story per topic; a mock-intervi
 one-page summary of what was built. No code. The full answers stay in the generated
 `InterviewQuestions.md` (K10); the guide is the map over them, in one line per question.
 
-#### K13 — Migrating a legacy identity system
+#### K13 — Migrating a legacy identity system ✅ Done, [#139](https://github.com/decionis/steward/pull/139)
 
 The legacy identity system being migrated away from is a SiteMinder, by default, with the strategies
 for an old LDAP, an Oracle user store and an in-house SQL table beside it: where identities and

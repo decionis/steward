@@ -26,5 +26,6 @@
     <module>authenticator-market-mfa</module>
     <module>password-hash-legacy</module>
     <module>user-storage-steward</module>
+    <module>theme-steward</module>
   </modules>
 </project>

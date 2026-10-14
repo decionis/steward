@@ -82,6 +82,8 @@ final class KloakwareStack implements AutoCloseable {
   private final GenericContainer<?> second;
   private final GenericContainer<?> proxy;
   private final GenericContainer<?> terminator;
+  /** The mail sink (K14): the realm's mails, kept and listed. */
+  private final GenericContainer<?> mail;
   /** The SiteMinder agent stood in (K13): started once the realm is applied, since it fetches the realm's key. */
   private GenericContainer<?> agent;
   /** What the certificate maker produced, read out of its container before the terminator starts. */
@@ -143,6 +145,17 @@ final class KloakwareStack implements AutoCloseable {
             .withCommand("python3", "-I", "/sim/Simulator.py")
             .withExposedPorts(8090)
             .waitingFor(Wait.forLogMessage(".*bankid simulator listening.*\\n", 1));
+
+    mail =
+        new GenericContainer<>(PYTHON)
+            .withNetwork(network)
+            .withNetworkAliases("mail")
+            .withCopyFileToContainer(
+                MountableFile.forHostPath(this.root.resolve("deploy/compose/mail/Sink.py")), "/mail/Sink.py")
+            .withCommand("python3", "-I", "/mail/Sink.py")
+            .withExposedPorts(8025)
+            .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("mail"))
+            .waitingFor(Wait.forHttp("/").forPort(8025).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(1)));
 
     collector =
         new GenericContainer<>(OTEL_COLLECTOR)
@@ -302,6 +315,7 @@ final class KloakwareStack implements AutoCloseable {
     bankId.start();
     ldap.start();
     collector.start();
+    mail.start();
     makeCertificates();
     server.start();
     // The second node after the first: on an empty database both would race
@@ -343,6 +357,11 @@ final class KloakwareStack implements AutoCloseable {
             .waitingFor(
                 Wait.forHttp("/agent/health").forPort(8082).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(2)));
     agent.start();
+  }
+
+  /** The mail sink's listing: every mail the realm sent, as JSON. */
+  String mailBaseUrl() {
+    return "http://" + host() + ":" + mail.getMappedPort(8025);
   }
 
   /** The kloakware directory, for the fixtures the migration test reads. */
@@ -589,6 +608,7 @@ final class KloakwareStack implements AutoCloseable {
     second.stop();
     server.stop();
     collector.stop();
+    mail.stop();
     ldap.stop();
     bankId.stop();
     database.stop();

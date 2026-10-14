@@ -125,7 +125,8 @@
         }
       ],
       "attributes": {
-        "personalNumber": ["199001011234"]
+        "personalNumber": ["199001011234"],
+        "locale": ["sv"]
       }
     },
     {
@@ -144,7 +145,10 @@
           "credentialData": "{\"hashIterations\": 1, \"algorithm\": \"legacy-sha256\"}",
           "temporary": false
         }
-      ]
+      ],
+      "attributes": {
+        "locale": ["de"]
+      }
     }
   ]
 }

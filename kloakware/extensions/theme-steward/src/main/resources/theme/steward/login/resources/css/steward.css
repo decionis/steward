@@ -1,0 +1,31 @@
+/* Steward on top of keycloak.v2: the brand colour through PatternFly's
+   tokens, the wordmark where the realm's name went, and nothing else that a
+   PatternFly upgrade could move. */
+:root {
+  --pf-v5-global--primary-color--100: #1f4e79;
+  --pf-v5-global--primary-color--200: #163a5a;
+  --pf-v5-global--link--Color: #1f4e79;
+  --pf-v5-global--BackgroundColor--100: #ffffff;
+}
+
+.login-pf body {
+  background: #f3f6f9;
+}
+
+#kc-header-wrapper {
+  background: url("../img/steward-logo.svg") no-repeat center;
+  background-size: contain;
+  height: 56px;
+  margin: 24px auto 8px;
+  width: 220px;
+  text-indent: -9999px;
+  overflow: hidden;
+}
+
+.pf-v5-c-login__main {
+  border-top: 4px solid #1f4e79;
+}
+
+#kc-bankid-instruction {
+  font-size: 1.05rem;
+}

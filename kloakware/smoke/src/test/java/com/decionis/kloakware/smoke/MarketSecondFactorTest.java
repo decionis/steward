@@ -57,12 +57,13 @@ class MarketSecondFactorTest {
     credentials.put("credentialId", "");
     HttpResponse<String> bankId = postForm(browser, loginAction, credentials);
     assertEquals(200, bankId.statusCode(), "the BankID page, not a redirect: " + bankId.statusCode());
-    assertTrue(bankId.body().contains("Confirm in BankID"), "the BankID page");
+    // In the language the user's market speaks (K14): Swedish for sven; the step's ids are the stable part.
+    assertTrue(bankId.body().contains("kc-bankid-form"), "the BankID page");
     assertTrue(bankId.body().contains("kc-bankid-continue"), "with its continue button");
 
     HttpResponse<String> pending = postForm(browser, action(bankId.body()), Map.of("continue", "1"));
     assertEquals(200, pending.statusCode(), "still pending on the first collect");
-    assertTrue(pending.body().contains("has not confirmed yet"), pending.body().substring(0, Math.min(400, pending.body().length())));
+    assertTrue(pending.body().contains("kc-bankid-continue"), "still the BankID page: " + pending.body().substring(0, Math.min(400, pending.body().length())));
 
     HttpResponse<String> done = postForm(browser, action(pending.body()), Map.of("continue", "1"));
     assertEquals(302, done.statusCode(), "complete on the second collect: " + done.body());

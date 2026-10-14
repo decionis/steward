@@ -721,9 +721,58 @@ _Evidence in this repository:_ `kloakware/config/realms/master.json`; the two mo
 `kloakware/config/promote/ApplyRealm.sh`; the admin events in
 `kloakware/config/realms/steward.json`; `ServiceAccountAdminTest`.
 
-### Q28. _Not yet answered: Theming, K14._
+### Q28. "How do you brand and localise the login for several markets without forking Keycloak's templates, and what does an upgrade do to a theme?"
 
-### Q29. _Not yet answered: Theming, K14._
+_Answered in [Theming](Theming.md)._
+
+Extend, never copy: a theme whose parent is Keycloak's own login theme, with a stylesheet, a
+logo and message files, and nothing of the templates; then let the market choose the language
+through the user's locale attribute.
+
+A Keycloak theme resolves through its parents, so a theme that names `keycloak.v2` as its parent
+and ships only `css/steward.css`, a wordmark and `messages_<locale>.properties` gets every
+template, every class name and every one of the parent's forty translations for free, and overrides
+exactly the strings that carry the brand: the title, and the words of the custom steps. Branding
+reaches in through PatternFly's CSS custom properties and the one header id the template has kept
+across releases, which is the surface that survives upgrades. Localising for markets is three
+things: the realm's supported locales with the theme's `locales=` narrowing the switcher, the
+custom extensions' messages translated in the theme so an authenticator's words follow the
+language, and the user's `locale` attribute set from the market at import or sync, which
+Keycloak applies the moment the user is known, so the second factor and the mails are in the
+market's language whatever the browser said. An upgrade changes templates, not tokens and keys:
+a theme that only extends needs no work on a minor and the container test on the next release
+says so, while a theme that copied a template is a fork to carry and the reason to override as
+little as the step allows.
+
+_Evidence in this repository:_ `extensions/theme-steward/` with its three `theme.properties`;
+`internationalizationEnabled` and the locales in `config/realms/steward.json`; the `locale` seeded
+in the dev overlay and set by the migration; `ThemeTest`.
+
+### Q29. "FreeMarker themes or Keycloakify, and a theme per client or per realm: when do you pick which?"
+
+_Answered in [Theming](Theming.md)._
+
+FreeMarker by extension for a login that is a form and a second factor; Keycloakify when the login
+is a product surface that must share the product's components; the theme on the client when a
+realm serves more than one application, on the realm for mails and the console.
+
+The extending FreeMarker theme costs a stylesheet and message files, follows the parent's
+templates through every release for free, and needs no build beyond a JAR of resources; its limit
+is behaviour, since a template renders what the step hands it and no more. Keycloakify gives the
+login React, typed props per step, the product's design system and whatever behaviour a component
+can carry, at the price of a build, a dependency that tracks each Keycloak release, and a theme
+that no longer inherits the parent's changes. The choice is about who owns the login: an access
+service dresses it, a product designs it. Per client or per realm is about who the page belongs
+to: a realm's login theme covers every client, the consoles' sign-in included, so a realm that
+serves several applications sets the theme on each client and leaves the realm on Keycloak's own,
+which keeps the administrators' pages recognisably Keycloak's; mails and the account console are
+the user's rather than a client's, so their themes are the realm's. Kloakware does exactly that:
+the `steward` client wears the theme, the legacy dashboard does not, and the realm's email and
+account themes are Steward's.
+
+_Evidence in this repository:_ `login_theme` on the `steward` client and `emailTheme` and
+`accountTheme` on the realm in `config/realms/steward.json`; the legacy dashboard's page in
+`ThemeTest`; the Keycloakify paragraph in this guide.
 
 ### Q30. "You inherit two million users in a legacy system with its own password hashing. Walk me through moving them to Keycloak with no password reset."
 

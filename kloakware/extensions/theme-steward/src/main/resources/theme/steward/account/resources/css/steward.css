@@ -1,0 +1,6 @@
+/* Steward's colour through PatternFly's tokens; the console's own layout untouched. */
+:root {
+  --pf-v5-global--primary-color--100: #1f4e79;
+  --pf-v5-global--primary-color--200: #163a5a;
+  --pf-v5-global--link--Color: #1f4e79;
+}
