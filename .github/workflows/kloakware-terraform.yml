@@ -86,6 +86,11 @@ jobs:
           tflint_version: v0.64.0
 
       - name: tflint
+        # The rulesets are GitHub releases; unauthenticated, their download
+        # shares the runner's rate limit and fails on a busy day. The job's
+        # own token lifts it.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tflint --init
           tflint --recursive --format compact
