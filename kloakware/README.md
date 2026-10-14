@@ -30,7 +30,7 @@ kloakware/
   deploy/compose/haproxy/   the entry on 8080: round-robin over the nodes, no stickiness, health on each node's management port; the rate limits at the edge and the second entry the terminator uses (K11)
   deploy/compose/mtls/      the mutual-TLS terminator on 8443 and the certificate maker: the stack's authority, nginx's and the steward-fapi client's key pairs (K11)
   smoke/                    the tests: the image and the realm, the browser sign-in with PKCE, convergence after a hand change, the storages and the brokers driven as a browser, the cluster of two, the financial-grade profile with its refusals, the revocation runbook, the edge limits, the passkey step and the CI account (K11)
-  docs/                     one guide per Keycloak concept, each ending in the interview questions it answers; InterviewQuestions.md aggregates them all
+  docs/                     one guide per Keycloak concept, each ending in the interview questions it answers; InterviewQuestions.md aggregates them all; InterviewGuide.md is the map: the summary, the strategy comparison, one line per question, the stories and the mock interview (K12)
   ../test/e2e/              Steward signing in through this stack, end to end (K3), run by the sign-in job
 ```
 
