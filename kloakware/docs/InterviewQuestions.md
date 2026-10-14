@@ -674,7 +674,7 @@ _Evidence in this repository:_ `steward-fapi` with `tls.client.certificate.bound
 `cnf.x5t#S256` and `cnf.jkt` claims and the refusals in `FinancialGradeTest`; the proof built in
 `smoke/.../Jws.java`.
 
-### Q27. "How do you keep the admin API, and the services accounts that automate it, least privilege?"
+### Q27. "How do you keep the admin API, and the service accounts that automate it, least privilege?"
 
 _Answered in [Security](Security.md)._
 
